@@ -1,0 +1,87 @@
+.edit-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 32px 0;
+  border-bottom: 1px solid var(--dark-border);
+}
+
+.edit-tab {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 10px 14px;
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.edit-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.edit-panel {
+  display: none;
+  padding: 28px 32px 32px;
+}
+
+.edit-panel.active {
+  display: block;
+}
+
+.existing-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dark-border);
+}
+
+.existing-item span {
+  flex: 1;
+  color: var(--dark-text);
+  font-size: 14px;
+}
+
+.edit-panel input,
+.edit-panel select,
+.edit-panel textarea {
+  padding: 11px 13px;
+  border: 1px solid var(--dark-border);
+  border-radius: 7px;
+  background-color: #1a1d24;
+  color: var(--dark-text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.edit-panel input:focus,
+.edit-panel select:focus,
+.edit-panel textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.edit-panel label {
+  color: var(--dark-text);
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.edit-panel .field {
+  margin-bottom: 16px;
+}
+
+.dynamic-row select,
+.dynamic-row input {
+  padding: 8px 10px;
+  border: 1px solid var(--dark-border);
+  border-radius: 6px;
+  background-color: #1a1d24;
+  color: var(--dark-text);
+  font-size: 13px;
+}

@@ -1,0 +1,49 @@
+.onboarding-body {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.onboarding-body .field textarea,
+.onboarding-body .field input {
+  padding: 11px 13px;
+  border: 1px solid var(--dark-border);
+  border-radius: 7px;
+  background-color: #1a1d24;
+  color: var(--dark-text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.onboarding-body .field label {
+  color: var(--dark-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dynamic-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.dynamic-row input,
+.dynamic-row select {
+  padding: 8px 10px;
+  border: 1px solid var(--dark-border);
+  border-radius: 6px;
+  background-color: #1a1d24;
+  color: var(--dark-text);
+  font-size: 13px;
+}
+
+.remove-row {
+  background: none;
+  border: none;
+  color: #ff6b6b;
+  font-size: 18px;
+  cursor: pointer;
+}

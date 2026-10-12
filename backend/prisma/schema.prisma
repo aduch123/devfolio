@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  username           String    @unique
+  passwordHash       String
+  onboardingComplete Boolean   @default(false)
+  shareToken         String?   @unique
+  createdAt          DateTime  @default(now())
+
+  profile            Profile?
+  skills             Skill[]
+  projects           Project[]
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  displayName   String?
+  aboutText     String?
+  heroRoleTexts String[]
+  contactEmail  String?
+  contactPhone  String?
+  githubUrl     String?
+
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Skill {
+  id       String  @id @default(uuid())
+  name     String
+  icon     String?
+  level    String
+
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  repoUrl     String?
+  liveUrl     String?
+  tags        String[]
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
