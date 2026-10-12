@@ -38,6 +38,7 @@ model Skill {
   name     String
   icon     String?
   level    String
+  createdAt DateTime @default(now())
 
   userId   String
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -50,6 +51,7 @@ model Project {
   repoUrl     String?
   liveUrl     String?
   tags        String[]
+  createdAt   DateTime @default(now())
 
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

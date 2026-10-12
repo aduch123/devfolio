@@ -1,6 +1,8 @@
-import { API_BASE_URL } from "./config.js";
+import { API_PREFIX } from "./config.js";
+import { apiFetch } from "./api.js";
+import { showFieldErrors, errorText } from "./forms.js";
 
-const API_BASE = `${API_BASE_URL}/api/auth`;
+const API_BASE = `${API_PREFIX}/auth`;
 
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
@@ -34,58 +36,51 @@ loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById("login-error");
   errorEl.textContent = "";
+  showFieldErrors(loginForm, {});
 
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
 
-  try {
-    const res = await fetch(`${API_BASE}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
+  const result = await apiFetch(`${API_BASE}/login`, {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+    skipAuthRedirect: true,
+  });
 
-    if (!res.ok) {
-      errorEl.textContent = data.error || "Login failed";
-      return;
-    }
-
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-
-    window.location.href = data.user.onboardingComplete
-      ? `/${data.user.username}`
-      : "/onboarding";
-  } catch (err) {
-    errorEl.textContent = "Something went wrong. Try again.";
+  if (!result.ok) {
+    const unmatched = showFieldErrors(loginForm, result.error.fields);
+    errorEl.textContent = errorText(result.error, unmatched);
+    return;
   }
+
+  const { token, user } = result.data;
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user));
+
+  window.location.href = user.onboardingComplete ? `/${user.username}` : "/onboarding";
 });
 
 signupForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById("signup-error");
   errorEl.textContent = "";
+  showFieldErrors(signupForm, {});
 
   const email = document.getElementById("signup-email").value;
   const username = document.getElementById("signup-username").value;
   const password = document.getElementById("signup-password").value;
 
-  try {
-    const res = await fetch(`${API_BASE}/signup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, username, password }),
-    });
-    const data = await res.json();
+  const result = await apiFetch(`${API_BASE}/signup`, {
+    method: "POST",
+    body: JSON.stringify({ email, username, password }),
+    skipAuthRedirect: true,
+  });
 
-    if (!res.ok) {
-      errorEl.textContent = data.error?.formErrors?.[0] || data.error || "Signup failed";
-      return;
-    }
-
-    switchPanel("login");
-  } catch (err) {
-    errorEl.textContent = "Something went wrong. Try again.";
+  if (!result.ok) {
+    const unmatched = showFieldErrors(signupForm, result.error.fields);
+    errorEl.textContent = errorText(result.error, unmatched);
+    return;
   }
+
+  switchPanel("login");
 });

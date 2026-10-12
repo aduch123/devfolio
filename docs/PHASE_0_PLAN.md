@@ -2,7 +2,9 @@
 
 Phase 0 from `BUILD_PLAN.md` (foundation, cleanup and critical fixes) split into **8 subphases**. Each one is sized to fit in a single chat session: roughly **5 to 12 files touched**, one clear theme, and a result you can test before moving on.
 
-**Rule:** do the subphases **in order**. Later ones assume earlier ones are finished. Do not merge two subphases into one chat, and do not start a new one until the current one's checks pass.
+**Rule:** do the subphases **in order**. Later ones assume earlier ones are finished. Do not start a new subphase until the current one's checks pass. By default one subphase per chat; several consecutive subphases may share a chat when the user asks (see `HANDOFF.md`, "Batching").
+
+**Git:** all of Phase 0 lives on **one branch, `phase-0-foundation`**, with one commit per subphase (for example `refactor(0.2): move code into modules`). The branch is merged into `main` (`git merge --no-ff phase-0-foundation`) and tagged `phase-0-complete` only after **0.8** passes. See "Git conventions" in `HANDOFF.md`.
 
 ---
 
@@ -32,7 +34,7 @@ Phase 0 from `BUILD_PLAN.md` (foundation, cleanup and critical fixes) split into
 **End of every chat**
 1. Ask Claude for the changed files, either as a zip or as a list with full contents.
 2. Ask for a **handoff note** using the template below.
-3. Apply the changes, run the check list for that subphase, and fix anything broken **in the same chat** before closing it.
+3. Apply the changes, run the check list for that subphase, and fix anything broken **in the same chat** before closing it. Then commit on `phase-0-foundation` (one commit for the subphase).
 
 **Handoff note template** (Claude writes it, you save it)
 ```
