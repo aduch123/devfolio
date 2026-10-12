@@ -4,6 +4,7 @@ import logger from "../../config/logger.js";
 import { REFRESH_COOKIE, REFRESH_REUSE_GRACE_MS, REFRESH_TOKEN_TTL_MS } from "../../config/constants.js";
 import { conflict, unauthorized } from "../../utils/AppError.js";
 import { isUniqueViolation } from "../../utils/prismaErrors.js";
+import { usernameSchema } from "./auth.schema.js";
 import {
   buildRefreshToken,
   clearAuthCookies,
@@ -15,6 +16,9 @@ import {
   sha256,
   signAccessToken,
 } from "../../utils/session.js";
+
+// Compared against when the email is unknown, so a missing account costs the same time as a wrong password.
+const DUMMY_HASH = bcrypt.hashSync("devfolio-dummy-password", 10);
 
 const publicUser = (user) => ({
   id: user.id,
@@ -77,18 +81,29 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    throw unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
-  }
-
-  const isValid = await bcrypt.compare(password, user.passwordHash);
-  if (!isValid) {
+  const isValid = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
+  if (!user || !isValid) {
     throw unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
   }
 
   await startSession(req, res, user);
 
   res.status(200).json({ user: publicUser(user) });
+};
+
+// GET auth/username-available?username=abc -> { available, reason? } (reason: invalid, reserved, taken).
+export const usernameAvailable = async (req, res) => {
+  const parsed = usernameSchema.safeParse(typeof req.query.username === "string" ? req.query.username : "");
+  if (!parsed.success) {
+    const message = parsed.error.issues[0].message;
+    const reason = message.includes("reserved") ? "reserved" : "invalid";
+    return res.status(200).json({ available: false, reason, message });
+  }
+  const existing = await prisma.user.findUnique({ where: { username: parsed.data }, select: { id: true } });
+  if (existing) {
+    return res.status(200).json({ available: false, reason: "taken", message: "This username is already taken" });
+  }
+  res.status(200).json({ available: true });
 };
 
 export const refresh = async (req, res) => {

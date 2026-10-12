@@ -37,6 +37,13 @@ export const refreshLimiter = build({
   message: "Too many session refreshes. Please wait a few minutes and try again.",
 });
 
+// Live username availability checks while typing (debounced on the client).
+export const usernameCheckLimiter = build({
+  windowMs: MINUTE,
+  limit: 30,
+  message: "Too many username checks. Please wait a minute.",
+});
+
 // Contact form: per IP and per portfolio (username or share token).
 export const contactLimiter = build({
   windowMs: 60 * MINUTE,

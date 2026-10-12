@@ -85,6 +85,14 @@ app.use("/api/v1", onboardingRoutes);
 app.use("/api/v1", shareRoutes);
 app.use("/api/v1", messageRoutes);
 
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/pages/login.html"));
+});
+
+app.get("/signup", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/pages/signup.html"));
+});
+
 app.get("/onboarding", requirePage, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/onboarding.html"));
 });

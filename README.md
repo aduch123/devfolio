@@ -81,7 +81,7 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 
 | Area | Endpoints (relative to `/api/v1`) | Auth |
 |---|---|---|
-| Auth | `POST auth/signup`, `POST auth/login`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
+| Auth | `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
 | Session | `GET auth/me` | yes |
 | Onboarding | `POST onboarding` (409 `ALREADY_ONBOARDED` if repeated) | yes |
 | Profile | `GET`, `PATCH profile` | yes |

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log in | Devfolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="auth-body">
+  <div class="auth-wrapper">
+    <div class="editor-window auth-card">
+      <div class="editor-titlebar">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-amber"></span>
+        <span class="dot dot-green"></span>
+        <span class="editor-filename">login.js</span>
+      </div>
+      <form id="login-form" class="auth-form" novalidate>
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-notice" id="login-notice" hidden></p>
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" name="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <div class="password-wrap">
+            <input type="password" id="login-password" name="password" autocomplete="current-password" required>
+            <button type="button" class="pw-toggle" data-toggle="login-password" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <p class="auth-error" id="login-error" role="alert"></p>
+        <button type="submit" class="btn">Log in</button>
+        <p class="auth-switch">No account? <a href="/signup">Sign up</a></p>
+      </form>
+    </div>
+  </div>
+  <script type="module" src="/js/login.js"></script>
+</body>
+</html>

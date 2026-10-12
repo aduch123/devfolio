@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 8: Phase 0 merged by the user; Phase 1 batch 1 = subphases 1.1 and 1.2 implemented, awaiting verification)
-**Current position:** **Phase 0 is merged into `main`** (user confirmed; the 0.8 walkthrough result was not reported in detail). Now on **Phase 1** (branch `phase-1-accounts`). **Batch 1 (1.1 session backend + 1.2 frontend sessions) is implemented and tested in the sandbox against a real local Postgres; awaiting user verification** (`devfolio-1.1-changes.zip`, then `devfolio-1.2-changes.zip` cumulative on top). Next: batch 2 (1.3 signup/login UX, 1.4 email verification, 1.5 password reset), then batch 3 (1.6 account settings API, 1.7 auth tests). Plan: `docs/PHASE_1_PLAN.md`.
-**Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1 and 1.2 (see Session 8).
+**Last updated:** 2026-10-12 (Session 9: subphase 1.3 implemented, awaiting verification; 1.1 and 1.2 still awaiting verification)
+**Current position:** **Phase 0 is merged into `main`** (user confirmed; the 0.8 walkthrough result was not reported in detail). Now on **Phase 1** (branch `phase-1-accounts`). **Batch 1 (1.1 session backend + 1.2 frontend sessions) is implemented and tested in the sandbox against a real local Postgres; awaiting user verification** (`devfolio-1.1-changes.zip`, then `devfolio-1.2-changes.zip` cumulative on top). Subphase 1.3 (signup/login UX) is implemented on top of them (`devfolio-1.3-changes.zip`). Next: 1.4 email verification and 1.5 password reset, then batch 3 (1.6 account settings API, 1.7 auth tests). Plan: `docs/PHASE_1_PLAN.md`.
+**Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1, 1.2 (Session 8) and 1.3 (Session 9).
 
 ---
 
@@ -101,8 +101,9 @@ The goal is an **intermediate-level** project that is also well structured and s
 - **Frontend rendering rule (0.6):** `portfolio.js` builds the page with `createElement` and `textContent` only (helpers `make`, `makeIcon`, `makeLink`, `safeHref` allowing `http`, `https`, `mailto`, `tel`). Never use `innerHTML` with stored values there. Empty links, skills, projects and about are not rendered (section and nav link hidden). `apiFetch(path, { anonymous: true })` sends no token and never redirects to login; use it for every public call (portfolio read, contact form).
 - **Security middleware (0.7):** `app.js` order is `trust proxy` (from `TRUST_PROXY`), `helmet` with a CSP (self scripts; styles from self, Google Fonts, cdnjs and `'unsafe-inline'` because of inline `style=""` attributes, to be tightened in Phase 10; fonts from `fonts.gstatic.com` and cdnjs; images self and `data:`; `frame-ancestors 'none'`; `upgrade-insecure-requests` and HSTS only when `NODE_ENV=production`), `cors` (same-origin unless `CORS_ORIGINS`), `express.json({ limit: "100kb" })` (413 `PAYLOAD_TOO_LARGE`), pino, static, health routes, then `globalLimiter` on `/api/v1`. Limiters live in `middleware/rateLimit.js` and all answer 429 `RATE_LIMITED` in the standard shape: global 300 per 15 min per IP, `authLimiter` 10 per 15 min per IP (login and signup share one bucket), `contactLimiter` 5 per hour per IP and portfolio. Limiters are skipped when `NODE_ENV=test`. Counters are in memory (reset on restart; fine for one instance, revisit in Phase 10).
 - **Mailer (0.7):** sender comes from `RESEND_FROM` (default `Devfolio <onboarding@resend.dev>`); Resend returns failures in `error` instead of throwing, so the mailer checks both and throws `502 EMAIL_SEND_FAILED` with a generic message (details only in logs).
-- **Sessions (1.1 and 1.2):** login creates a `Session` row and sets two cookies, both `HttpOnly`, `SameSite=Lax`, `Secure` only when `NODE_ENV=production`: `dev_access` (JWT `{ id, username, sid }`, 15 min, path `/`) and `dev_refresh` (`<sessionId>.<secret>`, 30 days sliding, path `/api/v1/auth` only). Only `sha256(secret)` is stored (`refreshHash`, plus `prevRefreshHash` and `rotatedAt`). `POST auth/refresh` rotates with a compare-and-swap; the previous token is accepted for 10 s (two tabs refreshing: access cookie only), after that it counts as theft and the session is revoked (`REFRESH_TOKEN_REUSED`). `POST auth/logout` revokes that session and clears cookies; `GET auth/me` returns `{ user: { id, email, username, onboardingComplete } }`. Constants (TTLs, cookie names) are in `config/constants.js`; cookie and token helpers in `utils/session.js`. `requireAuth` reads only the access cookie; `requirePage` (used on `/onboarding` and `/edit`) serves the page if an access or refresh cookie exists, else 302 to `/pages/auth.html`. `middleware/origin.js` refuses state-changing `/api/v1` requests whose `Origin` is another site (`BAD_ORIGIN`, 403; requests with no Origin pass). Auth responses send `Cache-Control: no-store`. A logged-out or revoked session's already-issued access JWT stays valid until it expires (max 15 min); expired sessions are not purged yet (the 1.6 cron job will).
-- **Frontend sessions (1.2):** no token or user object in `localStorage`. `apiFetch` uses `credentials: "same-origin"`; on a 401 it calls `POST auth/refresh` once (shared by parallel requests) and retries the request, and only if that fails clears the hint and goes to `/pages/auth.html`. Options: `skipAuthRedirect` (login and signup: no refresh, no redirect), `noRedirect` (refresh yes, redirect no), `anonymous` (public pages). `authGuard.requireAuth()` is async and returns the user from `/auth/me` (use `const user = await requireAuth()`); it never resolves when it is redirecting. `session.js` keeps a non-secret hint `devfolio_session` in `localStorage` so anonymous visitors of public pages never call session endpoints; the owner controls on a portfolio page check `/auth/me` only when the hint is set.
+- **Sessions (1.1 and 1.2):** login creates a `Session` row and sets two cookies, both `HttpOnly`, `SameSite=Lax`, `Secure` only when `NODE_ENV=production`: `dev_access` (JWT `{ id, username, sid }`, 15 min, path `/`) and `dev_refresh` (`<sessionId>.<secret>`, 30 days sliding, path `/api/v1/auth` only). Only `sha256(secret)` is stored (`refreshHash`, plus `prevRefreshHash` and `rotatedAt`). `POST auth/refresh` rotates with a compare-and-swap; the previous token is accepted for 10 s (two tabs refreshing: access cookie only), after that it counts as theft and the session is revoked (`REFRESH_TOKEN_REUSED`). `POST auth/logout` revokes that session and clears cookies; `GET auth/me` returns `{ user: { id, email, username, onboardingComplete } }`. Constants (TTLs, cookie names) are in `config/constants.js`; cookie and token helpers in `utils/session.js`. `requireAuth` reads only the access cookie; `requirePage` (used on `/onboarding` and `/edit`) serves the page if an access or refresh cookie exists, else 302 to `/login`. `middleware/origin.js` refuses state-changing `/api/v1` requests whose `Origin` is another site (`BAD_ORIGIN`, 403; requests with no Origin pass). Auth responses send `Cache-Control: no-store`. A logged-out or revoked session's already-issued access JWT stays valid until it expires (max 15 min); expired sessions are not purged yet (the 1.6 cron job will).
+- **Frontend sessions (1.2):** no token or user object in `localStorage`. `apiFetch` uses `credentials: "same-origin"`; on a 401 it calls `POST auth/refresh` once (shared by parallel requests) and retries the request, and only if that fails clears the hint and goes to `/login`. Options: `skipAuthRedirect` (login and signup: no refresh, no redirect), `noRedirect` (refresh yes, redirect no), `anonymous` (public pages). `authGuard.requireAuth()` is async and returns the user from `/auth/me` (use `const user = await requireAuth()`); it never resolves when it is redirecting. `session.js` keeps a non-secret hint `devfolio_session` in `localStorage` so anonymous visitors of public pages never call session endpoints; the owner controls on a portfolio page check `/auth/me` only when the hint is set.
+- **Signup and login UX (1.3):** separate pages `/login` and `/signup` (`frontend/pages/login.html`, `signup.html`; routes in `app.js`; scripts `login.js`, `signup.js`, shared `authUi.js` with password show/hide and the strength hint). `pages/auth.html` and `js/auth.js` are gone; every login redirect (`api.js`, `authGuard.js`, `requirePage`, landing "Get started" -> `/signup`) now targets `/login`. `GET /api/v1/auth/username-available?username=` is public, limited to 30 per minute per IP (`usernameCheckLimiter`) and answers 200 `{ available, reason?, message? }` (`reason`: `invalid`, `reserved`, `taken`); the signup page calls it 400 ms after typing stops and ignores stale answers. Signup success redirects to `/login?registered=1` (notice shown; no auto-login). Confirm-password and the strength meter are client-side only (the server rule stays 8 to 128 characters). Login compares against a dummy bcrypt hash when the email is unknown, so unknown email and wrong password take the same time and give the same `401 INVALID_CREDENTIALS`. Signup keeps the 409 "already in use" answer.
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -128,10 +129,10 @@ README.md                   # at repo root
 **Frontend layout:**
 ```
 frontend/
-  index.html                # landing (title "Devfolio"), "Get started" -> /pages/auth.html
-  pages/                    # auth (title "Log in | Devfolio"), onboarding, edit, portfolio (.html)
+  index.html                # landing (title "Devfolio"), "Get started" -> /signup
+  pages/                    # login, signup, onboarding, edit, portfolio (.html)
   js/                       # config (API_BASE_URL="", API_PREFIX="/api/v1"), api (apiFetch -> { ok, status, data, error }),
-                            # forms (showFieldErrors, setFieldError, clearFieldErrors, errorText), authGuard, auth,
+                            # forms (showFieldErrors, setFieldError, clearFieldErrors, errorText), authGuard, login, signup, authUi,
                             # onboarding, edit, portfolio, session (login hint), script (nav/scroll-reveal), skillStyles
   css/                      # global, auth, onboarding, edit
 ```
@@ -141,7 +142,7 @@ frontend/
 **Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> many `Session` (refreshHash, prevRefreshHash?, rotatedAt?, expiresAt, revokedAt?, userAgent?, createdAt, lastUsedAt; 1.1) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. `Skill` and `Project` have `createdAt` (0.5). `Skill` has a unique `(userId, lower(name))` index. Note: `other` is one of the 16 skill presets, so a user can have only one `other` skill until custom skills arrive in Phase 2.
 
 **Current API (all under `/api/v1`; paths below are relative to it):**
-`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `POST auth/refresh`, `POST auth/logout`, `GET auth/me`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (public since 0.6), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
+`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/refresh`, `POST auth/logout`, `GET auth/me`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (public since 0.6), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
 
 **Page routes in `app.js`:** static files, `/health`, `/healthz`, API routers (`/api/v1`), then `/onboarding`, `/edit`, `/share/:token`, `/:username` (catch-all that serves `portfolio.html`), then a 404 handler and the error handler.
 
@@ -205,8 +206,8 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 ### Phase 1: Accounts and secure sessions (branch `phase-1-accounts`, plan in `docs/PHASE_1_PLAN.md`)
 - [~] 1.1 Session backend: **implemented, awaiting user verification**
 - [~] 1.2 Frontend sessions: **implemented, awaiting user verification**
-- [ ] 1.3 Signup and login UX ← **NEXT** (after 1.1 and 1.2 are verified)
-- [ ] 1.4 Email verification · [ ] 1.5 Password reset · [ ] 1.6 Account settings API · [ ] 1.7 Auth tests
+- [~] 1.3 Signup and login UX: **implemented, awaiting user verification**
+- [ ] 1.4 Email verification ← **NEXT** · [ ] 1.5 Password reset · [ ] 1.6 Account settings API · [ ] 1.7 Auth tests
 
 ### Phases 2 to 10
 - [ ] Phase 2 · [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5 · [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
@@ -233,9 +234,14 @@ Apply `devfolio-1.1-changes.zip`, then (after committing 1.1) `devfolio-1.2-chan
 
 Then tick 1.1 and 1.2 in section 7.
 
-### 8b. Then: batch 2 (1.3, 1.4, 1.5)
+### 8b. Then: 1.3 checks, and next up 1.4 (email verification)
 
-Read `docs/PHASE_1_PLAN.md` rows 1.3 to 1.5 and the "Phase 1" section of `BUILD_PLAN.md`. Send a short brief for the batch, wait for approval, then deliver one zip per subphase. Notes for it: 1.3 changes the login redirect target from `/pages/auth.html` (used in `api.js` and `authGuard.js` as `LOGIN_PAGE`, and in `requirePage`) to `/login`; login should compare against a dummy hash when the user is unknown (timing); add `/login` and `/signup` page routes (reserved usernames already include both); 1.4 needs a hashed one-time token table that 1.5 reuses; add the `emailVerified` flag to `GET auth/me`. Resend's test sender only delivers to your own Resend account email until a domain is verified.
+**1.3 checks** (server running, after applying `devfolio-1.3-changes.zip`; no new dependencies, no migration)
+- [ ] `npm run lint` passes. `/login` and `/signup` load; `/pages/auth.html` is gone. `/edit` while logged out redirects to `/login`.
+- [ ] Signup: typing a username shows "Checking…" then "available" / "taken" / "reserved" (try `edit`) / format error, with one request per pause in the Network tab. Passwords that differ show "Passwords do not match"; the strength bar moves; Show/Hide works on both password fields. Per-field errors appear under the right input; a duplicate email or username shows the 409 message.
+- [ ] Successful signup lands on `/login` with "Account created". Wrong password and unknown email show the same message; both take about the same time.
+
+**Next (1.4):** read `docs/PHASE_1_PLAN.md` rows 1.4 and 1.5 and the "Phase 1" section of `BUILD_PLAN.md`, send a short brief, wait for approval. Notes: 1.4 needs a hashed one-time token table that 1.5 reuses; add the `emailVerified` flag to `GET auth/me`. Resend's test sender only delivers to your own Resend account email until a domain is verified.
 
 ## 9. How this file is updated
 
@@ -448,7 +454,21 @@ Leftovers / TODOs for later:
 - Phase 0 leftovers still open: Prettier not applied, CSP `'unsafe-inline'` styles, in-memory rate limits, dev-only audit findings.
 Must not break: only `requireAuth` reads the access cookie; never put tokens in `localStorage` or response bodies; every new state-changing route sits behind `originCheck` (mounted for all `/api/v1`); the refresh cookie stays on path `/api/v1/auth`; all frontend calls go through `apiFetch`; protected pages use `await requireAuth()`.
 
-*(Add Session 9 and onward below this line.)*
+### Session 9: Subphase 1.3, Signup and login UX (2026-10-12)
+Result: **implemented; awaiting user verification** (no database or `node_modules` in the sandbox, so only `node --check` and a unit check of the strength helper were run; lint and the live flows are for the user)
+Files created: `frontend/pages/login.html`, `frontend/pages/signup.html`, `frontend/js/login.js`, `signup.js`, `authUi.js`
+Files changed: `backend/app.js` (`/login`, `/signup` routes), `backend/middleware/auth.middleware.js` (redirect to `/login`), `backend/middleware/rateLimit.js` (`usernameCheckLimiter`), `backend/modules/auth/auth.controller.js` (dummy-hash login, `usernameAvailable`), `auth.routes.js`, `frontend/js/api.js`, `authGuard.js` (`LOGIN_PAGE = "/login"`), `frontend/index.html`, `frontend/css/auth.css` (panel switching removed; password toggle, strength bar, notice), `README.md`, `docs/HANDOFF.md`
+Files deleted: `frontend/pages/auth.html`, `frontend/js/auth.js`
+New env vars / commands: none (no new dependency, no migration)
+Decisions made (and why): the availability endpoint is public and returns the reason (taken or reserved) because usernames are already public URLs; signup success redirects to `/login?registered=1` instead of auto-login (login starts the session, and 1.4 will add verification); dummy bcrypt hash computed at startup (cost 10, same as signup) for timing; forms use `novalidate` so the page's own inline errors replace browser bubbles; the strength meter is only a hint.
+Leftovers / TODOs for later:
+- Username availability is checked again by the server at signup (the 409 race answer is unchanged).
+- A logged-in visitor opening `/login` is not redirected to their portfolio.
+Must not break: all auth redirects use `/login`; login failures stay generic; `/login` and `/signup` stay in `RESERVED_USERNAMES`.
+
+Follow-up fix (lint): removed unused `setFieldError` import and `usernameOk` variable from `frontend/js/signup.js` (the submit check uses the status element's state instead). No behavior change.
+
+*(Add Session 10 and onward below this line.)*
 
 ---
 

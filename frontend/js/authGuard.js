@@ -2,7 +2,7 @@ import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { clearSession, markSession } from "./session.js";
 
-const LOGIN_PAGE = "/pages/auth.html";
+const LOGIN_PAGE = "/login";
 
 // For protected pages: asks the server who is logged in (cookies are sent automatically).
 // Resolves to the user. If there is no session, apiFetch has already started the redirect to login,

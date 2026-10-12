@@ -29,5 +29,5 @@ export const requireAuth = (req, res, next) => {
 // redirect to login. The page's own script still verifies the session with GET /auth/me.
 export const requirePage = (req, res, next) => {
   if (readAccessUser(req) || req.cookies?.[REFRESH_COOKIE]) return next();
-  res.redirect(302, "/pages/auth.html");
+  res.redirect(302, "/login");
 };

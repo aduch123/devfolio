@@ -8,7 +8,7 @@ const fail = (status, code, message, fields) => ({
   error: { code, message, ...(fields ? { fields } : {}) },
 });
 
-const LOGIN_PAGE = "/pages/auth.html";
+const LOGIN_PAGE = "/login";
 
 // One refresh at a time: parallel 401s share the same request.
 let refreshing = null;
