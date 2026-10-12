@@ -21,7 +21,9 @@ after(async () => {
 const state = (agent) => agent.get(`${API}/onboarding/state`);
 const put = (agent, n, body) => agent.put(`${API}/onboarding/step/${n}`).send(body);
 const complete = (agent) => agent.post(`${API}/onboarding/complete`);
-const basics = { data: { displayName: "Ada Lovelace", headline: "Engineer", contactEmail: "ada@example.com" } };
+const basics = {
+  data: { displayName: "Ada Lovelace", headline: "Engineer", contactEmail: "ada@example.com" },
+};
 
 describe("GET /onboarding/state", () => {
   it("is empty for a new user and needs a session", async () => {
@@ -57,7 +59,9 @@ describe("PUT /onboarding/step/:n", () => {
     assert.equal(skipped.body.data["2"], undefined);
     const back = await put(agent, 3, { data: { skills: [] }, next: 2 }).expect(200);
     assert.equal(back.body.step, 2);
-    const filled = await put(agent, 2, { data: { aboutText: "Hello", heroRoleTexts: ["Dev"] } }).expect(200);
+    const filled = await put(agent, 2, {
+      data: { aboutText: "Hello", heroRoleTexts: ["Dev"] },
+    }).expect(200);
     assert.deepEqual(filled.body.skipped, []);
     assert.equal(filled.body.data["2"].aboutText, "Hello");
   });
@@ -92,7 +96,9 @@ describe("PUT /onboarding/step/:n", () => {
     const badUrl = await put(agent, 5, { data: { githubUrl: "javascript:alert(1)" } });
     errorOf(badUrl, 400, "VALIDATION_ERROR");
     assert.ok(badUrl.body.error.fields.githubUrl);
-    const badLink = await put(agent, 5, { data: { socialLinks: [{ platform: "nope", url: "https://a.dev" }] } });
+    const badLink = await put(agent, 5, {
+      data: { socialLinks: [{ platform: "nope", url: "https://a.dev" }] },
+    });
     errorOf(badLink, 400, "VALIDATION_ERROR");
   });
 
@@ -126,7 +132,9 @@ describe("POST /onboarding/complete", () => {
   it("writes profile, skills, projects and links, then keeps only the skipped list", async () => {
     const { agent, user } = await registerAndLogin();
     await put(agent, 1, { data: { ...basics.data, location: "London" } }).expect(200);
-    await put(agent, 2, { data: { aboutText: "I build things", heroRoleTexts: ["Dev", "Maker"] } }).expect(200);
+    await put(agent, 2, {
+      data: { aboutText: "I build things", heroRoleTexts: ["Dev", "Maker"] },
+    }).expect(200);
     await put(agent, 3, {
       data: {
         skills: [
@@ -135,7 +143,9 @@ describe("POST /onboarding/complete", () => {
         ],
       },
     }).expect(200);
-    await put(agent, 4, { data: { projects: [{ title: "P1", tags: ["a"] }, { title: "P2" }] } }).expect(200);
+    await put(agent, 4, {
+      data: { projects: [{ title: "P1", tags: ["a"] }, { title: "P2" }] },
+    }).expect(200);
     await put(agent, 5, {
       data: {
         githubUrl: "https://github.com/ada",
@@ -153,16 +163,34 @@ describe("POST /onboarding/complete", () => {
     assert.deepEqual(profile.heroRoleTexts, ["Dev", "Maker"]);
     assert.equal(profile.githubUrl, "https://github.com/ada");
 
-    const skills = await prisma.skill.findMany({ where: { userId: user.id }, orderBy: { sortOrder: "asc" } });
-    assert.deepEqual(skills.map((s) => [s.name, s.isCustom, s.sortOrder]), [
-      ["react", false, 0],
-      ["Figma", true, 1],
-    ]);
-    const projects = await prisma.project.findMany({ where: { userId: user.id }, orderBy: { sortOrder: "asc" } });
-    assert.deepEqual(projects.map((p) => p.title), ["P1", "P2"]);
+    const skills = await prisma.skill.findMany({
+      where: { userId: user.id },
+      orderBy: { sortOrder: "asc" },
+    });
+    assert.deepEqual(
+      skills.map((s) => [s.name, s.isCustom, s.sortOrder]),
+      [
+        ["react", false, 0],
+        ["Figma", true, 1],
+      ],
+    );
+    const projects = await prisma.project.findMany({
+      where: { userId: user.id },
+      orderBy: { sortOrder: "asc" },
+    });
+    assert.deepEqual(
+      projects.map((p) => p.title),
+      ["P1", "P2"],
+    );
     const links = await prisma.socialLink.findMany({ where: { userId: user.id } });
-    assert.deepEqual(links.map((l) => l.platform), ["linkedin"]);
-    assert.equal((await prisma.user.findUnique({ where: { id: user.id } })).onboardingComplete, true);
+    assert.deepEqual(
+      links.map((l) => l.platform),
+      ["linkedin"],
+    );
+    assert.equal(
+      (await prisma.user.findUnique({ where: { id: user.id } })).onboardingComplete,
+      true,
+    );
 
     const after = (await state(agent)).body;
     assert.equal(after.complete, true);
@@ -199,8 +227,14 @@ describe("POST /onboarding/complete", () => {
       },
     }).expect(200);
     await complete(agent).expect(200);
-    const skills = await prisma.skill.findMany({ where: { userId: user.id }, orderBy: { sortOrder: "asc" } });
-    assert.deepEqual(skills.map((s) => s.name), ["Rust", "Zig"]);
+    const skills = await prisma.skill.findMany({
+      where: { userId: user.id },
+      orderBy: { sortOrder: "asc" },
+    });
+    assert.deepEqual(
+      skills.map((s) => s.name),
+      ["Rust", "Zig"],
+    );
     assert.equal(skills[1].sortOrder, 2);
   });
 
@@ -212,21 +246,37 @@ describe("POST /onboarding/complete", () => {
 describe("onboarding endpoints and bad sessions", () => {
   it("refuse a garbage access cookie on every endpoint", async () => {
     const cookie = `${ACCESS_COOKIE}=garbage`;
-    errorOf(await request(app).get(`${API}/onboarding/state`).set("Cookie", cookie), 401, "INVALID_TOKEN");
+    errorOf(
+      await request(app).get(`${API}/onboarding/state`).set("Cookie", cookie),
+      401,
+      "INVALID_TOKEN",
+    );
     errorOf(
       await request(app).put(`${API}/onboarding/step/1`).set("Cookie", cookie).send(basics),
       401,
       "INVALID_TOKEN",
     );
-    errorOf(await request(app).post(`${API}/onboarding/complete`).set("Cookie", cookie), 401, "INVALID_TOKEN");
+    errorOf(
+      await request(app).post(`${API}/onboarding/complete`).set("Cookie", cookie),
+      401,
+      "INVALID_TOKEN",
+    );
   });
 
   it("refuse a session that was logged out", async () => {
     const { loginRes } = await registerAndLogin();
     const cookies = cookieHeader(loginRes);
     await request(app).post(`${API}/auth/logout`).set("Cookie", cookies).expect(204);
-    errorOf(await request(app).get(`${API}/onboarding/state`).set("Cookie", cookies), 401, "SESSION_ENDED");
-    errorOf(await request(app).post(`${API}/onboarding/complete`).set("Cookie", cookies), 401, "SESSION_ENDED");
+    errorOf(
+      await request(app).get(`${API}/onboarding/state`).set("Cookie", cookies),
+      401,
+      "SESSION_ENDED",
+    );
+    errorOf(
+      await request(app).post(`${API}/onboarding/complete`).set("Cookie", cookies),
+      401,
+      "SESSION_ENDED",
+    );
   });
 });
 
@@ -240,7 +290,11 @@ describe("POST /onboarding/complete is atomic", () => {
     const results = await Promise.all([complete(agent), complete(agent)]);
     const statuses = results.map((r) => r.status).sort();
     assert.deepEqual(statuses, [200, 409]);
-    errorOf(results.find((r) => r.status === 409), 409, "ALREADY_ONBOARDED");
+    errorOf(
+      results.find((r) => r.status === 409),
+      409,
+      "ALREADY_ONBOARDED",
+    );
 
     assert.equal(await prisma.skill.count({ where: { userId: user.id } }), 1);
     assert.equal(await prisma.project.count({ where: { userId: user.id } }), 1);

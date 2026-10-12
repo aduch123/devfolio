@@ -68,7 +68,9 @@ export const appPage =
       const next = NEXT_RE.test(req.path) ? `?next=${encodeURIComponent(req.path)}` : "";
       return res.redirect(302, `/login${next}`);
     }
-    if (onboarding === "complete" && !user.onboardingComplete) return res.redirect(302, "/onboarding");
-    if (onboarding === "incomplete" && user.onboardingComplete) return res.redirect(302, "/dashboard");
+    if (onboarding === "complete" && !user.onboardingComplete)
+      return res.redirect(302, "/onboarding");
+    if (onboarding === "incomplete" && user.onboardingComplete)
+      return res.redirect(302, "/dashboard");
     send(res, file);
   };

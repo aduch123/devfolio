@@ -60,7 +60,9 @@ const SKIPPED_NAMES = { 2: "About and roles", 3: "Skills", 4: "Projects", 5: "Li
 
 async function skippedNotice() {
   const result = await apiFetch(`${API_PREFIX}/onboarding/state`, { noRedirect: true });
-  const names = result.ok ? (result.data.skipped ?? []).map((n) => SKIPPED_NAMES[n]).filter(Boolean) : [];
+  const names = result.ok
+    ? (result.data.skipped ?? []).map((n) => SKIPPED_NAMES[n]).filter(Boolean)
+    : [];
   if (!names.length) return null;
   const box = make("div", "dash-todo");
   const head = make("div", "card-head");

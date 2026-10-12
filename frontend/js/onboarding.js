@@ -168,7 +168,9 @@ function step1(v = {}) {
   });
   attachCheck(name.input, (x) => (x ? "" : "Enter your name"));
   attachCheck(email.input, (x) => (x && !emailOk(x) ? "Enter a valid email address" : ""));
-  attachCheck(phone.input, (x) => (x && (x.length < 7 || x.length > 20) ? "Use 7 to 20 characters" : ""));
+  attachCheck(phone.input, (x) =>
+    x && (x.length < 7 || x.length > 20) ? "Use 7 to 20 characters" : "",
+  );
   return {
     node: el(
       "div",
@@ -227,11 +229,16 @@ function step2(v = {}) {
       "div",
       { class: "wiz-row" },
       input,
-      button("×", "wiz-remove", () => {
-        row.remove();
-        renumber();
-        renderPreview();
-      }, { "aria-label": "Remove this phrase" }),
+      button(
+        "×",
+        "wiz-remove",
+        () => {
+          row.remove();
+          renumber();
+          renderPreview();
+        },
+        { "aria-label": "Remove this phrase" },
+      ),
     );
     rolesBox.append(row);
     renumber();
@@ -271,7 +278,11 @@ function step2(v = {}) {
 }
 
 function step3(v = {}) {
-  let skills = (v.skills ?? []).map((s) => ({ name: s.name, level: s.level, category: s.category }));
+  let skills = (v.skills ?? []).map((s) => ({
+    name: s.name,
+    level: s.level,
+    category: s.category,
+  }));
   const chips = el("div", { class: "wiz-chips" });
   const list = el("ul", { class: "wiz-skill-list" });
   const has = (name) => skills.some((s) => s.name.toLowerCase() === name.toLowerCase());
@@ -306,11 +317,16 @@ function step3(v = {}) {
           { class: "wiz-row" },
           el("span", { text: skillLabel(s.name), class: "wiz-section-label" }),
           select,
-          button("×", "wiz-remove", () => {
-            skills.splice(i, 1);
-            refresh();
-            renderPreview();
-          }, { "aria-label": `Remove ${skillLabel(s.name)}` }),
+          button(
+            "×",
+            "wiz-remove",
+            () => {
+              skills.splice(i, 1);
+              refresh();
+              renderPreview();
+            },
+            { "aria-label": `Remove ${skillLabel(s.name)}` },
+          ),
         );
       }),
     );
@@ -318,7 +334,8 @@ function step3(v = {}) {
   function add(name) {
     say("");
     if (has(name)) return say("You already added that skill");
-    if (skills.length >= LIMITS.maxSkills) return say(`You can add up to ${LIMITS.maxSkills} skills`);
+    if (skills.length >= LIMITS.maxSkills)
+      return say(`You can add up to ${LIMITS.maxSkills} skills`);
     skills.push({ name, level: "good" });
     refresh();
     renderPreview();
@@ -357,19 +374,8 @@ function step3(v = {}) {
     node: el(
       "div",
       { class: "wiz-grid" },
-      el(
-        "div",
-        {},
-        el("p", { class: "wiz-section-label", text: "Tap the ones you use" }),
-        chips,
-      ),
-      el(
-        "div",
-        { class: "wiz-row" },
-        custom,
-        button("Add", "btn btn-outline", addCustom),
-        errorEl,
-      ),
+      el("div", {}, el("p", { class: "wiz-section-label", text: "Tap the ones you use" }), chips),
+      el("div", { class: "wiz-row" }, custom, button("Add", "btn btn-outline", addCustom), errorEl),
       el(
         "div",
         {},
@@ -412,7 +418,11 @@ function step4(v = {}) {
     return { input, wrap: el("div", { class: "field" }, el("label", { text: label }), input) };
   };
   function addProject(p = {}) {
-    const title = f("Title", "title", { value: p.title, placeholder: "Portfolio builder", maxLength: LIMITS.title });
+    const title = f("Title", "title", {
+      value: p.title,
+      placeholder: "Portfolio builder",
+      maxLength: LIMITS.title,
+    });
     const desc = f("Description (optional)", "description", {
       value: p.description,
       textarea: true,
@@ -528,11 +538,16 @@ function step5(v = {}) {
       { class: "wiz-row" },
       select,
       input,
-      button("×", "wiz-remove", () => {
-        row.remove();
-        renumber();
-        renderPreview();
-      }, { "aria-label": "Remove this link" }),
+      button(
+        "×",
+        "wiz-remove",
+        () => {
+          row.remove();
+          renumber();
+          renderPreview();
+        },
+        { "aria-label": "Remove this link" },
+      ),
     );
     box.append(row);
     renumber();
@@ -574,8 +589,14 @@ function step5(v = {}) {
 const BUILDERS = { 1: step1, 2: step2, 3: step3, 4: step4, 5: step5 };
 
 const COPY = {
-  1: ["Let's start with the basics", "Your progress is saved each time you continue, so you can close this tab and come back."],
-  2: ["Tell your story", "A short intro helps visitors get to know you. You can skip this and add it later."],
+  1: [
+    "Let's start with the basics",
+    "Your progress is saved each time you continue, so you can close this tab and come back.",
+  ],
+  2: [
+    "Tell your story",
+    "A short intro helps visitors get to know you. You can skip this and add it later.",
+  ],
   3: ["What do you work with?", "Pick your skills and say how comfortable you are with each."],
   4: ["Show your best work", "Add a few projects. Even one is a great start."],
   5: ["Where can people find you?", "Link your GitHub and any other profiles."],
@@ -586,7 +607,8 @@ function clientCheck(n, data) {
   const fields = {};
   if (n === 1) {
     if (!data.displayName) fields.displayName = "Enter your name";
-    if (data.contactEmail && !emailOk(data.contactEmail)) fields.contactEmail = "Enter a valid email address";
+    if (data.contactEmail && !emailOk(data.contactEmail))
+      fields.contactEmail = "Enter a valid email address";
     if (data.contactPhone && (data.contactPhone.length < 7 || data.contactPhone.length > 20)) {
       fields.contactPhone = "Use 7 to 20 characters";
     }
@@ -752,7 +774,13 @@ function renderSteps() {
   stepsEl.replaceChildren(
     ...STEPS.map(({ n, label }) => {
       const state =
-        n === current ? "is-current" : skipped.has(n) ? "is-skipped" : n <= 5 && draft[n] ? "is-done" : "";
+        n === current
+          ? "is-current"
+          : skipped.has(n)
+            ? "is-skipped"
+            : n <= 5 && draft[n]
+              ? "is-done"
+              : "";
       const mark = skipped.has(n) && n !== current ? "–" : state === "is-done" ? "✓" : String(n);
       const btn = el(
         "button",
@@ -773,12 +801,15 @@ function summary(n) {
   }
   if (n === 2 && d) {
     const bits = [];
-    if (d.aboutText) bits.push(d.aboutText.length > 110 ? `${d.aboutText.slice(0, 110)}…` : d.aboutText);
+    if (d.aboutText)
+      bits.push(d.aboutText.length > 110 ? `${d.aboutText.slice(0, 110)}…` : d.aboutText);
     if (d.heroRoleTexts?.length) bits.push(`Roles: ${d.heroRoleTexts.join(", ")}`);
     return bits.join(" | ") || "Nothing added";
   }
-  if (n === 3 && d) return d.skills.length ? d.skills.map((s) => skillLabel(s.name)).join(", ") : "Nothing added";
-  if (n === 4 && d) return d.projects.length ? d.projects.map((p) => p.title).join(", ") : "Nothing added";
+  if (n === 3 && d)
+    return d.skills.length ? d.skills.map((s) => skillLabel(s.name)).join(", ") : "Nothing added";
+  if (n === 4 && d)
+    return d.projects.length ? d.projects.map((p) => p.title).join(", ") : "Nothing added";
   if (n === 5 && d) {
     const bits = [];
     if (d.githubUrl) bits.push("GitHub");
@@ -791,9 +822,7 @@ function summary(n) {
 function renderReview() {
   const items = STEPS.slice(0, 5).map(({ n, label }) => {
     const isSkipped = skipped.has(n) || !draft[n];
-    const text = isSkipped
-      ? "Skipped. You can add this later from your dashboard."
-      : summary(n);
+    const text = isSkipped ? "Skipped. You can add this later from your dashboard." : summary(n);
     return el(
       "div",
       { class: `wiz-review-item${isSkipped ? " is-skipped" : ""}` },
@@ -879,7 +908,8 @@ function renderPreview() {
   );
   if (b.headline) card.append(el("p", { class: "pv-muted", text: b.headline }));
   if (b.location) card.append(el("p", { class: "pv-muted", text: b.location }));
-  if (about.heroRoleTexts?.length) card.append(el("p", { class: "pv-roles", text: about.heroRoleTexts.join(" · ") }));
+  if (about.heroRoleTexts?.length)
+    card.append(el("p", { class: "pv-roles", text: about.heroRoleTexts.join(" · ") }));
   if (about.aboutText) {
     const t = about.aboutText;
     card.append(el("p", { class: "pv-muted", text: t.length > 220 ? `${t.slice(0, 220)}…` : t }));
@@ -887,7 +917,11 @@ function renderPreview() {
   if (skills.length) {
     card.append(
       el("p", { class: "pv-h", text: "Skills" }),
-      el("div", { class: "pv-tags" }, ...skills.map((s) => el("span", { class: "pv-tag", text: skillLabel(s.name) }))),
+      el(
+        "div",
+        { class: "pv-tags" },
+        ...skills.map((s) => el("span", { class: "pv-tag", text: skillLabel(s.name) })),
+      ),
     );
   }
   if (projects.length) {
@@ -896,9 +930,15 @@ function renderPreview() {
       el("ul", { class: "pv-list" }, ...projects.map((p) => el("li", { text: p.title }))),
     );
   }
-  const linkNames = [links.githubUrl ? "GitHub" : null, ...socials.map((l) => platformLabel(l.platform))].filter(Boolean);
+  const linkNames = [
+    links.githubUrl ? "GitHub" : null,
+    ...socials.map((l) => platformLabel(l.platform)),
+  ].filter(Boolean);
   if (linkNames.length) {
-    card.append(el("p", { class: "pv-h", text: "Links" }), el("p", { class: "pv-muted", text: linkNames.join(" · ") }));
+    card.append(
+      el("p", { class: "pv-h", text: "Links" }),
+      el("p", { class: "pv-muted", text: linkNames.join(" · ") }),
+    );
   }
   if (b.contactEmail) card.append(el("p", { class: "pv-muted", text: b.contactEmail }));
   previewEl.replaceChildren(el("p", { class: "pv-label", text: "Live preview" }), card);

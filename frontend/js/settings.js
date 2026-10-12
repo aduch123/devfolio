@@ -86,9 +86,24 @@ async function send(form, path, body) {
   const form = buildForm(
     "pw",
     [
-      { name: "currentPassword", label: "Current password", type: "password", autocomplete: "current-password" },
-      { name: "newPassword", label: "New password", type: "password", autocomplete: "new-password" },
-      { name: "confirm", label: "Confirm new password", type: "password", autocomplete: "new-password" },
+      {
+        name: "currentPassword",
+        label: "Current password",
+        type: "password",
+        autocomplete: "current-password",
+      },
+      {
+        name: "newPassword",
+        label: "New password",
+        type: "password",
+        autocomplete: "new-password",
+      },
+      {
+        name: "confirm",
+        label: "Confirm new password",
+        type: "password",
+        autocomplete: "new-password",
+      },
     ],
     "Change password",
   );
@@ -119,7 +134,12 @@ async function send(form, path, body) {
     "email",
     [
       { name: "email", label: "New email", type: "email", autocomplete: "email" },
-      { name: "password", label: "Your password", type: "password", autocomplete: "current-password" },
+      {
+        name: "password",
+        label: "Your password",
+        type: "password",
+        autocomplete: "current-password",
+      },
     ],
     "Change email",
   );
@@ -176,7 +196,14 @@ async function send(form, path, body) {
   );
   const form = buildForm(
     "delete",
-    [{ name: "password", label: "Your password", type: "password", autocomplete: "current-password" }],
+    [
+      {
+        name: "password",
+        label: "Your password",
+        type: "password",
+        autocomplete: "current-password",
+      },
+    ],
     "Delete my account",
     "dash-btn-danger",
   );

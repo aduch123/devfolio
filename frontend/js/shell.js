@@ -110,7 +110,10 @@ function buildTopbar(user) {
   view.href = `/${user.username}`;
   view.target = "_blank";
   view.rel = "noopener";
-  view.append(make("span", "dash-top-link-text", "View public page"), makeIcon("fa-arrow-up-right-from-square"));
+  view.append(
+    make("span", "dash-top-link-text", "View public page"),
+    makeIcon("fa-arrow-up-right-from-square"),
+  );
   view.setAttribute("aria-label", "View public page (opens in a new tab)");
 
   const right = make("div", "dash-top-right");

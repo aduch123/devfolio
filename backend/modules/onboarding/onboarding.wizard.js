@@ -56,7 +56,10 @@ export const saveStep = async (req, res) => {
 
   const saved = await prisma.$transaction(async (tx) => {
     const draft = await lockDraft(tx, userId);
-    const user = await tx.user.findUnique({ where: { id: userId }, select: { onboardingComplete: true } });
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { onboardingComplete: true },
+    });
     if (user.onboardingComplete) throw alreadyDone();
 
     const stored = { ...draft.data };

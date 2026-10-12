@@ -36,7 +36,10 @@ const GUEST_PAGES = ["/", "/login", "/signup"];
 describe("page redirects: logged out", () => {
   it("sends app pages to /login and remembers where the visitor was going", async () => {
     redirectsTo(await request(app).get("/dashboard"), "/login?next=%2Fdashboard");
-    redirectsTo(await request(app).get("/dashboard/messages"), "/login?next=%2Fdashboard%2Fmessages");
+    redirectsTo(
+      await request(app).get("/dashboard/messages"),
+      "/login?next=%2Fdashboard%2Fmessages",
+    );
     redirectsTo(await request(app).get("/settings"), "/login?next=%2Fsettings");
   });
 
@@ -54,8 +57,15 @@ describe("page redirects: logged out", () => {
   });
 
   it("treats a garbage or foreign access cookie as logged out (no 500, no loop)", async () => {
-    for (const cookie of [`${ACCESS_COOKIE}=garbage`, `${ACCESS_COOKIE}=a.b.c`, `${ACCESS_COOKIE}=`]) {
-      redirectsTo(await request(app).get("/dashboard").set("Cookie", cookie), "/login?next=%2Fdashboard");
+    for (const cookie of [
+      `${ACCESS_COOKIE}=garbage`,
+      `${ACCESS_COOKIE}=a.b.c`,
+      `${ACCESS_COOKIE}=`,
+    ]) {
+      redirectsTo(
+        await request(app).get("/dashboard").set("Cookie", cookie),
+        "/login?next=%2Fdashboard",
+      );
       assert.equal((await request(app).get("/login").set("Cookie", cookie)).status, 200);
     }
   });
@@ -92,7 +102,13 @@ describe("page redirects: logged in, onboarding finished", () => {
     const { agent } = await registerAndLogin();
     await finishOnboarding(agent);
     for (const path of GUEST_PAGES) redirectsTo(await agent.get(path), "/dashboard");
-    for (const path of ["/dashboard", "/dashboard/portfolio", "/dashboard/messages", "/settings", "/edit"]) {
+    for (const path of [
+      "/dashboard",
+      "/dashboard/portfolio",
+      "/dashboard/messages",
+      "/settings",
+      "/edit",
+    ]) {
       assert.equal((await agent.get(path)).status, 200, path);
     }
   });
@@ -125,7 +141,10 @@ describe("page redirects: sessions that are no longer valid", () => {
 
     await request(app).post(`${API}/auth/logout`).set("Cookie", cookies).expect(204);
 
-    redirectsTo(await request(app).get("/settings").set("Cookie", cookies), "/login?next=%2Fsettings");
+    redirectsTo(
+      await request(app).get("/settings").set("Cookie", cookies),
+      "/login?next=%2Fsettings",
+    );
     assert.equal((await request(app).get("/login").set("Cookie", cookies)).status, 200);
   });
 
@@ -133,6 +152,9 @@ describe("page redirects: sessions that are no longer valid", () => {
     const { agent, loginRes, ident } = await registerAndLogin();
     const cookies = cookieHeader(loginRes);
     await agent.post(`${API}/account/delete`).send({ password: ident.password }).expect(204);
-    redirectsTo(await request(app).get("/settings").set("Cookie", cookies), "/login?next=%2Fsettings");
+    redirectsTo(
+      await request(app).get("/settings").set("Cookie", cookies),
+      "/login?next=%2Fsettings",
+    );
   });
 });

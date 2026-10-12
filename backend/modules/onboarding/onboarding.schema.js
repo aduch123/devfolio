@@ -64,7 +64,12 @@ export const saveStepSchema = z
     data: z.record(z.string(), z.unknown()).optional(),
     skip: z.boolean().optional(),
     // the step to resume at after this save (default: the next one)
-    next: z.number().int().min(1).max(WIZARD_STEPS + 1).optional(),
+    next: z
+      .number()
+      .int()
+      .min(1)
+      .max(WIZARD_STEPS + 1)
+      .optional(),
   })
   .refine((body) => body.skip === true || body.data !== undefined, {
     message: "Send the step's data, or skip it",

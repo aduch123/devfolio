@@ -33,7 +33,8 @@ export const hasSessionHint = () => {
 // send someone to another site.
 const NEXT_RE = /^\/(dashboard(\/[a-z-]+)?|settings)$/;
 
-export const safeNext = (value) => (typeof value === "string" && NEXT_RE.test(value) ? value : null);
+export const safeNext = (value) =>
+  typeof value === "string" && NEXT_RE.test(value) ? value : null;
 
 // Login URL used when a session check fails in the browser. "reauth=1" tells the server to show the
 // login page even if it still thinks the session is live (prevents a redirect loop).

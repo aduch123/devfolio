@@ -56,7 +56,11 @@ export function confirmModal({
     const actions = make("div", "modal-actions");
     const cancel = make("button", "dash-btn dash-btn-ghost", cancelText);
     cancel.type = "button";
-    const ok = make("button", `dash-btn ${danger ? "dash-btn-danger" : "dash-btn-primary"}`, confirmText);
+    const ok = make(
+      "button",
+      `dash-btn ${danger ? "dash-btn-danger" : "dash-btn-primary"}`,
+      confirmText,
+    );
     ok.type = "button";
     actions.append(cancel, ok);
     dialog.append(titleEl, text, actions);

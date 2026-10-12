@@ -133,7 +133,7 @@ app.get("/reset-password", (req, res) => {
 });
 
 // App pages: logged-out visitors go to /login, and the dashboard needs a finished onboarding.
-const dashboardPage = appPage("dashboard.html", { onboarding: "complete" });
+const dashboardPage = appPage(pageFile("dashboard.html"), { onboarding: "complete" });
 const DASHBOARD_SECTIONS = new Set(["portfolio", "messages", "analytics", "health"]);
 
 app.get("/dashboard", dashboardPage);
@@ -142,11 +142,11 @@ app.get("/dashboard/:section", (req, res, next) =>
   DASHBOARD_SECTIONS.has(req.params.section) ? dashboardPage(req, res, next) : next(),
 );
 
-app.get("/settings", appPage("settings.html"));
+app.get("/settings", appPage(pageFile("settings.html")));
 
-app.get("/onboarding", appPage("onboarding.html", { onboarding: "incomplete" }));
+app.get("/onboarding", appPage(pageFile("onboarding.html"), { onboarding: "incomplete" }));
 
-app.get("/edit", appPage("edit.html"));
+app.get("/edit", appPage(pageFile("edit.html")));
 
 app.get("/share/:token", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/portfolio.html"));

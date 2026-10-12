@@ -56,7 +56,7 @@ form.addEventListener("submit", async (e) => {
   const { user } = result.data;
   markSession();
   // New users go to the wizard; everyone else returns to the page they came from, or the dashboard.
-window.location.href = user.onboardingComplete
-  ? safeNext(params.get("next")) || "/dashboard"
-  : "/onboarding";
+  window.location.href = user.onboardingComplete
+    ? safeNext(params.get("next")) || "/dashboard"
+    : "/onboarding";
 });
