@@ -21,6 +21,12 @@ const envSchema = z.object({
       (v) => /^(?:[^<>@]+ <[^<>@\s]+@[^<>@\s]+>|[^<>@\s]+@[^<>@\s]+)$/.test(v),
       'must look like "Devfolio <noreply@example.com>" or "noreply@example.com"'
     ),
+  // Public address of the site, used for links in emails. Default: http://localhost:<PORT>.
+  APP_URL: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^https?:\/\/[^/\s]+$/.test(v), "must be an origin like https://devfolio.example (no trailing slash or path)"),
   // How many reverse proxies sit in front of the app (0 or "false" = none). Needed for correct client IPs.
   TRUST_PROXY: z
     .string()

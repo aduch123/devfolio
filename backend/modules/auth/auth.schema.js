@@ -27,3 +27,11 @@ export const loginSchema = z.object({
   email: identityEmail,
   password: z.string().min(1, "Password is required").max(128, "Password must be at most 128 characters"),
 });
+
+export const verifyEmailSchema = z.object({
+  token: z.string().trim().min(20, "Invalid link").max(200, "Invalid link"),
+});
+
+export const resendVerificationSchema = z.object({
+  email: identityEmail,
+});

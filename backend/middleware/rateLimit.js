@@ -44,6 +44,20 @@ export const usernameCheckLimiter = build({
   message: "Too many username checks. Please wait a minute.",
 });
 
+// Verification link clicks (the token itself is unguessable; this only limits abuse).
+export const emailTokenLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 20,
+  message: "Too many attempts. Please wait a few minutes and try again.",
+});
+
+// Asking for another verification email.
+export const resendLimiter = build({
+  windowMs: 60 * MINUTE,
+  limit: 5,
+  message: "Too many emails requested. Please try again in an hour.",
+});
+
 // Contact form: per IP and per portfolio (username or share token).
 export const contactLimiter = build({
   windowMs: 60 * MINUTE,

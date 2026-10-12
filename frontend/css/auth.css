@@ -123,3 +123,17 @@
 @media (prefers-reduced-motion: reduce) {
   .strength-bar { transition: none; }
 }
+
+.auth-message {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.auth-form-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-form .btn[hidden], .auth-form-inner[hidden] { display: none; }

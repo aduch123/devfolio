@@ -93,6 +93,10 @@ app.get("/signup", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/signup.html"));
 });
 
+app.get("/verify-email", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/pages/verify-email.html"));
+});
+
 app.get("/onboarding", requirePage, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/onboarding.html"));
 });

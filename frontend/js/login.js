@@ -12,7 +12,7 @@ const pwField = (key) => (key === "password" ? form.elements.password.closest(".
 initPasswordToggles();
 
 if (new URLSearchParams(window.location.search).get("registered") === "1") {
-  notice.textContent = "Account created. Log in to continue.";
+  notice.textContent = "Account created. We emailed you a link to verify your address. You can log in meanwhile.";
   notice.hidden = false;
 }
 

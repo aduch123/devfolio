@@ -13,12 +13,14 @@ model User {
   passwordHash       String
   onboardingComplete Boolean   @default(false)
   shareToken         String?   @unique
+  emailVerifiedAt    DateTime?
   createdAt          DateTime  @default(now())
 
   profile            Profile?
   skills             Skill[]
   projects           Project[]
   sessions           Session[]
+  emailTokens        EmailToken[]
 }
 
 model Profile {
@@ -73,5 +75,27 @@ model Session {
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+enum EmailTokenType {
+  VERIFY_EMAIL
+  PASSWORD_RESET
+}
+
+// Single-use tokens sent by email. Only the sha256 of the token is stored.
+// Used by email verification (1.4) and password reset (1.5).
+model EmailToken {
+  id        String         @id @default(uuid())
+  type      EmailTokenType
+  tokenHash String         @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
   @@index([expiresAt])
 }

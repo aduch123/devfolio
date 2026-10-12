@@ -1,10 +1,18 @@
 import bcrypt from "bcrypt";
 import prisma from "../../config/prisma.js";
 import logger from "../../config/logger.js";
-import { REFRESH_COOKIE, REFRESH_REUSE_GRACE_MS, REFRESH_TOKEN_TTL_MS } from "../../config/constants.js";
+import {
+  EMAIL_RESEND_COOLDOWN_MS,
+  EMAIL_VERIFY_TTL_MS,
+  REFRESH_COOKIE,
+  REFRESH_REUSE_GRACE_MS,
+  REFRESH_TOKEN_TTL_MS,
+} from "../../config/constants.js";
 import { conflict, unauthorized } from "../../utils/AppError.js";
 import { isUniqueViolation } from "../../utils/prismaErrors.js";
 import { usernameSchema } from "./auth.schema.js";
+import { appUrl, consumeEmailToken, createEmailToken } from "../../utils/emailTokens.js";
+import { sendVerificationEmail } from "../../utils/mailer.js";
 import {
   buildRefreshToken,
   clearAuthCookies,
@@ -25,7 +33,20 @@ const publicUser = (user) => ({
   email: user.email,
   username: user.username,
   onboardingComplete: user.onboardingComplete,
+  emailVerified: Boolean(user.emailVerifiedAt),
 });
+
+// Creates a fresh verification token and emails the link. Never throws: callers do not wait for it,
+// and a failed send only shows up in the logs (the user can ask for another email).
+const sendVerification = async (user) => {
+  try {
+    const token = await createEmailToken(user.id, "VERIFY_EMAIL", EMAIL_VERIFY_TTL_MS);
+    const link = `${appUrl()}/verify-email?token=${encodeURIComponent(token)}`;
+    await sendVerificationEmail({ to: user.email, username: user.username, link });
+  } catch (err) {
+    logger.error({ err, userId: user.id }, "could not send verification email");
+  }
+};
 
 // Creates a session row and sets both cookies (access and refresh).
 const startSession = async (req, res, user) => {
@@ -74,6 +95,8 @@ export const signup = async (req, res) => {
     throw err;
   }
 
+  sendVerification(user); // not awaited: signup does not wait for the email
+
   res.status(201).json({ user });
 };
 
@@ -104,6 +127,28 @@ export const usernameAvailable = async (req, res) => {
     return res.status(200).json({ available: false, reason: "taken", message: "This username is already taken" });
   }
   res.status(200).json({ available: true });
+};
+
+// POST auth/verify-email { token }: the page posts the token from the link (a plain GET never consumes it).
+export const verifyEmail = async (req, res) => {
+  const { userId } = await consumeEmailToken(req.body.token, "VERIFY_EMAIL");
+  await prisma.user.updateMany({ where: { id: userId, emailVerifiedAt: null }, data: { emailVerifiedAt: new Date() } });
+  res.status(200).json({ verified: true });
+};
+
+// POST auth/resend-verification { email }: the same answer for every email, so it reveals nothing.
+export const resendVerification = async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+  if (user && !user.emailVerifiedAt) {
+    const latest = await prisma.emailToken.findFirst({
+      where: { userId: user.id, type: "VERIFY_EMAIL" },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    const coolingDown = latest && Date.now() - latest.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS;
+    if (!coolingDown) sendVerification(user);
+  }
+  res.status(202).json({ message: "If that account exists and is not verified yet, we sent a new link." });
 };
 
 export const refresh = async (req, res) => {
