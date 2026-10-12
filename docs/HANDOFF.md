@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 4, subphase 0.5 implemented; Session 3c, command-block rule; Session 3b, git workflow)
-**Current position:** Phase 0. Subphases **0.2 to 0.5 implemented, awaiting user verification** (0.2 to 0.4 are committed on `phase-0-foundation`; 0.5 is delivered as `devfolio-0.5-changes.zip`). Next: **0.6** (after 0.5 is verified and committed).
-**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, `devfolio-0.5-changes.zip`, on top of 0.4).
+**Last updated:** 2026-10-12 (Session 5, subphase 0.6 implemented; Session 4, subphase 0.5 verified and committed; Session 3c, command-block rule; Session 3b, git workflow)
+**Current position:** Phase 0. Subphase **0.5 verified by the user**; **0.6 implemented, awaiting user verification** (`devfolio-0.6-changes.zip`, on top of 0.5). 0.1 to 0.4 are committed on `phase-0-foundation` (user verification of 0.1 to 0.4 not explicitly confirmed). Next: **0.7**.
+**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, committed), 0.6 (public access and XSS, `devfolio-0.6-changes.zip`, on top of 0.5).
 
 ---
 
@@ -88,7 +88,7 @@ The goal is an **intermediate-level** project that is also well structured and s
 
 ---
 
-## 4. Current codebase (after subphase 0.5)
+## 4. Current codebase (after subphase 0.6)
 
 **Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
 
@@ -97,6 +97,8 @@ The goal is an **intermediate-level** project that is also well structured and s
 - **Error contract (0.3):** every API error is `{ "error": { "code", "message", "fields?" } }`. Throw helpers from `utils/AppError.js` (`badRequest`, `validationError`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `tooMany`). Request validation is `validate(schema)` middleware in the route (`middleware/validate.js`), which replaces `req.body` with the parsed data, so controllers read `req.body` as already valid. Unknown errors become a generic 500 and are logged only.
 - **Validation (0.4):** reusable zod pieces live in `utils/validators.js` (`safeUrl` http/https only, `phone`, `optionalText/Url/Email/Phone` which turn `""` into `null`, `requiredText`, tags and role lists, the single `SKILL_VALUES` list, and `LIMITS`). Optional fields can be cleared by sending `null` or `""`; omitted keys mean "do not change".
 - **Data integrity (0.5):** `email` and `username` are lowercased by the zod schemas (`identityEmail` in `utils/validators.js`, `usernameSchema` in `modules/auth/auth.schema.js`), so signup and login always see lowercase. Username lookups from URL params call `.toLowerCase()`. Username rules: 3 to 30, `a-z 0-9 -`, no leading or trailing dash, reserved names in `RESERVED_USERNAMES` (`config/constants.js`). Skills are unique per user, case-insensitive (raw SQL index `Skill_userId_lower_name_key`; controllers pre-check and also map Prisma `P2002` via `utils/prismaErrors.js` to `409 SKILL_EXISTS`). Onboarding returns `409 ALREADY_ONBOARDED` (atomic `updateMany ... onboardingComplete:false` inside an interactive transaction). Every list and public read orders by `createdAt asc, id asc`.
+- **Public access (0.6):** `GET /api/v1/portfolio/:username` and `GET /api/v1/portfolio/share/:token` need no login and return only `PUBLIC_PORTFOLIO_SELECT` (`utils/publicPortfolio.js`): `username`, profile (`displayName, aboutText, heroRoleTexts, contactEmail, contactPhone, githubUrl`), skills (`name, icon, level`), projects (`title, description, repoUrl, liveUrl, tags`), ordered by `createdAt, id`. No user id, account email, hash, share token or row ids. `contactEmail` is the owner's chosen public contact address. Add new public fields in that one file.
+- **Frontend rendering rule (0.6):** `portfolio.js` builds the page with `createElement` and `textContent` only (helpers `make`, `makeIcon`, `makeLink`, `safeHref` allowing `http`, `https`, `mailto`, `tel`). Never use `innerHTML` with stored values there. Empty links, skills, projects and about are not rendered (section and nav link hidden). `apiFetch(path, { anonymous: true })` sends no token and never redirects to login; use it for every public call (portfolio read, contact form).
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -112,7 +114,7 @@ backend/
                             # prisma.js, logger.js (pino-pretty only when NODE_ENV != production)
   middleware/               # auth.middleware.js (Bearer JWT, throws AppError), validate.js (validate(schema), zodFields),
                             # error.middleware.js (errorHandler + notFoundHandler, standard error shape)
-  utils/                    # AppError.js, prismaErrors.js (isUniqueViolation), validators.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
+  utils/                    # AppError.js, prismaErrors.js (isUniqueViolation), publicPortfolio.js (public select), validators.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
   prisma/                   # schema.prisma + 6 migrations (0.5 added lowercase_identities and skill_project_created_at_unique_skills)
   eslint.config.js, .prettierrc, .prettierignore, .env.example
   .env                      # NOT to be uploaded (contains secrets)
@@ -135,7 +137,7 @@ frontend/
 **Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. `Skill` and `Project` have `createdAt` (0.5). `Skill` has a unique `(userId, lower(name))` index. Note: `other` is one of the 16 skill presets, so a user can have only one `other` skill until custom skills arrive in Phase 2.
 
 **Current API (all under `/api/v1`; paths below are relative to it):**
-`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (**wrongly requires auth**), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
+`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (public since 0.6), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
 
 **Page routes in `app.js`:** static files, `/health`, `/healthz`, API routers (`/api/v1`), then `/onboarding`, `/edit`, `/share/:token`, `/:username` (catch-all that serves `portfolio.html`), then a 404 handler and the error handler.
 
@@ -152,8 +154,8 @@ frontend/
 | 3 | Flat structure, unversioned API | 0.2 **(implemented, awaiting verification)** |
 | 4 | Inconsistent errors; flattened zod object shows "[object Object]" in the UI | 0.3 **(implemented, awaiting verification)** |
 | 5 | URL fields accept `javascript:`; phone is free text; no max lengths; optional fields cannot be cleared (`undefined` is dropped from JSON) | 0.4 **(implemented, awaiting verification)** |
-| 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 **(implemented, awaiting verification)** |
-| 7 | Public portfolio route requires login; stored XSS via unescaped `githubUrl`, `repoUrl`, `liveUrl`, `contactPhone`; dead `#` buttons and empty sections render | 0.6 |
+| 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 **(done)** |
+| 7 | Public portfolio route requires login; stored XSS via unescaped `githubUrl`, `repoUrl`, `liveUrl`, `contactPhone`; dead `#` buttons and empty sections render | 0.6 **(implemented, awaiting verification)** |
 | 8 | No security headers or rate limits; mail sender hardcoded | 0.7 |
 | 9 | No end-to-end verification or docs | 0.8 |
 
@@ -198,9 +200,9 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 - [~] 0.2 Restructure and API versioning: **implemented, awaiting user verification** (see section 8a)
 - [~] 0.3 Error contract: **implemented, awaiting user verification** (see section 8a)
 - [~] 0.4 Input validation and clearable fields: **implemented, awaiting user verification** (see section 8a)
-- [~] 0.5 Data integrity: **implemented, awaiting user verification** (see section 8a)
-- [ ] 0.6 Public access and XSS fixes  ← **NEXT** (after 0.5 is verified)
-- [ ] 0.7 Security middleware
+- [x] 0.5 Data integrity: verified by the user
+- [~] 0.6 Public access and XSS fixes: **implemented, awaiting user verification** (see section 8a)
+- [ ] 0.7 Security middleware  ← **NEXT** (after 0.6 is verified)
 - [ ] 0.8 Verification and docs
 
 ### Phases 1 to 10
@@ -211,47 +213,51 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 
 ## 8. NEXT TASK
 
-### 8a. First: user verifies
+### 8a. First: user verifies 0.6
 
-Apply `devfolio-0.5-changes.zip` over the repo root (0.3 and 0.4 are already committed on `phase-0-foundation`; if you have not verified them yet, run their checks from the Session 3 log now). **Back up the dev database first**, then run `npx prisma migrate dev` in `backend/` and `npx prisma generate`. If a migration stops with a collision message, rename or merge the listed users and rerun. No new dependencies.
+Apply `devfolio-0.6-changes.zip` over the repo root. No new dependencies, no migrations; restart the server.
 
-**0.5 checks**
-- [ ] Both migrations apply cleanly on existing dev data and no rows are lost (skills may shrink only if you had duplicates).
-- [ ] `Ali@Mail.com` and `ali@mail.com` are the same account; login works with either casing.
-- [ ] Signing up as `edit`, `Dashboard`, `a b`, `ab`, `-bob` or `bob-` shows a field error under Username.
-- [ ] Adding the same skill twice shows the 409 message ("You already added this skill") in the editor.
-- [ ] Posting onboarding a second time returns `409 ALREADY_ONBOARDED` and creates no extra rows.
-- [ ] Skills and projects keep a consistent order across reloads.
+**0.6 checks**
+- [ ] In a private (logged-out) window, `/username` loads the portfolio.
+- [ ] With a garbage `token` in `localStorage`, `/username` still loads (no redirect to login).
+- [ ] `GET /api/v1/portfolio/<username>` in the browser shows no account email, password hash, share token or ids.
+- [ ] Payloads such as `"><img src=x onerror=alert(1)>` saved in name, about, project title, description, tags and skill-adjacent text show as plain text and do not run.
+- [ ] A project without URLs shows no Code or Live buttons; empty skills, projects or about sections (and their nav links) are hidden; `javascript:` links cannot be saved (0.4) and would not render anyway.
+- [ ] The share link (`/share/<token>`) and the username view both work, and the owner controls still appear when you are logged in on your own page.
 
-Suggested commit on `phase-0-foundation`: `feat(0.5): lowercase identities, username rules, unique skills, idempotent onboarding, stable ordering`
+Suggested commit on `phase-0-foundation`: `fix(0.6): public portfolio without login, safe DOM rendering, safeHref and empty states`
 
-Tick `[x]` for 0.1 to 0.5 in section 7 once each passes. **Do not merge to `main` yet.** Also confirm secrets are rotated (the uploaded zip contained `backend/.env`).
+Tick `[x]` for 0.6 once it passes. **Do not merge to `main` yet.** Also confirm secrets are rotated.
 
-### 8b. Then: Subphase 0.6: Public access and XSS fixes
+### 8b. Then: Subphase 0.7: Security middleware
 
-**Goal:** logged-out visitors can view portfolios, and no stored value can run script.
+**Goal:** baseline protection: headers, rate limits and email configuration.
 
 **Tasks**
-- Remove `requireAuth` from `GET /api/v1/portfolio/:username`. Return only public fields (no user `id`, email, `passwordHash`, `shareToken`, or internal IDs that are not needed).
-- Make sure a **visitor with an expired or stale token** does not get redirected to the login page from a public page (public calls must not trigger the 401 redirect).
-- Frontend `portfolio.js`:
-  - Escape or build via DOM every value inserted into HTML: `githubUrl`, `repoUrl`, `liveUrl`, `contactEmail`, `contactPhone`, skill name and level, project fields and the share URL.
-  - Add a `safeHref()` helper that allows only `http`, `https`, `mailto` and `tel` as defense in depth.
-  - Prefer `createElement` and `textContent` over template strings with `innerHTML`.
-- **Empty states:** hide the Code button when `repoUrl` is empty, the Live button when `liveUrl` is empty, and entire sections (skills, projects, about) when they have no content. Also hide the matching nav link.
-- Review `edit.js` and `onboarding.js` for any remaining unescaped interpolation.
+- Add `helmet` with a **Content Security Policy** allowing what the app really uses: its own scripts, Google Fonts (`fonts.googleapis.com` styles and `fonts.gstatic.com` fonts), Font Awesome from `cdnjs.cloudflare.com`, and images from self and `data:`. Note that the current HTML uses **inline `style=""` attributes**, so either allow `style-src 'unsafe-inline'` for now or move those styles into CSS (preferred if small). Add a code comment marking this as something to tighten in Phase 10.
+- Add `express-rate-limit`:
+  - global limiter (for example 300 requests per 15 minutes per IP),
+  - auth limiter (for example 10 login or signup attempts per 15 minutes),
+  - contact limiter (for example 5 messages per hour per IP and portfolio).
+  - Return the standard error shape with code `RATE_LIMITED` and a friendly frontend message.
+- Set `app.set("trust proxy", ...)` through an env flag so IP detection works behind a proxy.
+- Configure CORS explicitly (same-origin by default) and cap JSON body size (`express.json({ limit: "100kb" })`).
+- Email: make the sender a config value (`RESEND_FROM`, for example `Devfolio <onboarding@resend.dev>`), with the test sender as the development default, so emails show **Devfolio** as the sender name (replacing the current "Portfolio Contact"). Validate it in `config/env.js`. Document in the README that Resend's test sender only delivers to the account owner until a domain is verified (Phase 6).
+- Make the mailer failure return a clear, generic error rather than crashing the request.
 
-**Files touched (about 6):** `profile.routes.js`, profile controller, `api.js`, `portfolio.js`, `edit.js`, `portfolio.html` (nav handling).
+**Files touched (about 7):** `app.js`, `config/env.js`, `middleware/rateLimit.js`, `utils/mailer.js`, routes for auth and messages, `.env.example`, `README.md`, possibly small HTML and CSS changes for inline styles.
 
-**Out of scope:** headers and CSP (0.7), server-side rendering (Phase 5).
+**Out of scope:** bot detection and message storage (Phase 6).
+
+**You do:** add `RESEND_FROM` to your `.env`.
 
 **Success criteria**
-- [ ] In a private (logged-out) browser window, `/username` loads the portfolio.
-- [ ] A logged-out visitor with a garbage token in `localStorage` still sees the portfolio (no redirect).
-- [ ] The public API response contains no email, password hash, share token or user ID.
-- [ ] Stored payloads such as `"><img src=x onerror=alert(1)>` in name, about, project title, description, tags, skill-adjacent text and links do not execute and show as plain text.
-- [ ] A project without URLs shows no dead `#` buttons, and an empty skills or projects section is not rendered.
-- [ ] Share link view and username view both still work.
+- [ ] The browser console shows **no CSP violations** on landing, auth, onboarding, portfolio and edit pages (fonts, icons and styles still load).
+- [ ] Response headers include the helmet set (check with browser dev tools or `curl -I`).
+- [ ] The 11th login attempt in the window returns HTTP 429 with the standard error shape, and the UI shows a friendly message.
+- [ ] The 6th contact message in an hour from one IP returns 429.
+- [ ] A JSON body over 100 KB is rejected.
+- [ ] The contact flow still sends an email (to the account owner while using the Resend test sender).
 
 ---
 
@@ -386,7 +392,21 @@ Leftovers / TODOs for later:
 - A second onboarding submit only shows the generic error text in the UI; the wizard replaces it in Phase 3.
 Must not break: identities are lowercase everywhere; list queries keep `orderBy createdAt, id`; skills unique per user; all earlier rules.
 
-*(Add Session 5 and onward below this line.)*
+### Session 5: Subphase 0.6, Public access and XSS fixes (2026-10-12)
+Result: **implemented; awaiting user verification** (browser behavior was tested only with jsdom and a stubbed Prisma client)
+Files created: `backend/utils/publicPortfolio.js`
+Files changed: `backend/modules/profile/profile.routes.js` (no `requireAuth` on the public read), `profile.controller.js` and `share.controller.js` (use `PUBLIC_PORTFOLIO_SELECT`), `frontend/js/api.js` (`anonymous` option), `frontend/js/portfolio.js` (DOM-built rendering, `safeHref`, empty states, anonymous calls, share URL set via `.value`), `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: none
+Sandbox checks passed: lint clean; with a stubbed Prisma client the public route returns 200 with no token and with a garbage `Authorization` header, 404 `USER_NOT_FOUND` for unknown users, and the select contains only public fields; jsdom render of `portfolio.js` with hostile data: no token sent, zero injected `img`, `svg` or `script` nodes, `javascript:` URLs dropped, no `#` links, empty sections hidden, titles and tags rendered as text; `safeHref` rejects `javascript:`, `data:`, `//evil.com`, `#` and empty values.
+Decisions made (and why): the public select is one shared constant so share and username views cannot drift; `anonymous` option on `apiFetch` (never sends the token, never redirects) is used for public GET and the contact form; `contactEmail` stays public by design (it is what the Email button uses); `edit.js` and `onboarding.js` reviewed: stored values already go through `escapeAttr` and `escapeHtml`, and the remaining interpolations are constants or server ids, so no change was needed; the contact section always shows because it holds the form.
+Leftovers / TODOs for later:
+- Users who have not finished onboarding still get a (mostly empty) public page; consider a 404 in Phase 3 or 5.
+- The page title still ends in "Portfolio" (`portfolio.js`); switch to the app name when the SSR page arrives (Phase 5).
+- Owner controls still depend on `localStorage.user` (replaced by cookies in Phase 1).
+Must not break: public reads need no login; public API fields stay limited to `PUBLIC_PORTFOLIO_SELECT`; `portfolio.js` never uses `innerHTML` with stored values; public calls use `anonymous: true`.
+
+*(Add Session 6 and onward below this line.)*
 
 ---
 

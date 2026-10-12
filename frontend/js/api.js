@@ -9,10 +9,11 @@ const fail = (status, code, message, fields) => ({
 
 // Always resolves to { ok, status, data, error }.
 // error is { code, message, fields? } (the backend's standard error shape).
-// Options: any fetch option, plus skipAuthRedirect (for login/signup, where a 401 is a normal answer).
+// Options: any fetch option, plus skipAuthRedirect (for login/signup, where a 401 is a normal answer)
+// and anonymous (public pages: never send the stored token, never redirect to login).
 export async function apiFetch(path, options = {}) {
-  const { skipAuthRedirect = false, ...fetchOptions } = options;
-  const token = localStorage.getItem("token");
+  const { skipAuthRedirect = false, anonymous = false, ...fetchOptions } = options;
+  const token = anonymous ? null : localStorage.getItem("token");
 
   let res;
   try {
@@ -28,7 +29,7 @@ export async function apiFetch(path, options = {}) {
     return fail(0, "NETWORK_ERROR", "Can't reach the server. Check your connection and try again.");
   }
 
-  if (res.status === 401 && !skipAuthRedirect) {
+  if (res.status === 401 && !skipAuthRedirect && !anonymous) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     window.location.href = "/pages/auth.html";

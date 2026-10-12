@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import prisma from "../../config/prisma.js";
 import { notFound } from "../../utils/AppError.js";
+import { PUBLIC_PORTFOLIO_SELECT } from "../../utils/publicPortfolio.js";
 
 export const generateShareToken = async (req, res) => {
   const shareToken = crypto.randomBytes(16).toString("hex");
@@ -27,12 +28,7 @@ export const getSharedPortfolio = async (req, res) => {
 
   const user = await prisma.user.findUnique({
     where: { shareToken: token },
-    select: {
-      username: true,
-      profile: true,
-      skills: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
-      projects: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
-    },
+    select: PUBLIC_PORTFOLIO_SELECT,
   });
 
   if (!user) {

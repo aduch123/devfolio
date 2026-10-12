@@ -27,7 +27,7 @@ async function init() {
     ? `${API_PREFIX}/portfolio/share/${shareToken}`
     : `${API_PREFIX}/portfolio/${username}`;
 
-  const result = await apiFetch(endpoint);
+  const result = await apiFetch(endpoint, { anonymous: true });
 
   if (!result.ok) {
     showError();
@@ -71,14 +71,11 @@ function render(data) {
 
 function renderAbout(aboutText) {
   const el = document.getElementById("about-content");
-  el.innerHTML = "";
-  if (!aboutText) return;
+  el.replaceChildren();
+  const paragraphs = (aboutText || "").split("\n\n").map((p) => p.trim()).filter(Boolean);
+  setSectionVisible("about", paragraphs.length > 0);
 
-  aboutText.split("\n\n").forEach((para) => {
-    const p = document.createElement("p");
-    p.textContent = para;
-    el.appendChild(p);
-  });
+  paragraphs.forEach((para) => el.appendChild(make("p", "", para)));
 }
 
 function renderRoleTyping(roles) {
@@ -122,18 +119,16 @@ function renderRoleTyping(roles) {
 
 function renderSkills(skills) {
   const grid = document.getElementById("skills-grid");
-  grid.innerHTML = "";
+  grid.replaceChildren();
+  setSectionVisible("skills", skills.length > 0);
 
   skills.forEach((skill) => {
-    const style = skillStyles[skill.name] || skillStyles.other;
+    const style = Object.hasOwn(skillStyles, skill.name) ? skillStyles[skill.name] : skillStyles.other;
 
-    const card = document.createElement("div");
-    card.className = "skill-card";
-    card.innerHTML = `
-      <i class="${style.icon}" style="color:${style.color}" aria-hidden="true"></i>
-      <span>${skillLabel(skill.name)}</span>
-      <small>${skill.level}</small>
-    `;
+    const card = make("div", "skill-card");
+    const ico = makeIcon(style.icon);
+    ico.style.color = style.color;
+    card.append(ico, make("span", "", skillLabel(skill.name)), make("small", "", skill.level));
     grid.appendChild(card);
   });
 }
@@ -151,48 +146,96 @@ function skillLabel(value) {
 
 function renderProjects(projects) {
   const grid = document.getElementById("projects-grid");
-  grid.innerHTML = "";
+  grid.replaceChildren();
+  setSectionVisible("projects", projects.length > 0);
+  const viewWork = document.querySelector('.hero-buttons a[href="#projects"]');
+  if (viewWork) viewWork.style.display = projects.length > 0 ? "" : "none";
 
   projects.forEach((project) => {
-    const article = document.createElement("article");
-    article.className = "project-card";
+    const article = make("article", "project-card");
 
-    const tags = (project.tags || [])
-      .map((t) => `<span class="tag">${escapeHtml(t)}</span>`)
-      .join("");
+    const head = make("div", "project-card-head");
+    head.append(makeIcon("fa-regular fa-file-code"), make("h3", "", project.title));
+    article.appendChild(head);
 
-    const links = [];
-    
-    links.push(`<a href="${project.repoUrl ? project.repoUrl : "#"}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i> Code</a>`);
-    links.push(`<a href="${project.liveUrl ? project.liveUrl : "#"}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Live</a>`);
-    
+    if (project.description) article.appendChild(make("p", "", project.description));
 
-    article.innerHTML = `
-      <div class="project-card-head">
-        <i class="fa-regular fa-file-code" aria-hidden="true"></i>
-        <h3>${escapeHtml(project.title)}</h3>
-      </div>
-      ${project.description ? `<p>${escapeHtml(project.description)}</p>` : ""}
-      <div class="project-tags">${tags}</div>
-      <div class="project-links">${links.join("")}</div>
-    `;
+    const tags = make("div", "project-tags");
+    (project.tags || []).forEach((t) => tags.appendChild(make("span", "tag", t)));
+    article.appendChild(tags);
+
+    const links = make("div", "project-links");
+    const repo = makeLink(project.repoUrl, "fa-brands fa-github", "Code", true);
+    const live = makeLink(project.liveUrl, "fa-solid fa-arrow-up-right-from-square", "Live", true);
+    if (repo) links.appendChild(repo);
+    if (live) links.appendChild(live);
+    if (links.children.length > 0) article.appendChild(links);
+
     grid.appendChild(article);
   });
 }
 
 function renderContact(profile) {
   const list = document.getElementById("socials-list");
-  list.innerHTML = "";
+  list.replaceChildren();
 
-  if (profile.githubUrl) {
-    list.innerHTML += `<a href="${profile.githubUrl}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i> GitHub</a>`;
+  const github = makeLink(profile.githubUrl, "fa-brands fa-github", "GitHub", true);
+  const email = profile.contactEmail
+    ? makeLink(`mailto:${profile.contactEmail}`, "fa-solid fa-envelope", "Email", false)
+    : null;
+  const phone = profile.contactPhone
+    ? makeLink(`tel:${profile.contactPhone.replace(/\s+/g, "")}`, "fa-solid fa-phone", "Phone", false)
+    : null;
+
+  [github, email, phone].forEach((a) => a && list.appendChild(a));
+  list.style.display = list.children.length > 0 ? "" : "none";
+}
+
+// ---- safe DOM helpers (never build HTML from stored values) ----
+const SAFE_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+function safeHref(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    return SAFE_PROTOCOLS.has(url.protocol) ? url.href : null;
+  } catch {
+    return null;
   }
-  if (profile.contactEmail) {
-    list.innerHTML += `<a href="mailto:${profile.contactEmail}"><i class="fa-solid fa-envelope" aria-hidden="true"></i> Email</a>`;
+}
+
+function make(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function makeIcon(classes) {
+  const i = make("i", classes);
+  i.setAttribute("aria-hidden", "true");
+  return i;
+}
+
+// Returns null when the URL is empty or not an allowed scheme, so no dead "#" links render.
+function makeLink(rawHref, iconClasses, label, newTab) {
+  const href = safeHref(rawHref);
+  if (!href) return null;
+  const a = make("a");
+  a.href = href;
+  if (newTab) {
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
   }
-  if (profile.contactPhone) {
-    list.innerHTML += `<a href="tel:${profile.contactPhone}"><i class="fa-solid fa-phone" aria-hidden="true"></i> Phone</a>`;
-  }
+  a.append(makeIcon(iconClasses), ` ${label}`);
+  return a;
+}
+
+function setSectionVisible(id, visible) {
+  const section = document.getElementById(id);
+  if (section) section.style.display = visible ? "" : "none";
+  const link = document.querySelector(`.nav-links a[data-tab="${id}"]`);
+  if (link) link.style.display = visible ? "" : "none";
 }
 
 function setupOwnerControls(viewedUsername) {
@@ -254,7 +297,7 @@ function setupShareButton() {
 
     dropdown.innerHTML = `
       <div class="share-link-row">
-        <input type="text" id="share-link-input" value="${shareUrl}" readonly>
+        <input type="text" id="share-link-input" readonly>
         <button type="button" id="copy-share-link" aria-label="Copy link"><i class="fa-regular fa-copy"></i></button>
       </div>
       <div class="share-actions">
@@ -262,6 +305,8 @@ function setupShareButton() {
         <button type="button" id="revoke-share">Revoke</button>
       </div>
     `;
+
+    document.getElementById("share-link-input").value = shareUrl;
 
     document.getElementById("regenerate-share")?.addEventListener("click", async () => {
       const result = await apiFetch(`${API_PREFIX}/share`, { method: "POST" });
@@ -311,6 +356,7 @@ function setupContactForm() {
     const result = await apiFetch(endpoint, {
       method: "POST",
       body: JSON.stringify({ name, email, message }),
+      anonymous: true,
     });
 
     submitBtn.disabled = false;
@@ -329,10 +375,5 @@ function setupContactForm() {
   });
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
 
 init();
