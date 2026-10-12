@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import prisma from "../config/prisma.js";
 import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -65,7 +66,7 @@ export const login = async (req, res) => {
 
   const token = jwt.sign(
     { id: user.id, username: user.username },
-    process.env.JWT_SECRET,
+    env.JWT_SECRET,
     { expiresIn: "7d" }
   );
 
@@ -78,12 +79,4 @@ export const login = async (req, res) => {
       onboardingComplete: user.onboardingComplete,
     },
   });
-};
-
-export const completeOnboarding = async (req, res) => {
-  await prisma.user.update({
-    where: { id: req.user.id },
-    data: { onboardingComplete: true },
-  });
-  res.status(200).json({ success: true });
 };

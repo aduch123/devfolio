@@ -1,6 +1,7 @@
 import { Resend } from "resend";
+import { env } from "../config/env.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(env.RESEND_API_KEY);
 
 export async function sendContactEmail({ to, senderName, senderEmail, message }) {
   await resend.emails.send({
