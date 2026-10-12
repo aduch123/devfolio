@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
-import { catchAsync } from "../utils/catchAsync.js";
+import { requireAuth } from "../../middleware/auth.middleware.js";
+import { catchAsync } from "../../utils/catchAsync.js";
 import {
   getProjects,
   createProject,
   updateProject,
   deleteProject,
-} from "../controllers/project.controller.js";
+} from "./projects.controller.js";
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { signup, login } from '../controllers/auth.controller.js'
-import { catchAsync } from '../utils/catchAsync.js'
+import { signup, login } from './auth.controller.js'
+import { catchAsync } from '../../utils/catchAsync.js'
 
 const router = Router()
 

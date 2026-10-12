@@ -1,3 +1,4 @@
+import { API_PREFIX } from "./config.js";
 import { requireAuth } from "./authGuard.js";
 import { apiFetch } from "./api.js";
 import { skillOptions } from "./skillStyles.js";
@@ -86,7 +87,7 @@ form.addEventListener("submit", async (e) => {
     projects,
   };
 
-  const data = await apiFetch("/api/onboarding", {
+  const data = await apiFetch(`${API_PREFIX}/onboarding`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

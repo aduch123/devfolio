@@ -1,6 +1,6 @@
-import { API_BASE_URL } from "./config.js";
+import { API_BASE_URL, API_PREFIX } from "./config.js";
 
-const API_BASE = `${API_BASE_URL}/api/auth`;
+const API_BASE = `${API_BASE_URL}${API_PREFIX}/auth`;
 
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");

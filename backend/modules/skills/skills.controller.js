@@ -1,5 +1,5 @@
 import { z } from "zod";
-import prisma from "../config/prisma.js";
+import prisma from "../../config/prisma.js";
 
 const SKILL_VALUES = [
   "html", "css", "javascript", "python", "react", "nodejs",

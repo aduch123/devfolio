@@ -3,14 +3,15 @@ import { fileURLToPath } from "url"
 import express from 'express'
 import pinoHttp from "pino-http"
 import logger from "./config/logger.js"
+import prisma from "./config/prisma.js"
 import { errorHandler } from "./middleware/error.middleware.js"
-import authRoutes from "./routes/auth.routes.js"
-import profileRoutes from "./routes/profile.routes.js"
-import skillRoutes from "./routes/skill.routes.js"
-import projectRoutes from "./routes/project.routes.js"
-import onboardingRoutes from "./routes/onboarding.routes.js"
-import shareRoutes from "./routes/share.routes.js"
-import messageRoutes from "./routes/message.routes.js"
+import authRoutes from "./modules/auth/auth.routes.js"
+import profileRoutes from "./modules/profile/profile.routes.js"
+import skillRoutes from "./modules/skills/skills.routes.js"
+import projectRoutes from "./modules/projects/projects.routes.js"
+import onboardingRoutes from "./modules/onboarding/onboarding.routes.js"
+import shareRoutes from "./modules/share/share.routes.js"
+import messageRoutes from "./modules/messages/messages.routes.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,13 +26,23 @@ app.get("/health", (req, res) => {
   res.status(200).json({ message: "Server working perfectly!" })
 })
 
-app.use("/api/auth", authRoutes);
-app.use("/api", profileRoutes);
-app.use("/api", skillRoutes);
-app.use("/api", projectRoutes);
-app.use("/api", onboardingRoutes);
-app.use("/api", shareRoutes);
-app.use("/api", messageRoutes);
+app.get("/healthz", async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.status(200).json({ status: "ok" })
+  } catch (err) {
+    req.log.error({ err }, "healthz: database check failed")
+    res.status(503).json({ status: "error", db: "unreachable" })
+  }
+})
+
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1", profileRoutes);
+app.use("/api/v1", skillRoutes);
+app.use("/api/v1", projectRoutes);
+app.use("/api/v1", onboardingRoutes);
+app.use("/api/v1", shareRoutes);
+app.use("/api/v1", messageRoutes);
 
 app.get("/onboarding", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/onboarding.html"));

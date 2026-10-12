@@ -1,3 +1,4 @@
+import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { logout } from "./authGuard.js";
 import { skillStyles } from "./skillStyles.js";
@@ -22,8 +23,8 @@ async function init() {
   }
 
   const endpoint = isShareMode
-    ? `/api/portfolio/share/${shareToken}`
-    : `/api/portfolio/${username}`;
+    ? `${API_PREFIX}/portfolio/share/${shareToken}`
+    : `${API_PREFIX}/portfolio/${username}`;
 
   const data = await apiFetch(endpoint);
 
@@ -223,11 +224,11 @@ function setupShareButton() {
       loaded = true;
       dropdown.innerHTML = `<p style="color:var(--ink-soft); font-size:12px;">Generating link…</p>`;
 
-      const data = await apiFetch("/api/share");
+      const data = await apiFetch(`${API_PREFIX}/share`);
       let token = data?.shareToken;
 
       if (!token) {
-        const result = await apiFetch("/api/share", { method: "POST" });
+        const result = await apiFetch(`${API_PREFIX}/share`, { method: "POST" });
         token = result?.shareToken;
       }
 
@@ -262,12 +263,12 @@ function setupShareButton() {
     `;
 
     document.getElementById("regenerate-share")?.addEventListener("click", async () => {
-      const result = await apiFetch("/api/share", { method: "POST" });
+      const result = await apiFetch(`${API_PREFIX}/share`, { method: "POST" });
       if (result && !result.error) renderShareDropdown(result.shareToken);
     });
 
     document.getElementById("revoke-share")?.addEventListener("click", async () => {
-      await apiFetch("/api/share", { method: "DELETE" });
+      await apiFetch(`${API_PREFIX}/share`, { method: "DELETE" });
       loaded = false;
       dropdown.classList.remove("visible");
       shareBtn.classList.remove("active");
@@ -302,8 +303,8 @@ function setupContactForm() {
     status.textContent = "";
 
     const endpoint = isShareMode
-      ? `/api/portfolio/share/${shareToken}/message`
-      : `/api/portfolio/${username}/message`;
+      ? `${API_PREFIX}/portfolio/share/${shareToken}/message`
+      : `${API_PREFIX}/portfolio/${username}/message`;
 
     const result = await apiFetch(endpoint, {
       method: "POST",

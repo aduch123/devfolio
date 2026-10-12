@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
-import { catchAsync } from "../utils/catchAsync.js";
+import { requireAuth } from "../../middleware/auth.middleware.js";
+import { catchAsync } from "../../utils/catchAsync.js";
 import {
   getOwnProfile,
   updateOwnProfile,
   getPublicPortfolio,
-} from "../controllers/profile.controller.js";
+} from "./profile.controller.js";
 
 const router = Router();
 

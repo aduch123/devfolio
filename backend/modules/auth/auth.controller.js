@@ -1,8 +1,8 @@
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import prisma from "../config/prisma.js";
+import prisma from "../../config/prisma.js";
 import jwt from "jsonwebtoken";
-import { env } from "../config/env.js";
+import { env } from "../../config/env.js";
 
 const signupSchema = z.object({
   email: z.string().email(),

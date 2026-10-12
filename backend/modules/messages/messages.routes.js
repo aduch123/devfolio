@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { catchAsync } from "../utils/catchAsync.js";
-import { sendContactMessage } from "../controllers/message.controller.js";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendContactMessage } from "./messages.controller.js";
 
 const router = Router();
 

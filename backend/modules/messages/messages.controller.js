@@ -1,6 +1,6 @@
 import { z } from "zod";
-import prisma from "../config/prisma.js";
-import { sendContactEmail } from "../utils/mailer.js";
+import prisma from "../../config/prisma.js";
+import { sendContactEmail } from "../../utils/mailer.js";
 
 const messageSchema = z.object({
   name: z.string().min(1),

@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
-import { catchAsync } from "../utils/catchAsync.js";
+import { requireAuth } from "../../middleware/auth.middleware.js";
+import { catchAsync } from "../../utils/catchAsync.js";
 import {
   generateShareToken,
   revokeShareToken,
   getSharedPortfolio,
   getShareToken,
-} from "../controllers/share.controller.js";
+} from "./share.controller.js";
 
 const router = Router();
 

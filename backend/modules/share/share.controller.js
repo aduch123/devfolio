@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import prisma from "../config/prisma.js";
+import prisma from "../../config/prisma.js";
 
 export const generateShareToken = async (req, res) => {
   const shareToken = crypto.randomBytes(16).toString("hex");

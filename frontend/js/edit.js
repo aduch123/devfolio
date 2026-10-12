@@ -1,3 +1,4 @@
+import { API_PREFIX } from "./config.js";
 import { requireAuth } from "./authGuard.js";
 import { apiFetch } from "./api.js";
 import { skillOptions } from "./skillStyles.js";
@@ -25,7 +26,7 @@ const profilePanel = document.getElementById("panel-profile");
 
 async function loadProfileTab() {
   profilePanel.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
-  const data = await apiFetch("/api/profile");
+  const data = await apiFetch(`${API_PREFIX}/profile`);
   const profile = data?.profile || {};
 
   profilePanel.innerHTML = `
@@ -83,7 +84,7 @@ async function loadProfileTab() {
       heroRoleTexts,
     };
 
-    const result = await apiFetch("/api/profile", {
+    const result = await apiFetch(`${API_PREFIX}/profile`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -104,7 +105,7 @@ const skillLabelMap = Object.fromEntries(skillOptions.map((s) => [s.value, s.lab
 
 async function loadSkillsTab() {
   skillsPanel.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
-  const data = await apiFetch("/api/skills");
+  const data = await apiFetch(`${API_PREFIX}/skills`);
   const skills = data?.skills || [];
 
   skillsPanel.innerHTML = `
@@ -134,7 +135,7 @@ async function loadSkillsTab() {
     const name = document.getElementById("new-skill-name").value;
     const level = document.getElementById("new-skill-level").value;
 
-    const result = await apiFetch("/api/skills", {
+    const result = await apiFetch(`${API_PREFIX}/skills`, {
       method: "POST",
       body: JSON.stringify({ name, level }),
     });
@@ -171,14 +172,14 @@ function renderExistingSkills(skills) {
     `;
 
     row.querySelector(".skill-level-select").addEventListener("change", async (e) => {
-      await apiFetch(`/api/skills/${skill.id}`, {
+      await apiFetch(`${API_PREFIX}/skills/${skill.id}`, {
         method: "PATCH",
         body: JSON.stringify({ level: e.target.value }),
       });
     });
 
     row.querySelector(".remove-row").addEventListener("click", async () => {
-      await apiFetch(`/api/skills/${skill.id}`, { method: "DELETE" });
+      await apiFetch(`${API_PREFIX}/skills/${skill.id}`, { method: "DELETE" });
       row.remove();
     });
 
@@ -191,7 +192,7 @@ const projectsPanel = document.getElementById("panel-projects");
 
 async function loadProjectsTab() {
   projectsPanel.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
-  const data = await apiFetch("/api/projects");
+  const data = await apiFetch(`${API_PREFIX}/projects`);
   const projects = data?.projects || [];
 
   projectsPanel.innerHTML = `
@@ -231,7 +232,7 @@ async function loadProjectsTab() {
         : [],
     };
 
-    const result = await apiFetch("/api/projects", {
+    const result = await apiFetch(`${API_PREFIX}/projects`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -271,7 +272,7 @@ function renderExistingProjects(projects) {
     `;
 
     const saveField = async (field, value) => {
-      await apiFetch(`/api/projects/${project.id}`, {
+      await apiFetch(`${API_PREFIX}/projects/${project.id}`, {
         method: "PATCH",
         body: JSON.stringify({ [field]: value }),
       });
@@ -287,7 +288,7 @@ function renderExistingProjects(projects) {
     });
 
     wrapper.querySelector(".remove-row").addEventListener("click", async () => {
-      await apiFetch(`/api/projects/${project.id}`, { method: "DELETE" });
+      await apiFetch(`${API_PREFIX}/projects/${project.id}`, { method: "DELETE" });
       wrapper.remove();
     });
 

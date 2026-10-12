@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 0, planning only)
-**Current position:** Phase 0, Subphase **0.1** (not started)
-**Code changes made so far:** **None.** The uploaded project is exactly as the user wrote it.
+**Last updated:** 2026-10-12 (Session 2, subphase 0.2 implemented)
+**Current position:** Phase 0. Subphase **0.2 implemented, awaiting user verification**. Next: **0.3** (after 0.2 is verified and merged).
+**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on `phase-0.1-hygiene`) and 0.2 (restructure and `/api/v1`, delivered as `devfolio-0.2-changes.zip`).
 
 ---
 
@@ -20,9 +20,23 @@
 5. **No extra deliverables.** No extra markdown docs, diagrams, or explanations unless asked. No web searches unless truly needed (the stack facts are in section 4).
 6. **Ask at most one question**, and only if blocked. Otherwise state an assumption in one line and continue.
 7. **Never print or ask for secrets.** `.env` must not be uploaded. If a real secret appears, tell the user to rotate it.
-8. **Deliver only changed and new files**, not a zip of the whole project, unless asked.
+8. **Deliver only changed and new files** (zip with project-relative paths), not the whole project, unless asked.
 9. **Watch the context budget.** If the session is getting long or you are near the limit, stop adding scope, finish the current edit, and produce the handoff update block (section 9) **before** running out.
 10. **Verify cheaply.** Run `node --check`, lint or a quick import test on changed files when possible. The user will run the app, database migrations and browser tests locally, since the chat sandbox has no access to their database.
+11. **Update `HANDOFF.md` after every change, not just at the end of a subphase.** Any edit to code, docs, config or decisions (including small follow-up fixes the user requests) must be reflected in the handoff in the same reply: header, status tracker, section 4 if the codebase changed, and a session log line. Re-deliver the updated `docs/HANDOFF.md` with it. Never finish a reply that changed something without having updated the handoff.
+
+---
+
+## 1b. Working workflow (follow for every subphase)
+
+1. **Brief first.** Before changing anything, Claude sends a short brief: what it will do, which files it will touch, what is out of scope, and any choices that need a decision. **No code changes until the user approves.**
+2. **User approves** (or adjusts the brief).
+3. **Claude implements** only that subphase, checking cheaply (`node --check`, lint, import or startup tests where possible). The sandbox has no database and may block Prisma binary downloads, so DB-backed flows are tested by the user locally.
+4. **Claude delivers**, in one reply: (a) a **zip of changed and new files only**, with project-relative paths so it can be unzipped over the repo root; (b) a list of **files to delete**, if any; (c) the **updated `HANDOFF.md`** (Claude edits it itself with targeted edits; the user does not paste anything; this applies to every change, see rule 11); (d) a suggested **commit message**.
+5. **User applies and verifies:** unzips over the repo, runs `npm install` if `package.json` changed, runs the subphase's success criteria, commits on the subphase branch (`phase-0.X-name`), merges into `main` when all pass.
+6. **Next session** starts from the updated `HANDOFF.md` (section 8 holds the next task).
+
+**Git conventions:** one branch per subphase (`git switch -c phase-0.X-name`); tag `v0-baseline` marks the original code; commit messages use `type: summary` (`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `style:`).
 
 ---
 
@@ -68,46 +82,53 @@ The goal is an **intermediate-level** project that is also well structured and s
 
 ---
 
-## 4. Current codebase (as of the uploaded zip)
+## 4. Current codebase (after subphase 0.2)
 
-**Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `nodemon` in dev. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests, no linter.
+**Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
 
 **Notes on the stack that matter:**
-- Express 5 forwards rejected promises from async handlers to the error middleware automatically, so the existing `catchAsync` wrapper is redundant (keep or remove consistently in 0.2 or 0.3).
-- Prisma client is created in `config/prisma.js` with the `PrismaPg` adapter and `process.env.DATABASE_URL`.
+- Express 5 forwards rejected promises from async handlers to the error middleware automatically, so the existing `catchAsync` wrapper is redundant (still present; keep or remove consistently in 0.2 or 0.3).
+- All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
+- `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
+- Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
 
-**Backend layout (flat, to be restructured in 0.2):**
+**Backend layout:**
 ```
 backend/
-  server.js                 # app setup + listen (to split in 0.1)
-  config/                   # prisma.js, logger.js (pino-pretty always on)
+  app.js                    # builds Express app: middleware, static, /health + /healthz, /api/v1 routers, page routes, 404, errorHandler
+  server.js                 # imports app, listens on env.PORT
+  modules/<name>/           # <name>.routes.js + <name>.controller.js (validation still inline in controllers)
+                            # names: auth, profile, skills, projects, onboarding, share, messages
+  config/                   # env.js (zod-validated env, exits on error), constants.js (APP_NAME),
+                            # prisma.js, logger.js (pino-pretty only when NODE_ENV != production)
   middleware/               # auth.middleware.js (Bearer JWT), error.middleware.js
-  routes/                   # auth, profile, skill, project, onboarding, share, message
-  controllers/              # same names
-  utils/                    # catchAsync.js, mailer.js (Resend, from onboarding@resend.dev)
+  utils/                    # catchAsync.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
   prisma/                   # schema.prisma + 4 migrations
-  models/                   # EMPTY folder (delete)
+  eslint.config.js, .prettierrc, .prettierignore, .env.example
   .env                      # NOT to be uploaded (contains secrets)
+README.md                   # at repo root
 ```
 
 **Frontend layout:**
 ```
 frontend/
-  index.html                # landing, "Get started" -> /pages/auth.html
-  pages/                    # auth, onboarding, edit, portfolio (.html)
-  js/                       # config (API_BASE_URL=""), api (apiFetch), authGuard, auth,
+  index.html                # landing (title "Devfolio"), "Get started" -> /pages/auth.html
+  pages/                    # auth (title "Log in | Devfolio"), onboarding, edit, portfolio (.html)
+  js/                       # config (API_BASE_URL="", API_PREFIX="/api/v1"), api (apiFetch), authGuard, auth,
                             # onboarding, edit, portfolio, script (nav/scroll-reveal), skillStyles
   css/                      # global, auth, onboarding, edit
 ```
 
-**Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) → one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. No `createdAt` on Skill or Project.
+**Scripts (run in `backend/`):** `dev`, `start`, `lint`, `lint:fix`, `format`, `format:check`. Lint and format scripts `cd ..` first so they cover `backend/` and `frontend/` together; configs live in `backend/`.
 
-**Current API (all under `/api`, to move to `/api/v1`):**
-`POST auth/signup`, `POST auth/login`, `POST auth/onboarding/complete` (unused), `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (**wrongly requires auth**), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`.
+**Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. No `createdAt` on Skill or Project.
 
-**Page routes in `server.js`:** static files, `/health`, API routers, then `/onboarding`, `/edit`, `/share/:token`, `/:username` (catch-all that serves `portfolio.html`), then a 404 handler and the error handler.
+**Current API (all under `/api/v1`; paths below are relative to it):**
+`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (**wrongly requires auth**), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
 
-**Auth today:** login returns a JWT (7 days); the frontend stores `token` and `user` in `localStorage`; `apiFetch` adds the `Authorization: Bearer` header and on any 401 clears storage and redirects to `/pages/auth.html`. (This is replaced by cookies in Phase 1. Do not change it in Phase 0.)
+**Page routes in `app.js`:** static files, `/health`, `/healthz`, API routers (`/api/v1`), then `/onboarding`, `/edit`, `/share/:token`, `/:username` (catch-all that serves `portfolio.html`), then a 404 handler and the error handler.
+
+**Auth today:** login returns a JWT (7 days); the frontend stores `token` and `user` in `localStorage`; `apiFetch` adds the `Authorization: Bearer` header and on any 401 clears storage and redirects to `/pages/auth.html`. (Replaced by cookies in Phase 1. Do not change it in Phase 0.)
 
 ---
 
@@ -115,9 +136,9 @@ frontend/
 
 | # | Problem | Fixed in |
 |---|---|---|
-| 1 | Secrets (`.env`) were shared in a zip, so they must be rotated | 0.1 (user action) |
-| 2 | No env validation, no `.env.example`, server and app not split, no linter, dead code (`models/`, unused endpoint) | 0.1 |
-| 3 | Flat structure, unversioned API | 0.2 |
+| 1 | Secrets (`.env`) were shared in a zip, so they must be rotated | 0.1 (user action, **pending user confirmation**) |
+| 2 | No env validation, no `.env.example`, server and app not split, no linter, dead code (`models/`, unused endpoint) | 0.1 **(implemented, awaiting verification)** |
+| 3 | Flat structure, unversioned API | 0.2 **(implemented, awaiting verification)** |
 | 4 | Inconsistent errors; flattened zod object shows "[object Object]" in the UI | 0.3 |
 | 5 | URL fields accept `javascript:`; phone is free text; no max lengths; optional fields cannot be cleared (`undefined` is dropped from JSON) | 0.4 |
 | 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 |
@@ -146,16 +167,23 @@ frontend/
 - Usernames: lowercase `a-z 0-9 -`, 3 to 30 characters, no leading or trailing dash, reserved names blocked.
 - Empty optional fields are normalized to `null`.
 
+**Decisions made in 0.1**
+- `JWT_SECRET` must be at least 32 characters (enforced at startup). `PORT` defaults to 5000; `NODE_ENV` defaults to `development`. `RESEND_API_KEY` stays required.
+- `APP_NAME = "Devfolio"` lives in `config/constants.js` (0.5 adds the reserved-username list there).
+- Prettier is **configured but not applied**: running it now would reformat every file (`format:check` reports about 37 files). Apply once, in its own commit (`style: format with prettier`), right after 0.1 is merged and before 0.2, so later diffs stay readable.
+- ESLint rule `no-unused-vars` is set with `args: none` (Express error handlers need unused `next`) and `caughtErrors: none` (existing `catch (err)` blocks left unchanged to avoid behavior edits).
+- README lives at the repo root; setup instructions run `npx prisma migrate dev` then `npx prisma generate`.
+
 ---
 
 ## 7. Status tracker
 
-Mark with `[x]` when **all** success criteria of that item are verified by the user.
+Mark `[x]` when **all** success criteria of that item are verified by the user. `[~]` means implemented but not yet verified.
 
 ### Phase 0: Foundation, cleanup and critical fixes
-- [ ] **0.1** Hygiene and bootstrap  ← **NEXT**
-- [ ] 0.2 Restructure and API versioning
-- [ ] 0.3 Error contract
+- [~] **0.1** Hygiene and bootstrap: committed on `phase-0.1-hygiene`; user verification and merge into `main` not yet confirmed
+- [~] 0.2 Restructure and API versioning: **implemented, awaiting user verification** (see section 8a)
+- [ ] 0.3 Error contract  ← **NEXT** (after 0.2 is verified)
 - [ ] 0.4 Input validation and clearable fields
 - [ ] 0.5 Data integrity
 - [ ] 0.6 Public access and XSS fixes
@@ -168,55 +196,57 @@ Mark with `[x]` when **all** success criteria of that item are verified by the u
 
 ---
 
-## 8. NEXT TASK: Subphase 0.1 (Hygiene and bootstrap)
+## 8. NEXT TASK
 
-**Goal:** a project that boots safely from a clean clone, with a testable app structure and no dead code. **No behavior changes.**
+### 8a. First: user verifies 0.2 (no Claude work needed)
+
+Unzip `devfolio-0.2-changes.zip` over the repo root, then **delete the now-empty `backend/routes/` and `backend/controllers/` folders** (the old files are replaced by `backend/modules/`). Run `cd backend && npm install` if you have not since 0.1 (the old `package-lock.json` was out of sync with `package.json`; commit the regenerated lock), then check:
+
+- [ ] Server boots with no import errors.
+- [ ] Signup, login, onboarding, view portfolio, edit profile, skills and projects, share, and contact form all work through `/api/v1`.
+- [ ] `grep -rn "/api" frontend` shows the prefix only in `frontend/js/config.js`.
+- [ ] `GET /healthz` returns 200 with the DB up; with the DB stopped it returns 503.
+- [ ] `npm run lint` passes.
+
+Then commit on `phase-0.2-structure` (suggested: `refactor: move code into modules, version API under /api/v1, add /healthz`), merge into `main`, and tick `[x]` for 0.2 in section 7. Also confirm 0.1 is merged and secrets rotated (a `.env` and `.git` were inside the last uploaded zip: do not include them again).
+
+### 8b. Then: Subphase 0.3 (Error contract)
+
+**Goal:** one error shape everywhere, so the "[object Object]" bug disappears and later phases have a stable foundation.
 
 **Tasks**
-1. Create `.env.example` with `PORT`, `DATABASE_URL`, `JWT_SECRET`, `RESEND_API_KEY` (placeholder values, comments for future ones).
-2. Add `config/env.js`: load dotenv, validate with zod, **exit with a clear message** if a required variable is missing or weak (for example `JWT_SECRET` under 32 characters). Export a typed `env` object, and replace direct `process.env` reads in other files (`prisma.js`, `mailer.js`, `auth.controller.js`, `auth.middleware.js`, `server.js`) with imports from it.
-3. Split `server.js` into `app.js` (builds and exports the Express app with all middleware and routes) and `server.js` (imports the app and calls `listen`). Keep the route order intact.
-4. Delete the empty `models/` folder, and remove the unused `POST /api/auth/onboarding/complete` route and the `completeOnboarding` controller (including its import in `auth.routes.js`).
-5. Make logging environment-aware: use `pino-pretty` only when `NODE_ENV !== "production"`.
-6. Add ESLint (flat config, Node and browser globals as needed) and Prettier, with `lint` and `format` scripts in `package.json`. Auto-fix what can be fixed, and list what remains.
-7. Add a short `README.md` titled **Devfolio**: prerequisites, install, env setup, `npx prisma migrate dev`, `npm run dev`, scripts.
-8. **Branding (text only):** rename the package to `devfolio` in `package.json`, add `APP_NAME = "Devfolio"` (in `config/env.js` or a new `config/constants.js`), and update the `<title>` of `frontend/index.html` ("Devfolio") and `frontend/pages/auth.html` ("Log in | Devfolio"). The mailer sender rename happens in 0.7.
+- Add `utils/AppError.js` (`status`, `code`, `message`, optional `fields`) with helpers like `badRequest`, `unauthorized`, `notFound`, `conflict`, `tooMany`.
+- Add `middleware/validate.js`: takes a zod schema, parses `req.body` (or query), and on failure throws a `400 VALIDATION_ERROR` with `fields: { fieldName: "message" }`.
+- Standard response: `{ "error": { "code": "...", "message": "...", "fields": { ... } } }`. Update `error.middleware.js` to produce it for `AppError`, for zod errors, for unknown errors (500 with a generic message, full error only in logs) and for the 404 handler.
+- Refactor all controllers: replace `res.status(...).json({ error: ... })` and inline `safeParse` blocks with `validate(schema)` plus thrown `AppError`s.
+- Frontend: update `api.js` to return a consistent result shape (for example `{ ok, data, error }`), and update `auth.js`, `onboarding.js`, `edit.js` and `portfolio.js` to show `error.message` and map `error.fields` to the matching inputs.
+- Add a small `showFieldErrors(form, fields)` helper in the frontend.
 
-**Likely files:** `.env.example`, `config/env.js`, `config/logger.js`, `config/prisma.js`, `app.js`, `server.js`, `routes/auth.routes.js`, `controllers/auth.controller.js`, `middleware/auth.middleware.js`, `utils/mailer.js`, `package.json`, ESLint and Prettier configs, `README.md`, `frontend/index.html`, `frontend/pages/auth.html`.
+**Files touched (about 15):** error and validate utilities, error middleware, all controllers, `api.js`, `auth.js`, `onboarding.js`, `edit.js`, `portfolio.js`, one helper file.
 
-**Out of scope:** moving folders (0.2), error format (0.3), any validation or behavior change.
+**Out of scope:** changing what is validated (0.4).
 
-**User actions outside the chat**
-- **Rotate** the JWT secret, Resend API key and database password (they were in a shared zip), and put the new values in the local `.env`.
-- Delete `.env` and `node_modules` from the zip before uploading.
-
-**Success criteria (user verifies)**
-- [ ] Removing `JWT_SECRET` from `.env` makes the server exit with a readable error.
-- [ ] Copying `.env.example` to `.env` (with real values) boots the server and `/health` returns OK.
-- [ ] `app.js` can be imported without starting a server.
-- [ ] `npm run lint` passes.
-- [ ] Login, onboarding, portfolio view, edit and share still work exactly as before.
-- [ ] Old secrets are rotated, and `.env` is not in version control or the uploaded zip.
-- [ ] `package.json` name is `devfolio`, the README title says Devfolio, and the landing and auth page tab titles show the name.
-
-**After 0.1:** the next subphase is **0.2** (restructure and `/api/v1`). Take its section from `PHASE_0_PLAN.md`.
+**Success criteria**
+- [ ] Every API failure response matches the standard shape (check at least: bad signup, wrong login, 404 portfolio, unauthorized, server error).
+- [ ] Signing up with a 25-character username shows a message next to the username field, never "[object Object]".
+- [ ] A forced server error returns a generic 500 message without leaking internals.
+- [ ] Unknown `/api/v1/...` routes return the standard 404 shape.
+- [ ] Frontend shows readable errors on login, signup, onboarding, edit tabs and the contact form.
 
 ---
 
-## 9. How to update this file at the end of every session
+## 9. How this file is updated
 
-To save tokens, **do not rewrite this whole file.** Ask Claude to output only this **update block**, then paste the pieces into the right places yourself:
+At the end of every subphase, **Claude updates this file itself** (workflow step 4) using **targeted edits** (do not regenerate the whole file; that wastes tokens). Each update must:
 
-```
-### Update block for HANDOFF.md
-1. Status tracker changes: (which boxes to tick, which item is now NEXT)
-2. Session log entry: (copy of the template in section 10)
-3. Codebase changes to record in section 4: (new or moved files, new routes, new env vars, only if they changed)
-4. Decisions to add to section 6: (only if new)
-5. Next task: (name the next subphase and note anything it must know)
-```
+1. Update the header (**Last updated**, **Current position**, **Code changes made so far**).
+2. Update the status tracker (section 7): `[~]` when implemented, `[x]` only after the user confirms verification.
+3. Update section 4 only where the codebase changed (layout, routes, env vars, scripts, conventions).
+4. Add any new decisions to section 6 and tick off backlog items in section 5.
+5. Replace section 8 with the next task (copy that subphase's spec from `PHASE_0_PLAN.md`, or the next phase's section from `BUILD_PLAN.md`).
+6. Append a session log entry (section 10, template below).
 
-Also update "Last updated", "Current position" and "Code changes made so far" at the top.
+If a session is about to run out of context, Claude stops adding scope and does steps 1 to 6 first.
 
 ---
 
@@ -251,10 +281,42 @@ Result: completed
 - Project named **Devfolio** (decision D11). Updated `BUILD_PLAN.md`, `PHASE_0_PLAN.md` and `HANDOFF.md` to use the name and added rename tasks to 0.1 (package, README, page titles) and 0.7 (email sender name).
 - Leftover: user to check that the name is free on GitHub, npm and as a domain (`devfolio.*`). Similar products may exist, so confirm before registering a domain. If it must change, update `APP_NAME` and the places listed in D11.
 
-*(Add Session 1 and onward below this line.)*
+### Session 1: Subphase 0.1, Hygiene and bootstrap (2026-10-12)
+Result: **implemented; awaiting user verification** (DB-backed flows could not be tested in the sandbox)
+Files created: `README.md` (repo root), `backend/.env.example`, `backend/.prettierrc`, `backend/.prettierignore`, `backend/eslint.config.js`, `backend/app.js`, `backend/config/env.js`, `backend/config/constants.js`
+Files changed: `backend/server.js` (now only `listen`), `backend/package.json` (name `devfolio`, new scripts, dev deps: eslint, @eslint/js, globals, prettier, eslint-config-prettier), `backend/config/logger.js`, `backend/config/prisma.js`, `backend/controllers/auth.controller.js` (uses `env`, removed `completeOnboarding`), `backend/middleware/auth.middleware.js`, `backend/routes/auth.routes.js` (removed `/onboarding/complete` route), `backend/utils/mailer.js`, `frontend/index.html` (title), `frontend/pages/auth.html` (title)
+Files deleted: `backend/models/` (empty folder; delete locally)
+New env vars / commands: `NODE_ENV` (optional); run `cd backend && npm install` (new dev deps; updates `package-lock.json`); `npm run lint`
+Sandbox checks passed: `node --check` on all backend files; lint clean on backend and frontend; env validation exits with readable messages (all missing, only `JWT_SECRET` missing, short secret); `app.js` imports as a plain Express app (Prisma client stubbed); live server served `/health` (200), `/` (200, title "Devfolio") and returned 404 for the removed `/api/auth/onboarding/complete`; production logs are JSON.
+Not testable in sandbox: anything using the database or Resend, and `prisma generate` (binary download blocked).
+Decisions made: see section 6, "Decisions made in 0.1".
+Leftovers / TODOs for later:
+- `npm run format:check` reports about 37 files; apply `npm run format` in its own commit after 0.1 merges.
+- `catchAsync` is redundant under Express 5; decide in 0.2 or 0.3.
+- Mailer sender still says "Portfolio Contact" (renamed in 0.7).
+- `prisma.config.ts` still reads `process.env` directly (intentional, Prisma CLI config).
+Must not break: `app.js` must stay importable without starting a server; all env access goes through `config/env.js`.
+
+### Session 2: Subphase 0.2, Restructure and API versioning (2026-10-12)
+Result: **implemented; awaiting user verification** (DB-backed flows could not be tested in the sandbox)
+Files created: none new besides moved files; `backend/modules/<name>/<name>.routes.js` and `<name>.controller.js` for auth, profile, skills, projects, onboarding, share, messages
+Files changed: `backend/app.js` (imports, `/api/v1` mounts, `/healthz`), `frontend/js/config.js` (`API_PREFIX`), `frontend/js/auth.js`, `edit.js`, `onboarding.js`, `portfolio.js` (use `API_PREFIX`), `README.md`, `docs/HANDOFF.md`
+Files deleted: `backend/routes/*`, `backend/controllers/*` (moved with `git mv`; delete the empty folders locally)
+New env vars / commands: none
+Sandbox checks passed: `node --check` on all backend files; `npm run lint` clean; app booted with a stubbed Prisma client: `/health` 200, `/healthz` 503 when DB unreachable, `/api/v1/*` protected routes 401, `/api/v1/auth/login` with empty body 400, old `/api/profile` 404.
+Process note: user added rule 11 (update the handoff after every change), added to section 1 and workflow step 4.
+Decisions made (and why): validation left inline in controllers (extracting is a logic-adjacent change, done in 0.3/0.4); `catchAsync` left in place (revisit in 0.3); `/healthz` sits outside `/api/v1`.
+Leftovers / TODOs for later:
+- `GET /api/v1/portfolio/:username` still wrongly requires auth (0.6).
+- `catchAsync` is redundant under Express 5; decide in 0.3.
+- `package-lock.json` in the uploaded zip was out of sync with `package.json`; user should run `npm install` and commit it.
+- Prettier still not applied (separate `style:` commit).
+Must not break: `app.js` importable without starting a server; all env access via `config/env.js`; frontend API paths only via `API_PREFIX`.
+
+*(Add Session 3 and onward below this line.)*
 
 ---
 
 ## 11. Starting message to paste into the new chat
 
-> I'm building **Devfolio**, a developer portfolio platform, following the attached plan. I'm on a **free Claude plan, so be very economical with tokens**. Read `HANDOFF.md` (attached) first and follow its rules in section 1. Implement **only** the "NEXT TASK" in section 8 (subphase 0.1). Attached: `HANDOFF.md` and my project zip (without `.env` and `node_modules`). Edit existing files with targeted changes, give me only changed or new files, keep replies short, and at the end give me the "update block" from section 9.
+> I'm building **Devfolio**, a developer portfolio platform, following the attached plan. I'm on a **free Claude plan, so be very economical with tokens**. Read `HANDOFF.md` (attached) first, and follow its rules in section 1 and the workflow in section 1b. Work on the **NEXT TASK in section 8** only. **Send me a brief first and wait for my approval before changing anything.** Attached: `HANDOFF.md` and my project zip (without `.env` and `node_modules`). When done, send me a zip of the changed files only, the updated `HANDOFF.md`, and a suggested commit message.

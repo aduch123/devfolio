@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
-import { catchAsync } from "../utils/catchAsync.js";
+import { requireAuth } from "../../middleware/auth.middleware.js";
+import { catchAsync } from "../../utils/catchAsync.js";
 import {
   getSkills,
   createSkill,
   updateSkill,
   deleteSkill,
-} from "../controllers/skill.controller.js";
+} from "./skills.controller.js";
 
 const router = Router();
 
