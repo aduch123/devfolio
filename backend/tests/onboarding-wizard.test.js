@@ -1,6 +1,16 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { API, app, prisma, request, cleanupUsers, errorOf, registerAndLogin } from "./helpers.js";
+import {
+  API,
+  app,
+  prisma,
+  request,
+  cleanupUsers,
+  cookieHeader,
+  ACCESS_COOKIE,
+  errorOf,
+  registerAndLogin,
+} from "./helpers.js";
 
 before(cleanupUsers);
 after(async () => {
@@ -196,5 +206,43 @@ describe("POST /onboarding/complete", () => {
 
   it("needs a session", async () => {
     assert.equal((await request(app).post(`${API}/onboarding/complete`)).status, 401);
+  });
+});
+
+describe("onboarding endpoints and bad sessions", () => {
+  it("refuse a garbage access cookie on every endpoint", async () => {
+    const cookie = `${ACCESS_COOKIE}=garbage`;
+    errorOf(await request(app).get(`${API}/onboarding/state`).set("Cookie", cookie), 401, "INVALID_TOKEN");
+    errorOf(
+      await request(app).put(`${API}/onboarding/step/1`).set("Cookie", cookie).send(basics),
+      401,
+      "INVALID_TOKEN",
+    );
+    errorOf(await request(app).post(`${API}/onboarding/complete`).set("Cookie", cookie), 401, "INVALID_TOKEN");
+  });
+
+  it("refuse a session that was logged out", async () => {
+    const { loginRes } = await registerAndLogin();
+    const cookies = cookieHeader(loginRes);
+    await request(app).post(`${API}/auth/logout`).set("Cookie", cookies).expect(204);
+    errorOf(await request(app).get(`${API}/onboarding/state`).set("Cookie", cookies), 401, "SESSION_ENDED");
+    errorOf(await request(app).post(`${API}/onboarding/complete`).set("Cookie", cookies), 401, "SESSION_ENDED");
+  });
+});
+
+describe("POST /onboarding/complete is atomic", () => {
+  it("lets exactly one of two simultaneous requests win and writes the rows once", async () => {
+    const { agent, user } = await registerAndLogin();
+    await put(agent, 1, basics).expect(200);
+    await put(agent, 3, { data: { skills: [{ name: "react", level: "good" }] } }).expect(200);
+    await put(agent, 4, { data: { projects: [{ title: "Only once" }] } }).expect(200);
+
+    const results = await Promise.all([complete(agent), complete(agent)]);
+    const statuses = results.map((r) => r.status).sort();
+    assert.deepEqual(statuses, [200, 409]);
+    errorOf(results.find((r) => r.status === 409), 409, "ALREADY_ONBOARDED");
+
+    assert.equal(await prisma.skill.count({ where: { userId: user.id } }), 1);
+    assert.equal(await prisma.project.count({ where: { userId: user.id } }), 1);
   });
 });

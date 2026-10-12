@@ -116,6 +116,36 @@ await check("POST login with empty body returns 400 VALIDATION_ERROR with fields
   if (!body.error.fields || typeof body.error.fields !== "object") return "missing error.fields";
 });
 
+await check("App pages send a logged-out visitor to /login (no redirect loop)", async () => {
+  const res = await fetch(`${base}/dashboard`, { redirect: "manual" });
+  const to = res.headers.get("location");
+  if (res.status !== 302 || to !== "/login?next=%2Fdashboard") return `got ${res.status} ${to}`;
+  const wizard = await fetch(`${base}/onboarding`, { redirect: "manual" });
+  if (wizard.status !== 302 || wizard.headers.get("location") !== "/login") {
+    return `onboarding: got ${wizard.status} ${wizard.headers.get("location")}`;
+  }
+  const login = await fetch(`${base}/login`, { redirect: "manual" });
+  if (login.status !== 200) return `/login: got ${login.status}`;
+});
+
+await check("Onboarding wizard endpoints need a session (401 in the standard shape)", async () => {
+  const calls = [
+    ["GET", "/api/v1/onboarding/state"],
+    ["PUT", "/api/v1/onboarding/step/1"],
+    ["POST", "/api/v1/onboarding/complete"],
+  ];
+  for (const [method, path] of calls) {
+    const { res, body } = await call(path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      ...(method === "PUT" ? { body: "{}" } : {}),
+    });
+    if (res.status !== 401 || !isErrorShape(body)) {
+      return `${method} ${path}: got ${res.status} ${JSON.stringify(body)}`;
+    }
+  }
+});
+
 await check("Security headers present (CSP, no x-powered-by)", async () => {
   const { res } = await call("/");
   if (!res.headers.get("content-security-policy")) return "missing content-security-policy";
