@@ -16,6 +16,7 @@ export const PUBLIC_PORTFOLIO_SELECT = {
       location: true,
       avatarUrl: true,
       resumeUrl: true,
+      sectionConfig: true,
     },
   },
   skills: {

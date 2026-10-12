@@ -3,8 +3,8 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-13 (Session 15: 2.1 and 2.2 verified; 2.3 and 2.4 implemented, awaiting verification)
-**Current position:** Phase 0 and **Phase 1 are done** (merged). On **Phase 2** (branch `phase-2-content-model`): 2.1 and 2.2 verified; **2.3 (projects, social links, timeline) and 2.4 (media uploads) are implemented, awaiting user verification.** Next: 2.5 (section config and final Phase 2 tests), then merge Phase 2.
+**Last updated:** 2026-10-13 (Session 16: 2.3 and 2.4 verified; 2.5 implemented, awaiting verification)
+**Current position:** Phase 0 and **Phase 1 are done** (merged). On **Phase 2** (branch `phase-2-content-model`): 2.1 to 2.4 verified; **2.5 (section config) is implemented, awaiting user verification.** Next: run the Phase 2 success criteria, merge Phase 2 and tag `phase-2-complete`, then Phase 3.
 **Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1, 1.2 (Session 8), 1.3 (Session 9), 1.4 (Session 10), 1.5 (Session 11), 1.6 (Session 12) and 1.7 (Session 13).
 
 ---
@@ -110,7 +110,8 @@ The goal is an **intermediate-level** project that is also well structured and s
 - **Content model (2.1 and 2.2):** migration `20261013100000_content_model` adds `Profile` (`headline`, `location`, `avatarUrl`, `resumeUrl`, `sectionConfig` JSON; unused until 2.4/2.5), `Skill` (`category` default `other`, `iconKey`, `isCustom`, `sortOrder`), `Project` (`coverImageUrl`, `featured`, `sortOrder`; not used by code until 2.3) and new tables `SocialLink` (`platform`, `url`, `sortOrder`) and `TimelineItem` (`type` EXPERIENCE|EDUCATION, `title`, `organization`, `startDate`, `endDate?`, `description?`, `sortOrder`), all cascade with the user. Existing rows got `sortOrder` by `createdAt, id` and presets got a category. **Skills:** the name is any text up to 40 characters (`skillName` in `utils/validators.js`); a name that equals a preset (any casing) is stored as the lowercase preset value with `isCustom=false`, anything else is custom. `category` is `frontend|backend|database|tools|other` (default from the preset map). `skillDerived(name, category)` computes `isCustom` and `category` on the server. Max 50 skills (`409 SKILL_LIMIT`). New skills go last (`nextSortOrder`). `PUT /skills/order { ids }` (204) uses `utils/reorder.js` `reorderOwned(model, userId, ids, { notFoundCode, label })`, which 2.3 reuses: a foreign id gives 404, a duplicate or incomplete list gives 400 `INVALID_ORDER`, and the write is one transaction. Skill lists and the public select order by `sortOrder, createdAt, id`; the public select now also returns `category` and `isCustom`. Onboarding sets `sortOrder` by array index for skills and projects. The frontend already renders unknown skill names with the generic icon; the editor UI for custom skills comes in Phase 4. Projects still list by `createdAt, id` until 2.3.
 - **Content API (2.3):** `projects` (now with `featured`, limit `MAX_FEATURED_PROJECTS`, default 3, `409 FEATURED_LIMIT`; ordered by `sortOrder, createdAt, id`; `PUT /projects/order`), new modules `social` (`platform` from `SOCIAL_PLATFORMS`, `url` via `safeUrl`, max 12, `409 SOCIAL_LIMIT`, `PUT /social/order`) and `timeline` (`type` EXPERIENCE|EDUCATION, dates as `YYYY-MM-DD` stored as midnight UTC, end not before start, `type` cannot be changed, max 30, `GET /timeline?type=`, `PUT /timeline/order { type, ids }`, order is per type). All reorders use `reorderOwned` (foreign id 404, duplicate or incomplete list 400 `INVALID_ORDER`). `PATCH /profile` also accepts `headline` (120) and `location` (80). The public select (`utils/publicPortfolio.js`) now also returns profile `headline, location, avatarUrl, resumeUrl`, project `coverImageUrl, featured`, `socialLinks` and `timelineItems`, all in saved order. New env var `MAX_FEATURED_PROJECTS`. The frontend does not use the new fields yet (Phases 4 and 5).
 - **Media (2.4):** `modules/media` (`POST|DELETE /profile/avatar`, `/profile/resume`, `/projects/:id/cover`; multipart field `file`; behind `requireAuth` and `uploadLimiter`, 30 per 15 min). `middleware/upload.js` (multer, memory storage, 2 MB images / 5 MB resumes, `413 FILE_TOO_LARGE`, `400 NO_FILE`). `utils/fileType.js` checks magic bytes (JPEG, PNG, WebP; `%PDF-`), never the name or Content-Type. Images are decoded and re-encoded as WebP with `sharp` (avatar 512x512 cover-crop, cover max 1600x1000, metadata dropped, 40 MP pixel cap); a bad file gives `400 INVALID_FILE`. `config/storage.js` is the storage interface (`save(kind, buffer, ext)` returns `/uploads/<kind>/<random>.<ext>`, `remove(url)` only inside the upload root); `UPLOAD_DIR` (default `backend/uploads`, git-ignored) changes the folder. `app.js` serves `/uploads` with `nosniff`, `Content-Security-Policy: default-src 'none'; sandbox` and immutable caching. Replacing saves the new file, updates the row, then deletes the old file; deleting a project removes its cover; the cleanup job removes the files of purged accounts. New dependencies `multer` and `sharp`. Tests use a temporary upload folder (`tests/setup.js`).
-- **Tests (1.7):** `backend/tests/` with `node:test` and Supertest, run by `npm test` (`node --test --test-concurrency=1 "tests/**/*.test.js"`; script set with `npm pkg set`, `supertest` is a dev dependency). `tests/setup.js` is imported first by `tests/helpers.js` and switches the app to `DATABASE_URL_TEST` (refuses when unset or equal to `DATABASE_URL`) and sets `NODE_ENV=test` (limiters off). `utils/mailer.js` pushes payloads to an in-memory `testOutbox` instead of calling Resend when `NODE_ENV=test`; helpers `waitForMail`, `expectNoMail`, `tokenFromMail` read it (emails are sent without being awaited). Test users use the email domain `@devfolio-test.dev` and are removed by `cleanupUsers()` (before and after each file). Files: `auth.test.js` (signup, login, username-available, me, refresh, logout, Origin), `email-flows.test.js` (verify-email, resend-verification, forgot-password, reset-password), `account.test.js` (password, email, username, delete, `runCleanup`), `skills.test.js` (2.2: custom skills, order, isolation, onboarding), `content.test.js` (2.3: projects, social links, timeline, headline), `media.test.js` (2.4: uploads, signature checks, replace and delete, cleanup). Every auth endpoint has its happy path and at least 3 failure paths.
+- **Section config (2.5):** `utils/sectionConfig.js` holds `SECTIONS` (`about, skills, projects, experience, education, contact`), the defaults (all visible, order 0 to 5), the zod patch schema (strict: unknown sections or keys are rejected), `resolveSectionConfig` (fills defaults), `mergeSectionConfig` (patch merged into the stored value; two sections on one position give `400 VALIDATION_ERROR` on field `sectionConfig`; `null` resets) and `presentProfile` / `presentPublic` (always return the full config). `PATCH /profile` accepts `sectionConfig`; `GET /profile`, the upload responses, the public portfolio and the share-link portfolio return it complete (the public select includes `profile.sectionConfig`). The stored JSON is always the full merged config. Nothing renders from it yet (Phases 4 and 5).
+- **Tests (1.7):** `backend/tests/` with `node:test` and Supertest, run by `npm test` (`node --test --test-concurrency=1 "tests/**/*.test.js"`; script set with `npm pkg set`, `supertest` is a dev dependency). `tests/setup.js` is imported first by `tests/helpers.js` and switches the app to `DATABASE_URL_TEST` (refuses when unset or equal to `DATABASE_URL`) and sets `NODE_ENV=test` (limiters off). `utils/mailer.js` pushes payloads to an in-memory `testOutbox` instead of calling Resend when `NODE_ENV=test`; helpers `waitForMail`, `expectNoMail`, `tokenFromMail` read it (emails are sent without being awaited). Test users use the email domain `@devfolio-test.dev` and are removed by `cleanupUsers()` (before and after each file). Files: `auth.test.js` (signup, login, username-available, me, refresh, logout, Origin), `email-flows.test.js` (verify-email, resend-verification, forgot-password, reset-password), `account.test.js` (password, email, username, delete, `runCleanup`), `skills.test.js` (2.2: custom skills, order, isolation, onboarding), `content.test.js` (2.3: projects, social links, timeline, headline), `media.test.js` (2.4: uploads, signature checks, replace and delete, cleanup), `sections.test.js` (2.5: section config). Every auth endpoint has its happy path and at least 3 failure paths.
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -222,9 +223,9 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 ### Phase 2: Content model and editor API (branch `phase-2-content-model`)
 - [x] 2.1 Schema and migration
 - [x] 2.2 Skills: custom and ordering
-- [~] 2.3 Projects, social and timeline CRUD + ordering: **implemented, awaiting user verification**
-- [~] 2.4 Media uploads: **implemented, awaiting user verification**
-- [ ] 2.5 Section config and tests
+- [x] 2.3 Projects, social and timeline CRUD + ordering
+- [x] 2.4 Media uploads
+- [~] 2.5 Section config and tests: **implemented, awaiting user verification**
 
 ### Phases 2 to 10
 - [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5 · [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
@@ -233,21 +234,22 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 
 ## 8. NEXT TASK
 
-### 8a. Verify and commit 2.3, then 2.4 (branch `phase-2-content-model`)
+### 8a. Verify and commit 2.5, then close Phase 2
 
-In `backend/`: `npm install multer sharp` (2.4; commit `package.json` and the lock file with 2.4). No migration (2.1 created the tables). `npm run lint`, `npm test`.
+Apply `devfolio-2.5-changes.zip`. No migration, no new dependency. `npm run lint` and `npm test` (all files, including `sections.test.js`).
 
-**2.3 checks**
-- [ ] `npm test` passes (`content.test.js`). If something fails, send the failing test name and message (written without running; the sandbox had no database access to the registry).
-- [ ] By hand (optional): create projects, `PUT /api/v1/projects/order`, reload the public page: projects follow the saved order; featuring a 4th project gives `FEATURED_LIMIT`.
+**Phase 2 success criteria** (from `BUILD_PLAN.md`)
+- [ ] Migrations apply cleanly on a database that holds Phase 0 and Phase 1 data, nothing lost (already checked for 2.1 on your dev DB).
+- [ ] Every content type has create, read, update, delete and reorder in tests (skills, projects, social, timeline: `skills`, `content` tests).
+- [ ] Another user's items give 404 on read, edit, delete and reorder (tests).
+- [ ] Custom skills can be added; presets still work as suggestions (`skills.test.js`; the editor UI comes in Phase 4).
+- [ ] An `.exe` renamed `.png` is rejected; oversized files rejected with a clear message (`media.test.js`).
+- [ ] Replacing an avatar removes the old file from disk (`media.test.js`).
+- [ ] Reordering persists after reload and public reads return the saved order (`content.test.js`, `skills.test.js`).
+- [ ] `sectionConfig` is returned by the profile endpoint (`sections.test.js`).
+- [ ] Regression: the app starts from scratch, `npm run smoke` passes, signup, login, onboarding, edit and the public page still work in the browser (the old editor and onboarding still send the old payloads).
 
-**2.4 checks**
-- [ ] `npm test` passes (`media.test.js`). First run may need small fixes (multipart handling, `sharp`).
-- [ ] By hand: upload a real photo as avatar (`curl -F file=@me.jpg` with your cookies, or from Postman): the response has `avatarUrl`, the file is a WebP in `backend/uploads/avatars/`, opening the URL shows it; upload again: the old file is gone. A renamed `.exe` as `.png` is refused with `INVALID_FILE`.
-- [ ] `git status` does not list `backend/uploads/` (ignored).
-
-### 8b. Then: 2.5 Section config and tests
-`sectionConfig` JSON on `Profile` (per-section `visible` and `order` for about, skills, projects, experience, education, contact): zod schema with defaults, `PATCH /profile` accepts it, `GET /profile` and the public select return it (with defaults filled), reject unknown sections. Tests for it, a regression pass of all earlier test files, README and handoff. Then run the Phase 2 success criteria from `BUILD_PLAN.md` (including "migrations apply on a database with Phase 0 data"), merge `--no-ff`, tag `phase-2-complete`.
+**Then:** tick 2.5, `git checkout main`, `git merge --no-ff phase-2-content-model`, `git tag phase-2-complete`, push with tags. Next phase: Phase 3 (routing, onboarding wizard, dashboard shell); read its section in `BUILD_PLAN.md` and send a brief first. The Prettier commit is still pending.
 
 ## 9. How this file is updated
 
@@ -547,7 +549,17 @@ Decisions made (and why): all images are stored as WebP (one format to serve, re
 Leftovers / TODOs for later: the editor and onboarding UI do not use the new fields (Phases 3 to 5); `githubUrl` and `SocialLink` github overlap (decide in Phase 4); `Skill.icon` vs `iconKey`; uploads live on local disk (an S3 implementation of `config/storage.js` is a Phase 10 deployment item); in-memory rate limits still apply.
 Must not break: every list orders by `sortOrder` first; reorder endpoints use `reorderOwned`; upload type is decided by content, never by name; only `storage` touches upload files; no stored value is rendered with `innerHTML`.
 
-*(Add Session 16 and onward below this line.)*
+### Session 16: Subphase 2.5, Section config (2026-10-13)
+Result: **implemented; awaiting user verification.** User confirmed 2.3 and 2.4 clean (one wrong test expectation in `content.test.js` was fixed: the public timeline lists EXPERIENCE before EDUCATION). Sandbox still could not install packages, so only `node --check` was run.
+Files created: `backend/utils/sectionConfig.js`, `backend/tests/sections.test.js`
+Files changed: `backend/modules/profile/profile.schema.js`, `profile.controller.js`, `backend/modules/share/share.controller.js`, `backend/modules/media/media.controller.js` (use `presentProfile`), `backend/utils/publicPortfolio.js`, `README.md`, `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: none
+Decisions made (and why): the config is a patch that is merged into the saved value so a client can change one section; positions must be unique (a partial update that causes a clash is refused, so several moves go in one request); the stored JSON is always the full config, and defaults are also filled on every read so profiles created before 2.5 work; `null` resets (stores the defaults, which avoids Prisma's JSON-null handling); unknown sections or keys are rejected rather than ignored.
+Leftovers / TODOs for later: nothing reads `sectionConfig` yet (Phase 4 preview and Phase 5 SSR must apply `visible` and `order`; empty sections still hide regardless); `githubUrl` vs a GitHub `SocialLink`; `Skill.icon` vs `iconKey`; Prettier commit; uploads on local disk until deployment.
+Must not break: API responses always carry a complete `sectionConfig`; reads go through `presentProfile` / `presentPublic`; stored config stays valid (unique positions).
+
+*(Add Session 17 and onward below this line.)*
 
 ---
 

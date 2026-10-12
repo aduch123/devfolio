@@ -3,6 +3,7 @@ import prisma from "../../config/prisma.js";
 import { storage } from "../../config/storage.js";
 import { badRequest, notFound } from "../../utils/AppError.js";
 import { sniffImage, isPdf } from "../../utils/fileType.js";
+import { presentProfile } from "../../utils/sectionConfig.js";
 
 const invalid = (message) => badRequest(message, { file: message }, "INVALID_FILE");
 
@@ -45,7 +46,7 @@ export const uploadAvatar = async (req, res) => {
     kind: "avatars", ext: ".webp", buffer, currentUrl: current?.avatarUrl,
     write: (url) => setProfile(req.user.id, { avatarUrl: url }),
   });
-  res.status(200).json({ profile });
+  res.status(200).json({ profile: presentProfile(profile) });
 };
 
 export const deleteAvatar = async (req, res) => {
@@ -62,7 +63,7 @@ export const uploadResume = async (req, res) => {
     kind: "resumes", ext: ".pdf", buffer: req.file.buffer, currentUrl: current?.resumeUrl,
     write: (url) => setProfile(req.user.id, { resumeUrl: url }),
   });
-  res.status(200).json({ profile });
+  res.status(200).json({ profile: presentProfile(profile) });
 };
 
 export const deleteResume = async (req, res) => {
