@@ -5,7 +5,7 @@ import { sendContactEmail } from "../../utils/mailer.js";
 async function resolveRecipient(req) {
   if (req.params.username) {
     return prisma.user.findUnique({
-      where: { username: req.params.username },
+      where: { username: req.params.username.toLowerCase() },
       select: { email: true, profile: { select: { contactEmail: true } } },
     });
   }

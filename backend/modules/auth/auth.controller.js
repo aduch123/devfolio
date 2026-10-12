@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import prisma from "../../config/prisma.js";
 import { env } from "../../config/env.js";
 import { conflict, unauthorized } from "../../utils/AppError.js";
+import { isUniqueViolation } from "../../utils/prismaErrors.js";
 
 export const signup = async (req, res) => {
   const { email, username, password } = req.body;
@@ -17,15 +18,23 @@ export const signup = async (req, res) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      username,
-      passwordHash,
-      profile: { create: {} },
-    },
-    select: { id: true, email: true, username: true },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email,
+        username,
+        passwordHash,
+        profile: { create: {} },
+      },
+      select: { id: true, email: true, username: true },
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw conflict("Email or username already in use", "USER_EXISTS");
+    }
+    throw err;
+  }
 
   res.status(201).json({ user });
 };

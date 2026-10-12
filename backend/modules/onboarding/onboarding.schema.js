@@ -17,6 +17,18 @@ export const onboardingSchema = z.object({
   contactEmail: optionalEmail,
   contactPhone: optionalPhone,
   githubUrl: optionalUrl,
-  skills: z.array(z.object(skillFields)).max(LIMITS.maxSkills, `At most ${LIMITS.maxSkills} skills`).optional(),
+  skills: z
+    .array(z.object(skillFields))
+    .max(LIMITS.maxSkills, `At most ${LIMITS.maxSkills} skills`)
+    .superRefine((list, ctx) => {
+      const seen = new Set();
+      list.forEach((s, i) => {
+        if (seen.has(s.name)) {
+          ctx.addIssue({ code: "custom", path: [i, "name"], message: "Duplicate skill" });
+        }
+        seen.add(s.name);
+      });
+    })
+    .optional(),
   projects: z.array(z.object(projectFields)).max(LIMITS.maxProjects, `At most ${LIMITS.maxProjects} projects`).optional(),
 });

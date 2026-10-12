@@ -4,6 +4,7 @@ import { notFound } from "../../utils/AppError.js";
 export const getProjects = async (req, res) => {
   const projects = await prisma.project.findMany({
     where: { userId: req.user.id },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   res.status(200).json({ projects });
 };

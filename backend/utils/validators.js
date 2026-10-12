@@ -79,6 +79,7 @@ export const optionalPhone = clearable(phone);
 
 // ---- Shared compound pieces ----
 export const requiredEmail = email;
+export const identityEmail = email.toLowerCase();
 
 export const tagsList = z
   .array(

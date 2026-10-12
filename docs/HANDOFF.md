@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 3c, command-block rule; Session 3b, git workflow; Session 3, subphases 0.3 and 0.4 implemented)
-**Current position:** Phase 0. Subphases **0.2, 0.3 and 0.4 implemented, awaiting user verification** (0.2 is pushed to the Phase 0 branch). Next: **0.5** (after 0.4 is verified and committed on the Phase 0 branch).
-**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3).
+**Last updated:** 2026-10-12 (Session 4, subphase 0.5 implemented; Session 3c, command-block rule; Session 3b, git workflow)
+**Current position:** Phase 0. Subphases **0.2 to 0.5 implemented, awaiting user verification** (0.2 to 0.4 are committed on `phase-0-foundation`; 0.5 is delivered as `devfolio-0.5-changes.zip`). Next: **0.6** (after 0.5 is verified and committed).
+**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, `devfolio-0.5-changes.zip`, on top of 0.4).
 
 ---
 
@@ -88,7 +88,7 @@ The goal is an **intermediate-level** project that is also well structured and s
 
 ---
 
-## 4. Current codebase (after subphase 0.2)
+## 4. Current codebase (after subphase 0.5)
 
 **Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
 
@@ -96,6 +96,7 @@ The goal is an **intermediate-level** project that is also well structured and s
 - Express 5 forwards rejected promises from async handlers (and errors thrown in sync middleware) to the error middleware automatically. `catchAsync` was removed in 0.3: controllers and routes are plain `async` functions that `throw` an `AppError`.
 - **Error contract (0.3):** every API error is `{ "error": { "code", "message", "fields?" } }`. Throw helpers from `utils/AppError.js` (`badRequest`, `validationError`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `tooMany`). Request validation is `validate(schema)` middleware in the route (`middleware/validate.js`), which replaces `req.body` with the parsed data, so controllers read `req.body` as already valid. Unknown errors become a generic 500 and are logged only.
 - **Validation (0.4):** reusable zod pieces live in `utils/validators.js` (`safeUrl` http/https only, `phone`, `optionalText/Url/Email/Phone` which turn `""` into `null`, `requiredText`, tags and role lists, the single `SKILL_VALUES` list, and `LIMITS`). Optional fields can be cleared by sending `null` or `""`; omitted keys mean "do not change".
+- **Data integrity (0.5):** `email` and `username` are lowercased by the zod schemas (`identityEmail` in `utils/validators.js`, `usernameSchema` in `modules/auth/auth.schema.js`), so signup and login always see lowercase. Username lookups from URL params call `.toLowerCase()`. Username rules: 3 to 30, `a-z 0-9 -`, no leading or trailing dash, reserved names in `RESERVED_USERNAMES` (`config/constants.js`). Skills are unique per user, case-insensitive (raw SQL index `Skill_userId_lower_name_key`; controllers pre-check and also map Prisma `P2002` via `utils/prismaErrors.js` to `409 SKILL_EXISTS`). Onboarding returns `409 ALREADY_ONBOARDED` (atomic `updateMany ... onboardingComplete:false` inside an interactive transaction). Every list and public read orders by `createdAt asc, id asc`.
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -111,8 +112,8 @@ backend/
                             # prisma.js, logger.js (pino-pretty only when NODE_ENV != production)
   middleware/               # auth.middleware.js (Bearer JWT, throws AppError), validate.js (validate(schema), zodFields),
                             # error.middleware.js (errorHandler + notFoundHandler, standard error shape)
-  utils/                    # AppError.js, validators.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
-  prisma/                   # schema.prisma + 4 migrations
+  utils/                    # AppError.js, prismaErrors.js (isUniqueViolation), validators.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
+  prisma/                   # schema.prisma + 6 migrations (0.5 added lowercase_identities and skill_project_created_at_unique_skills)
   eslint.config.js, .prettierrc, .prettierignore, .env.example
   .env                      # NOT to be uploaded (contains secrets)
 README.md                   # at repo root
@@ -131,7 +132,7 @@ frontend/
 
 **Scripts (run in `backend/`):** `dev`, `start`, `lint`, `lint:fix`, `format`, `format:check`. Lint and format scripts `cd ..` first so they cover `backend/` and `frontend/` together; configs live in `backend/`.
 
-**Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. No `createdAt` on Skill or Project.
+**Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. `Skill` and `Project` have `createdAt` (0.5). `Skill` has a unique `(userId, lower(name))` index. Note: `other` is one of the 16 skill presets, so a user can have only one `other` skill until custom skills arrive in Phase 2.
 
 **Current API (all under `/api/v1`; paths below are relative to it):**
 `GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (**wrongly requires auth**), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
@@ -151,7 +152,7 @@ frontend/
 | 3 | Flat structure, unversioned API | 0.2 **(implemented, awaiting verification)** |
 | 4 | Inconsistent errors; flattened zod object shows "[object Object]" in the UI | 0.3 **(implemented, awaiting verification)** |
 | 5 | URL fields accept `javascript:`; phone is free text; no max lengths; optional fields cannot be cleared (`undefined` is dropped from JSON) | 0.4 **(implemented, awaiting verification)** |
-| 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 |
+| 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 **(implemented, awaiting verification)** |
 | 7 | Public portfolio route requires login; stored XSS via unescaped `githubUrl`, `repoUrl`, `liveUrl`, `contactPhone`; dead `#` buttons and empty sections render | 0.6 |
 | 8 | No security headers or rate limits; mail sender hardcoded | 0.7 |
 | 9 | No end-to-end verification or docs | 0.8 |
@@ -197,8 +198,8 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 - [~] 0.2 Restructure and API versioning: **implemented, awaiting user verification** (see section 8a)
 - [~] 0.3 Error contract: **implemented, awaiting user verification** (see section 8a)
 - [~] 0.4 Input validation and clearable fields: **implemented, awaiting user verification** (see section 8a)
-- [ ] 0.5 Data integrity  ← **NEXT** (after 0.4 is verified)
-- [ ] 0.6 Public access and XSS fixes
+- [~] 0.5 Data integrity: **implemented, awaiting user verification** (see section 8a)
+- [ ] 0.6 Public access and XSS fixes  ← **NEXT** (after 0.5 is verified)
 - [ ] 0.7 Security middleware
 - [ ] 0.8 Verification and docs
 
@@ -212,53 +213,45 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 
 ### 8a. First: user verifies
 
-Apply `devfolio-0.3-changes.zip` over the repo root, then `devfolio-0.4-changes.zip` (cumulative on top of 0.3; unzip it after 0.3 is committed so each subphase stays its own commit). **Delete `backend/utils/catchAsync.js`** locally. 0.2 is already pushed on `phase-0-foundation`; keep the same branch, since 0.3 builds on its layout. No new dependencies, no migrations.
+Apply `devfolio-0.5-changes.zip` over the repo root (0.3 and 0.4 are already committed on `phase-0-foundation`; if you have not verified them yet, run their checks from the Session 3 log now). **Back up the dev database first**, then run `npx prisma migrate dev` in `backend/` and `npx prisma generate`. If a migration stops with a collision message, rename or merge the listed users and rerun. No new dependencies.
 
-**0.3 checks**
-- [ ] Server boots; `npm run lint` passes.
-- [ ] Every API failure uses `{ error: { code, message, fields? } }` (check: bad signup, wrong login, 404 portfolio, unauthorized, unknown `/api/v1/...` route).
-- [ ] Signing up with a 25-character username shows a message next to the username field, never "[object Object]".
-- [ ] A forced server error returns the generic 500 message without internals.
-- [ ] Readable errors on login, signup, onboarding (including a bad project row), edit tabs (profile, skills, projects) and the contact form.
+**0.5 checks**
+- [ ] Both migrations apply cleanly on existing dev data and no rows are lost (skills may shrink only if you had duplicates).
+- [ ] `Ali@Mail.com` and `ali@mail.com` are the same account; login works with either casing.
+- [ ] Signing up as `edit`, `Dashboard`, `a b`, `ab`, `-bob` or `bob-` shows a field error under Username.
+- [ ] Adding the same skill twice shows the 409 message ("You already added this skill") in the editor.
+- [ ] Posting onboarding a second time returns `409 ALREADY_ONBOARDED` and creates no extra rows.
+- [ ] Skills and projects keep a consistent order across reloads.
 
-Suggested commit on `phase-0-foundation`: `refactor(0.3): add AppError, validate middleware and one error shape across API and frontend`
+Suggested commit on `phase-0-foundation`: `feat(0.5): lowercase identities, username rules, unique skills, idempotent onboarding, stable ordering`
 
-**0.4 checks**
-- [ ] `javascript:alert(1)`, `data:` and `ftp:` URLs are rejected with a field error for GitHub URL, repo URL and live URL (profile, projects, onboarding).
-- [ ] A phone like `"><script>` is rejected.
-- [ ] Clearing description, repo URL, live URL, tags, contact email, phone and GitHub URL in the editor persists as empty after reload.
-- [ ] Over-length values (display name 80, about 2000, project title 100, description 1000, tags 10 x 30) are rejected with a clear message.
-- [ ] Only one skill list exists in the backend (`utils/validators.js`).
+Tick `[x]` for 0.1 to 0.5 in section 7 once each passes. **Do not merge to `main` yet.** Also confirm secrets are rotated (the uploaded zip contained `backend/.env`).
 
-Suggested commit on `phase-0-foundation`: `feat(0.4): add shared validators, safe URLs, phone rules, length limits and clearable optional fields`
+### 8b. Then: Subphase 0.6: Public access and XSS fixes
 
-Tick `[x]` for 0.1 to 0.4 in section 7 once each passes. **Do not merge to `main` yet**: Phase 0 merges when 0.8 is done. Also confirm secrets are rotated.
-
-### 8b. Then: Subphase 0.5 (Data integrity)
-
-**Goal:** make the data layer correct: identities, uniqueness, ordering and onboarding repeatability.
+**Goal:** logged-out visitors can view portfolios, and no stored value can run script.
 
 **Tasks**
-- **Lowercase identities:** normalize `email` and `username` to lowercase in signup and login (and in the lookups by username in the public portfolio, share and message code). Write a migration that lowercases existing rows, and **check for collisions first** (the migration should stop with a message if two users would collide).
-- **Username rules:** zod schema `^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$` (3 to 30, no leading or trailing dash). Add `config/constants.js` with a **reserved list** (`api`, `edit`, `dashboard`, `login`, `signup`, `settings`, `onboarding`, `share`, `pages`, `css`, `js`, `admin`, `help`, `healthz`, `health`, and similar) and reject those at signup.
-- **Unique skills:** de-duplicate existing skill rows (keep the oldest), then add a **unique index on `(userId, lower(name))`** through a raw SQL migration (Prisma cannot express this in the schema file). Return a `409` with a clear message when a user adds a duplicate.
-- **Idempotent onboarding:** if `onboardingComplete` is already true, return `409 ALREADY_ONBOARDED`. Wrap the update in the existing transaction. (The wizard in Phase 3 will replace this endpoint.)
-- **Stable ordering:** add `createdAt` to `Skill` and `Project` (migration), and add `orderBy: { createdAt: "asc" }` to every list query (own lists and public portfolio reads). Real drag-ordering comes in Phase 2.
-- Frontend: add `pattern` and `maxlength` to the username input in `auth.html` and show the rules as helper text.
+- Remove `requireAuth` from `GET /api/v1/portfolio/:username`. Return only public fields (no user `id`, email, `passwordHash`, `shareToken`, or internal IDs that are not needed).
+- Make sure a **visitor with an expired or stale token** does not get redirected to the login page from a public page (public calls must not trigger the 401 redirect).
+- Frontend `portfolio.js`:
+  - Escape or build via DOM every value inserted into HTML: `githubUrl`, `repoUrl`, `liveUrl`, `contactEmail`, `contactPhone`, skill name and level, project fields and the share URL.
+  - Add a `safeHref()` helper that allows only `http`, `https`, `mailto` and `tel` as defense in depth.
+  - Prefer `createElement` and `textContent` over template strings with `innerHTML`.
+- **Empty states:** hide the Code button when `repoUrl` is empty, the Live button when `liveUrl` is empty, and entire sections (skills, projects, about) when they have no content. Also hide the matching nav link.
+- Review `edit.js` and `onboarding.js` for any remaining unescaped interpolation.
 
-**Files touched (about 10):** `schema.prisma`, 2 to 3 migration files, `auth`, `skill`, `onboarding`, `profile` and `share` controllers, `constants.js`, `auth.html`.
+**Files touched (about 6):** `profile.routes.js`, profile controller, `api.js`, `portfolio.js`, `edit.js`, `portfolio.html` (nav handling).
 
-**Out of scope:** custom skill names (Phase 2), the wizard (Phase 3).
-
-**You do:** back up your dev database, then run `npx prisma migrate dev`. Report any collision errors back to the chat.
+**Out of scope:** headers and CSP (0.7), server-side rendering (Phase 5).
 
 **Success criteria**
-- [ ] Migrations apply cleanly on your existing dev data and no rows are lost.
-- [ ] `Ali@Mail.com` and `ali@mail.com` are the same account, and login works with either casing.
-- [ ] Signing up as `edit`, `Dashboard`, `a b`, `ab`, `-bob` or `bob-` is rejected with a field error.
-- [ ] Adding the same skill twice returns a `409` and the editor shows the message.
-- [ ] Posting onboarding a second time returns `409` and creates no extra rows.
-- [ ] Skills and projects keep a consistent order across reloads.
+- [ ] In a private (logged-out) browser window, `/username` loads the portfolio.
+- [ ] A logged-out visitor with a garbage token in `localStorage` still sees the portfolio (no redirect).
+- [ ] The public API response contains no email, password hash, share token or user ID.
+- [ ] Stored payloads such as `"><img src=x onerror=alert(1)>` in name, about, project title, description, tags, skill-adjacent text and links do not execute and show as plain text.
+- [ ] A project without URLs shows no dead `#` buttons, and an empty skills or projects section is not rendered.
+- [ ] Share link view and username view both still work.
 
 ---
 
@@ -379,7 +372,21 @@ Files changed: `docs/HANDOFF.md` (rule 12 in section 1, workflow step 4(d), this
 Decisions made (and why): the user wants ready-to-run commands at the end of each subphase (staging, committing, removals, additions and setup) instead of only a suggested commit message, to avoid mistakes when applying zips (for example, when two cumulative zips are unzipped together).
 Must not break: every delivery ends with the "Apply and commit" block described in rule 12.
 
-*(Add Session 4 and onward below this line.)*
+### Session 4: Subphase 0.5, Data integrity (2026-10-12)
+Result: **implemented; awaiting user verification** (migrations and DB flows could not run in the sandbox)
+Files created: `backend/utils/prismaErrors.js`, `backend/prisma/migrations/20261012100000_lowercase_identities/migration.sql`, `backend/prisma/migrations/20261012100100_skill_project_created_at_unique_skills/migration.sql`
+Files changed: `backend/prisma/schema.prisma` (`createdAt` on Skill and Project), `backend/config/constants.js` (`RESERVED_USERNAMES`), `backend/utils/validators.js` (`identityEmail`), `backend/modules/auth/auth.schema.js` and `auth.controller.js`, `skills.controller.js`, `onboarding.controller.js` and `onboarding.schema.js`, `projects.controller.js`, `profile.controller.js`, `share.controller.js`, `messages.controller.js`, `frontend/pages/auth.html`, `frontend/css/global.css` (`.field-hint`), `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: none; run `npx prisma migrate dev` and `npx prisma generate` in `backend/` (back up the dev DB first)
+Sandbox checks passed: lint clean; schema tests (`edit`, `Dashboard`, `a b`, `ab`, `-bob`, `bob-`, 31 characters rejected; `Bob-1` accepted as `bob-1`; `ALI@x.com` lowercased on login); duplicate skill names in onboarding give `skills.1.name`; with a stubbed Prisma client: second onboarding returns 409 `ALREADY_ONBOARDED`, duplicate skill 409 `SKILL_EXISTS`, signup unique-violation race 409 `USER_EXISTS`, list queries ordered by `createdAt, id`. Not run: the migrations themselves.
+Decisions made (and why): lowercasing happens in the zod schemas so every consumer sees normalized values; migration 1 aborts on email or username collisions with a readable message; duplicate skills keep the oldest (ties by smallest `id`, because old rows all get the same `createdAt`); the unique index is raw SQL because Prisma cannot express `lower(name)`; controllers pre-check and also map `P2002` for races; onboarding claims the flag atomically with `updateMany` inside an interactive transaction; reserved list extended beyond the plan (`logout`, `register`, `uploads`, `static`, `assets`, `account`, `auth`, `portfolio`, and similar); the username HTML `pattern` allows uppercase letters because the server lowercases them.
+Leftovers / TODOs for later:
+- Existing users whose usernames break the new rules (spaces, underscores, reserved words) are not changed by the migration; they keep working but cannot be recreated. Check dev data by hand.
+- `other` is a skill preset, so only one `other` skill per user until Phase 2 custom skills.
+- A second onboarding submit only shows the generic error text in the UI; the wizard replaces it in Phase 3.
+Must not break: identities are lowercase everywhere; list queries keep `orderBy createdAt, id`; skills unique per user; all earlier rules.
+
+*(Add Session 5 and onward below this line.)*
 
 ---
 

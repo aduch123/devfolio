@@ -44,7 +44,8 @@
           </div>
           <div class="field">
             <label for="signup-username">Username</label>
-            <input type="text" id="signup-username" required minlength="3">
+            <input type="text" id="signup-username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9](?:[A-Za-z0-9\-]{1,28}[A-Za-z0-9])" autocapitalize="none" autocomplete="username" spellcheck="false" title="3 to 30 letters, numbers or dashes; no dash at the start or end">
+            <small class="field-hint">3 to 30 letters, numbers or dashes. No dash at the start or end. Saved in lowercase.</small>
           </div>
           <div class="field">
             <label for="signup-password">Password</label>

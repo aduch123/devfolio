@@ -1,19 +1,33 @@
 import prisma from "../../config/prisma.js";
-import { notFound } from "../../utils/AppError.js";
+import { conflict, notFound } from "../../utils/AppError.js";
+import { isUniqueViolation } from "../../utils/prismaErrors.js";
+
+const duplicateSkill = () => conflict("You already added this skill", "SKILL_EXISTS");
 
 export const getSkills = async (req, res) => {
   const skills = await prisma.skill.findMany({
     where: { userId: req.user.id },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   res.status(200).json({ skills });
 };
 
 export const createSkill = async (req, res) => {
-  const skill = await prisma.skill.create({
-    data: { ...req.body, userId: req.user.id },
+  const existing = await prisma.skill.findFirst({
+    where: { userId: req.user.id, name: { equals: req.body.name, mode: "insensitive" } },
+    select: { id: true },
   });
+  if (existing) throw duplicateSkill();
 
-  res.status(201).json({ skill });
+  try {
+    const skill = await prisma.skill.create({
+      data: { ...req.body, userId: req.user.id },
+    });
+    res.status(201).json({ skill });
+  } catch (err) {
+    if (isUniqueViolation(err)) throw duplicateSkill();
+    throw err;
+  }
 };
 
 export const updateSkill = async (req, res) => {
@@ -23,12 +37,25 @@ export const updateSkill = async (req, res) => {
     throw notFound("Skill not found", "SKILL_NOT_FOUND");
   }
 
-  const updated = await prisma.skill.update({
-    where: { id },
-    data: req.body,
-  });
+  if (req.body.name) {
+    const clash = await prisma.skill.findFirst({
+      where: {
+        userId: req.user.id,
+        id: { not: id },
+        name: { equals: req.body.name, mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    if (clash) throw duplicateSkill();
+  }
 
-  res.status(200).json({ skill: updated });
+  try {
+    const updated = await prisma.skill.update({ where: { id }, data: req.body });
+    res.status(200).json({ skill: updated });
+  } catch (err) {
+    if (isUniqueViolation(err)) throw duplicateSkill();
+    throw err;
+  }
 };
 
 export const deleteSkill = async (req, res) => {

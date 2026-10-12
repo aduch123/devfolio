@@ -30,8 +30,8 @@ export const getSharedPortfolio = async (req, res) => {
     select: {
       username: true,
       profile: true,
-      skills: true,
-      projects: true,
+      skills: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
+      projects: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
     },
   });
 
