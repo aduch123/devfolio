@@ -23,7 +23,7 @@ const publicUser = (user) => ({
   onboardingComplete: user.onboardingComplete,
 });
 
-// Creates a session row and sets both cookies. Returns the access token.
+// Creates a session row and sets both cookies (access and refresh).
 const startSession = async (req, res, user) => {
   const secret = newRefreshSecret();
   const session = await prisma.session.create({
@@ -36,9 +36,7 @@ const startSession = async (req, res, user) => {
     select: { id: true },
   });
   setRefreshCookie(res, buildRefreshToken(session.id, secret));
-  const accessToken = signAccessToken(user, session.id);
-  setAccessCookie(res, accessToken);
-  return accessToken;
+  setAccessCookie(res, signAccessToken(user, session.id));
 };
 
 export const signup = async (req, res) => {
@@ -88,13 +86,9 @@ export const login = async (req, res) => {
     throw unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
   }
 
-  const accessToken = await startSession(req, res, user);
+  await startSession(req, res, user);
 
-  res.status(200).json({
-    // TEMPORARY (removed in 1.2): the old frontend still reads the token from the body.
-    token: accessToken,
-    user: publicUser(user),
-  });
+  res.status(200).json({ user: publicUser(user) });
 };
 
 export const refresh = async (req, res) => {

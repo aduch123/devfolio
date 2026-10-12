@@ -1,6 +1,7 @@
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { showFieldErrors, errorText } from "./forms.js";
+import { markSession } from "./session.js";
 
 const API_BASE = `${API_PREFIX}/auth`;
 
@@ -53,9 +54,8 @@ loginForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  const { token, user } = result.data;
-  localStorage.setItem("token", token);
-  localStorage.setItem("user", JSON.stringify(user));
+  const { user } = result.data;
+  markSession();
 
   window.location.href = user.onboardingComplete ? `/${user.username}` : "/onboarding";
 });

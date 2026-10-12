@@ -10,6 +10,7 @@ import prisma from "./config/prisma.js"
 import { env } from "./config/env.js"
 import { globalLimiter } from "./middleware/rateLimit.js"
 import { originCheck } from "./middleware/origin.js"
+import { requirePage } from "./middleware/auth.middleware.js"
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js"
 import authRoutes from "./modules/auth/auth.routes.js"
 import profileRoutes from "./modules/profile/profile.routes.js"
@@ -84,11 +85,11 @@ app.use("/api/v1", onboardingRoutes);
 app.use("/api/v1", shareRoutes);
 app.use("/api/v1", messageRoutes);
 
-app.get("/onboarding", (req, res) => {
+app.get("/onboarding", requirePage, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/onboarding.html"));
 });
 
-app.get("/edit", (req, res) => {
+app.get("/edit", requirePage, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/edit.html"));
 });
 

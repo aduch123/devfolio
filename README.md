@@ -4,7 +4,7 @@ Devfolio is a platform where developers build a portfolio, publish it at a publi
 
 ## Tech stack
 
-- **Backend:** Node.js (ES modules), Express 5, Prisma 7 with PostgreSQL, JWT auth, zod, pino
+- **Backend:** Node.js (ES modules), Express 5, Prisma 7 with PostgreSQL, cookie sessions (short-lived JWT access cookie + rotating refresh token), zod, pino
 - **Frontend:** plain HTML, CSS and JavaScript (no build step), served by the Express server
 - **Email:** Resend (contact form notifications)
 
@@ -32,7 +32,7 @@ Open <http://localhost:5000> (or the `PORT` you set). The Express server serves 
 | Variable | Required | Description |
 |---|---|---|
 | `DATABASE_URL` | yes | PostgreSQL connection string |
-| `JWT_SECRET` | yes | Secret for signing login tokens, **at least 32 characters** (`openssl rand -hex 32`) |
+| `JWT_SECRET` | yes | Secret for signing access tokens, **at least 32 characters** (`openssl rand -hex 32`) |
 | `RESEND_API_KEY` | yes | Resend API key for contact-form emails |
 | `RESEND_FROM` | no | Email sender, default `Devfolio <onboarding@resend.dev>`. Resend's test sender only delivers to your own Resend account email until you verify a domain (planned for Phase 6) |
 | `TRUST_PROXY` | no | Number of reverse proxies in front of the app (default `false`). Set `1` behind one proxy so rate limits see real client IPs |
@@ -65,8 +65,8 @@ backend/
   config/         # env validation, constants, prisma client, logger
   modules/        # one folder per feature: <name>.routes.js + .controller.js + .schema.js
     auth/ profile/ skills/ projects/ onboarding/ share/ messages/
-  middleware/     # auth, validate(schema), rateLimit, error handling
-  utils/          # AppError, validators, publicPortfolio (public fields), prismaErrors, mailer
+  middleware/     # auth (cookie session, page guard), origin check, validate(schema), rateLimit, error handling
+  utils/          # AppError, validators, publicPortfolio (public fields), prismaErrors, session (cookies, tokens), mailer
   scripts/        # smoke.js (npm run smoke)
   prisma/         # schema and migrations
 frontend/
@@ -81,7 +81,8 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 
 | Area | Endpoints (relative to `/api/v1`) | Auth |
 |---|---|---|
-| Auth | `POST auth/signup`, `POST auth/login` | no |
+| Auth | `POST auth/signup`, `POST auth/login`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
+| Session | `GET auth/me` | yes |
 | Onboarding | `POST onboarding` (409 `ALREADY_ONBOARDED` if repeated) | yes |
 | Profile | `GET`, `PATCH profile` | yes |
 | Skills | `GET`, `POST skills`; `PATCH`, `DELETE skills/:id` | yes |
@@ -89,6 +90,8 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 | Share link | `POST`, `GET`, `DELETE share` | yes |
 | Public portfolio | `GET portfolio/:username`, `GET portfolio/share/:token` | no |
 | Contact form | `POST portfolio/:username/message`, `POST portfolio/share/:token/message` | no |
+
+**Sessions:** login sets two `HttpOnly`, `SameSite=Lax` cookies (`Secure` in production): `dev_access` (JWT, 15 minutes) and `dev_refresh` (30 days, sent only to `/api/v1/auth`). The refresh token is stored hashed in the `Session` table and rotates on every refresh; presenting an already-rotated token after a 10-second grace window revokes that session. The client refreshes silently once on a 401 and retries. Logout revokes the session server-side (an access token already issued stays valid until it expires, at most 15 minutes). State-changing `/api/v1` requests whose `Origin` header is another site are refused (`BAD_ORIGIN`, 403). Run `npm install` after pulling (adds `cookie-parser`).
 
 Public portfolio responses contain only public fields (no account email, ids, hashes or share token).
 
@@ -98,7 +101,7 @@ Public portfolio responses contain only public fields (no account email, ids, ha
 
 ## Errors
 
-Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "fieldName": "message" } } }` (`fields` only for validation errors). Common codes: `VALIDATION_ERROR` (400), `INVALID_CREDENTIALS` and `UNAUTHORIZED` (401), `*_NOT_FOUND` and `ROUTE_NOT_FOUND` (404), `USER_EXISTS`, `SKILL_EXISTS` and `ALREADY_ONBOARDED` (409), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `EMAIL_SEND_FAILED` (502), `INTERNAL_ERROR` (500).
+Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "fieldName": "message" } } }` (`fields` only for validation errors). Common codes: `VALIDATION_ERROR` (400), `INVALID_CREDENTIALS`, `UNAUTHORIZED`, `INVALID_TOKEN`, `NO_REFRESH_TOKEN`, `INVALID_REFRESH_TOKEN` and `REFRESH_TOKEN_REUSED` (401), `BAD_ORIGIN` (403), `*_NOT_FOUND` and `ROUTE_NOT_FOUND` (404), `USER_EXISTS`, `SKILL_EXISTS` and `ALREADY_ONBOARDED` (409), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `EMAIL_SEND_FAILED` (502), `INTERNAL_ERROR` (500).
 
 ## Notes
 

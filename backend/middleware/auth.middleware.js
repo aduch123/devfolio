@@ -1,12 +1,10 @@
-import { ACCESS_COOKIE } from "../config/constants.js";
+import { ACCESS_COOKIE, REFRESH_COOKIE } from "../config/constants.js";
 import { unauthorized } from "../utils/AppError.js";
 import { verifyAccessToken } from "../utils/session.js";
 
 // Returns the access-token payload ({ id, username, sid }) or null. Never throws.
-// TEMPORARY (removed in 1.2): a Bearer header is still accepted so the old frontend keeps working.
 export const readAccessUser = (req) => {
-  const bearer = req.headers.authorization?.startsWith("Bearer ") ? req.headers.authorization.slice(7) : null;
-  const token = req.cookies?.[ACCESS_COOKIE] || bearer;
+  const token = req.cookies?.[ACCESS_COOKIE];
   if (!token) return null;
   try {
     return verifyAccessToken(token);
@@ -16,14 +14,20 @@ export const readAccessUser = (req) => {
 };
 
 export const requireAuth = (req, res, next) => {
-  const hasCredentials = Boolean(req.cookies?.[ACCESS_COOKIE] || req.headers.authorization);
   const user = readAccessUser(req);
   if (!user) {
     // INVALID_TOKEN also covers an expired access token: the client should call /auth/refresh.
-    throw hasCredentials
+    throw req.cookies?.[ACCESS_COOKIE]
       ? unauthorized("Invalid or expired token", "INVALID_TOKEN")
       : unauthorized("Please log in");
   }
   req.user = user;
   next();
+};
+
+// For HTML page routes: serve the page when the visitor has (or can refresh) a session, otherwise
+// redirect to login. The page's own script still verifies the session with GET /auth/me.
+export const requirePage = (req, res, next) => {
+  if (readAccessUser(req) || req.cookies?.[REFRESH_COOKIE]) return next();
+  res.redirect(302, "/pages/auth.html");
 };
