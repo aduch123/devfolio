@@ -13,6 +13,7 @@ import { originCheck } from "./middleware/origin.js"
 import { requirePage } from "./middleware/auth.middleware.js"
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js"
 import authRoutes from "./modules/auth/auth.routes.js"
+import accountRoutes from "./modules/account/account.routes.js"
 import profileRoutes from "./modules/profile/profile.routes.js"
 import skillRoutes from "./modules/skills/skills.routes.js"
 import projectRoutes from "./modules/projects/projects.routes.js"
@@ -78,6 +79,7 @@ app.use("/api/v1", globalLimiter);
 app.use("/api/v1", originCheck);
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/account", accountRoutes);
 app.use("/api/v1", profileRoutes);
 app.use("/api/v1", skillRoutes);
 app.use("/api/v1", projectRoutes);

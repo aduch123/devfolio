@@ -115,7 +115,8 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const found = await prisma.user.findUnique({ where: { email } });
+  const user = found && !found.deletedAt ? found : null;
   const isValid = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
   if (!user || !isValid) {
     throw unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
@@ -151,7 +152,7 @@ export const verifyEmail = async (req, res) => {
 // POST auth/resend-verification { email }: the same answer for every email, so it reveals nothing.
 export const resendVerification = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { email: req.body.email } });
-  if (user && !user.emailVerifiedAt) {
+  if (user && !user.deletedAt && !user.emailVerifiedAt) {
     const latest = await prisma.emailToken.findFirst({
       where: { userId: user.id, type: "VERIFY_EMAIL" },
       orderBy: { createdAt: "desc" },
@@ -166,7 +167,7 @@ export const resendVerification = async (req, res) => {
 // POST auth/forgot-password { email }: identical 202 for every email, nothing is revealed.
 export const forgotPassword = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { email: req.body.email } });
-  if (user) {
+  if (user && !user.deletedAt) {
     const latest = await prisma.emailToken.findFirst({
       where: { userId: user.id, type: "PASSWORD_RESET" },
       orderBy: { createdAt: "desc" },
@@ -202,12 +203,12 @@ export const refresh = async (req, res) => {
   const load = () =>
     prisma.session.findUnique({
       where: { id: parsed.sessionId },
-      include: { user: { select: { id: true, username: true } } },
+      include: { user: { select: { id: true, username: true, deletedAt: true } } },
     });
 
   const now = new Date();
   let session = await load();
-  if (!session || session.revokedAt || session.expiresAt <= now) {
+  if (!session || session.revokedAt || session.expiresAt <= now || session.user.deletedAt) {
     reject("INVALID_REFRESH_TOKEN", "Your session has expired. Please log in again");
   }
 
@@ -278,7 +279,7 @@ export const logout = async (req, res) => {
 
 export const me = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  if (!user) {
+  if (!user || user.deletedAt) {
     clearAuthCookies(res);
     throw unauthorized("Please log in");
   }

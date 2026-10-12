@@ -26,3 +26,6 @@ export const EMAIL_RESEND_COOLDOWN_MS = 60 * 1000;
 
 // Password reset links live 1 hour; the resend cooldown above also applies.
 export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
+// Account deletion (Phase 1): soft delete first, rows are removed for good after this many days.
+export const ACCOUNT_DELETE_GRACE_DAYS = 14;

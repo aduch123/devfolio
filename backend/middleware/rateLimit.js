@@ -65,6 +65,13 @@ export const forgotLimiter = build({
   message: "Too many reset requests. Please try again in an hour.",
 });
 
+// Account settings (password, email, username, deletion): they all re-check passwords with bcrypt.
+export const accountLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 20,
+  message: "Too many account changes. Please wait a few minutes and try again.",
+});
+
 // Contact form: per IP and per portfolio (username or share token).
 export const contactLimiter = build({
   windowMs: 60 * MINUTE,

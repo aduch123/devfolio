@@ -5,13 +5,13 @@ import { sendContactEmail } from "../../utils/mailer.js";
 async function resolveRecipient(req) {
   if (req.params.username) {
     return prisma.user.findUnique({
-      where: { username: req.params.username.toLowerCase() },
+      where: { username: req.params.username.toLowerCase(), deletedAt: null },
       select: { email: true, profile: { select: { contactEmail: true } } },
     });
   }
   if (req.params.token) {
     return prisma.user.findUnique({
-      where: { shareToken: req.params.token },
+      where: { shareToken: req.params.token, deletedAt: null },
       select: { email: true, profile: { select: { contactEmail: true } } },
     });
   }

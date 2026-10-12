@@ -80,7 +80,8 @@ frontend/
 
 All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` after a database ping (503 if the DB is unreachable); `/health` is a legacy alias.
 
-| Area | Endpoints (relative to `/api/v1`) | Auth |
+| Area | Endpoints (relative to `/api/v1`) | Account | `POST account/password`, `POST account/email`, `POST account/username`, `POST account/delete` | yes (current password required except for username) |
+| Auth |
 |---|---|---|
 | Auth | `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/forgot-password`, `POST auth/reset-password`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
 | Session | `GET auth/me` | yes |
@@ -92,11 +93,11 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 | Public portfolio | `GET portfolio/:username`, `GET portfolio/share/:token` | no |
 | Contact form | `POST portfolio/:username/message`, `POST portfolio/share/:token/message` | no |
 
-**Sessions:** login sets two `HttpOnly`, `SameSite=Lax` cookies (`Secure` in production): `dev_access` (JWT, 15 minutes) and `dev_refresh` (30 days, sent only to `/api/v1/auth`). The refresh token is stored hashed in the `Session` table and rotates on every refresh; presenting an already-rotated token after a 10-second grace window revokes that session. The client refreshes silently once on a 401 and retries. Logout revokes the session server-side (an access token already issued stays valid until it expires, at most 15 minutes). State-changing `/api/v1` requests whose `Origin` header is another site are refused (`BAD_ORIGIN`, 403). Run `npm install` after pulling (adds `cookie-parser`).
+**Sessions:** login sets two `HttpOnly`, `SameSite=Lax` cookies (`Secure` in production): `dev_access` (JWT, 15 minutes) and `dev_refresh` (30 days, sent only to `/api/v1/auth`). The refresh token is stored hashed in the `Session` table and rotates on every refresh; presenting an already-rotated token after a 10-second grace window revokes that session. The client refreshes silently once on a 401 and retries. Logout revokes the session server-side, and protected routes check the session in the database on every request. State-changing `/api/v1` requests whose `Origin` header is another site are refused (`BAD_ORIGIN`, 403). Run `npm install` after pulling (adds `cookie-parser`).
 
 **Email verification:** signup emails a single-use link (`/verify-email?token=...`, valid 24 hours; only the token hash is stored in `EmailToken`). The page posts the token to the API, so a link scanner opening the URL cannot use it up. Resending is public by email, answers the same for every address, and has a 60-second cooldown per account plus 5 requests per hour per IP. Nothing is blocked for unverified users yet. Resend's test sender only delivers to your own Resend account email until you verify a domain.
 
-**Password reset:** `/forgot-password` always answers the same for any email (5 per hour per IP, 60 s cooldown per account). The emailed link (`/reset-password?token=...`) is single-use and valid for 1 hour. Resetting sets the new password and revokes every session of that account (an access token already issued can still work for up to 15 minutes).
+**Password reset:** `/forgot-password` always answers the same for any email (5 per hour per IP, 60 s cooldown per account). The emailed link (`/reset-password?token=...`) is single-use and valid for 1 hour. Resetting sets the new password and revokes every session of that account (protected routes check the session in the database, so they stop working at once).
 
 Public portfolio responses contain only public fields (no account email, ids, hashes or share token).
 
@@ -114,3 +115,8 @@ Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "f
 - `.env` is git-ignored; only `.env.example` is committed. Rotate any secret that was ever shared.
 - Known dev-only advisories from `npm audit` (Prisma CLI and nodemon tooling) are tracked in `docs/HANDOFF.md`.
 - The project is being built in phases: see `docs/BUILD_PLAN.md`.
+
+
+## Account settings and cleanup
+
+Changing the password ends all other sessions; changing the email marks it unverified and sends a new link; changing the username makes the old portfolio URL return 404 (no redirect). Deleting the account (password required) hides it and ends all sessions at once; a daily job (`node-cron`, 03:30 server time, and once 30 s after start) removes accounts 14 days after deletion, expired sessions and used or expired email tokens. Run `npm install node-cron` after pulling. Signup with a deleted account's email or username stays blocked until the account is removed.
