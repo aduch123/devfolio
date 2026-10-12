@@ -6,6 +6,15 @@ export const SKILL_VALUES = [
   "mongodb", "prisma", "git", "docker", "other",
 ];
 export const SKILL_LEVELS = ["great", "good", "learning"];
+export const SKILL_CATEGORIES = ["frontend", "backend", "database", "tools", "other"];
+// Presets are suggestions, not a hard list. Their category is the default when none is sent.
+export const PRESET_CATEGORY = {
+  html: "frontend", css: "frontend", javascript: "frontend", react: "frontend",
+  typescript: "frontend", nextjs: "frontend",
+  python: "backend", nodejs: "backend", express: "backend", java: "backend",
+  postgresql: "database", mongodb: "database", prisma: "database",
+  git: "tools", docker: "tools", other: "other",
+};
 
 export const LIMITS = {
   displayName: 80,
@@ -20,7 +29,8 @@ export const LIMITS = {
   projectDescription: 1000,
   tag: 30,
   maxTags: 10,
-  maxSkills: SKILL_VALUES.length,
+  skillName: 40,
+  maxSkills: 50,
   maxProjects: 20,
   message: 2000,
   personName: 100,
@@ -93,10 +103,25 @@ export const heroRoleTexts = z
   )
   .max(LIMITS.maxRoles, `At most ${LIMITS.maxRoles} role phrases`);
 
+// A preset name (any casing) is stored as its lowercase preset value; anything else is a custom skill.
+export const skillName = z
+  .string({ error: "Enter a skill name" })
+  .trim()
+  .min(1, "Enter a skill name")
+  .max(LIMITS.skillName, tooLong(LIMITS.skillName))
+  .transform((v) => (SKILL_VALUES.includes(v.toLowerCase()) ? v.toLowerCase() : v));
+
 export const skillFields = {
-  name: z.enum(SKILL_VALUES, { error: "Choose a skill from the list" }),
+  name: skillName,
   level: z.enum(SKILL_LEVELS, { error: "Choose a level: great, good or learning" }),
+  category: z.enum(SKILL_CATEGORIES, { error: "Choose a category" }).optional(),
 };
+
+// Extra columns derived on the server for a skill name (never trusted from the client).
+export const skillDerived = (name, category) => ({
+  isCustom: !SKILL_VALUES.includes(name),
+  category: category ?? PRESET_CATEGORY[name] ?? "other",
+});
 
 export const projectFields = {
   title: requiredText("Title", LIMITS.projectTitle),

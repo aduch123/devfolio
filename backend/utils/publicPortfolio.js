@@ -15,8 +15,8 @@ export const PUBLIC_PORTFOLIO_SELECT = {
     },
   },
   skills: {
-    select: { name: true, icon: true, level: true },
-    orderBy: stableOrder,
+    select: { name: true, icon: true, level: true, category: true, isCustom: true },
+    orderBy: [{ sortOrder: "asc" }, ...stableOrder],
   },
   projects: {
     select: { title: true, description: true, repoUrl: true, liveUrl: true, tags: true },

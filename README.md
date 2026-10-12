@@ -87,7 +87,7 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 | Session | `GET auth/me` | yes |
 | Onboarding | `POST onboarding` (409 `ALREADY_ONBOARDED` if repeated) | yes |
 | Profile | `GET`, `PATCH profile` | yes |
-| Skills | `GET`, `POST skills`; `PATCH`, `DELETE skills/:id` | yes |
+| Skills | `GET`, `POST skills`; `PATCH`, `DELETE skills/:id`; `PUT skills/order` (`{ ids }`, 204) | yes |
 | Projects | `GET`, `POST projects`; `PATCH`, `DELETE projects/:id` | yes |
 | Share link | `POST`, `GET`, `DELETE share` | yes |
 | Public portfolio | `GET portfolio/:username`, `GET portfolio/share/:token` | no |
@@ -107,7 +107,7 @@ Public portfolio responses contain only public fields (no account email, ids, ha
 
 ## Errors
 
-Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "fieldName": "message" } } }` (`fields` only for validation errors). Common codes: `VALIDATION_ERROR` (400), `INVALID_CREDENTIALS`, `UNAUTHORIZED`, `INVALID_TOKEN`, `NO_REFRESH_TOKEN`, `INVALID_REFRESH_TOKEN` and `REFRESH_TOKEN_REUSED` (401), `BAD_ORIGIN` (403), `*_NOT_FOUND` and `ROUTE_NOT_FOUND` (404), `USER_EXISTS`, `SKILL_EXISTS` and `ALREADY_ONBOARDED` (409), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `EMAIL_SEND_FAILED` (502), `INTERNAL_ERROR` (500).
+Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "fieldName": "message" } } }` (`fields` only for validation errors). Common codes: `VALIDATION_ERROR` (400), `INVALID_CREDENTIALS`, `UNAUTHORIZED`, `INVALID_TOKEN`, `NO_REFRESH_TOKEN`, `INVALID_REFRESH_TOKEN` and `REFRESH_TOKEN_REUSED` (401), `BAD_ORIGIN` (403), `*_NOT_FOUND` and `ROUTE_NOT_FOUND` (404), `USER_EXISTS`, `SKILL_EXISTS`, `SKILL_LIMIT` and `ALREADY_ONBOARDED` (409), `INVALID_ORDER` (400), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `EMAIL_SEND_FAILED` (502), `INTERNAL_ERROR` (500).
 
 ## Notes
 
