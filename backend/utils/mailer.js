@@ -8,7 +8,14 @@ const resend = new Resend(env.RESEND_API_KEY);
 const sendFailed = () =>
   new AppError(502, "EMAIL_SEND_FAILED", "We couldn't send your message right now. Please try again later.");
 
+// In tests nothing is sent: messages are collected here so tests can read the links in them.
+export const testOutbox = [];
+
 async function deliver(payload) {
+  if (env.NODE_ENV === "test") {
+    testOutbox.push(payload);
+    return;
+  }
   let result;
   try {
     result = await resend.emails.send({ from: env.RESEND_FROM, ...payload });

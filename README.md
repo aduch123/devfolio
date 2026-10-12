@@ -120,3 +120,7 @@ Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "f
 ## Account settings and cleanup
 
 Changing the password ends all other sessions; changing the email marks it unverified and sends a new link; changing the username makes the old portfolio URL return 404 (no redirect). Deleting the account (password required) hides it and ends all sessions at once; a daily job (`node-cron`, 03:30 server time, and once 30 s after start) removes accounts 14 days after deletion, expired sessions and used or expired email tokens. Run `npm install node-cron` after pulling. Signup with a deleted account's email or username stays blocked until the account is removed.
+
+## Tests
+
+`npm test` (in `backend/`) runs `node:test` with Supertest against a **separate** database. One-time setup: create an empty database (for example `devfolio_test`), put its URL in `backend/.env` as `DATABASE_URL_TEST`, then apply the migrations to it with `DATABASE_URL=<that url> npx prisma migrate deploy`. The tests refuse to run if `DATABASE_URL_TEST` is missing or equal to `DATABASE_URL`. They create users with the email domain `@devfolio-test.dev` and delete them afterwards; no email is sent (messages are collected in memory) and rate limits are off. Install once with `npm install -D supertest` and `npm pkg set scripts.test="node --test --test-concurrency=1 \"tests/**/*.test.js\""`.
