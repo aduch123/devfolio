@@ -72,6 +72,13 @@ export const accountLimiter = build({
   message: "Too many account changes. Please wait a few minutes and try again.",
 });
 
+// Wizard saves: one request per step change, so a generous limit.
+export const onboardingLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 120,
+  message: "Too many setup requests. Please wait a few minutes and try again.",
+});
+
 // Image and resume uploads: each one decodes and re-encodes a file.
 export const uploadLimiter = build({
   windowMs: 15 * MINUTE,
