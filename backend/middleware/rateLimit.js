@@ -72,6 +72,13 @@ export const accountLimiter = build({
   message: "Too many account changes. Please wait a few minutes and try again.",
 });
 
+// Image and resume uploads: each one decodes and re-encodes a file.
+export const uploadLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 30,
+  message: "Too many uploads. Please wait a few minutes and try again.",
+});
+
 // Contact form: per IP and per portfolio (username or share token).
 export const contactLimiter = build({
   windowMs: 60 * MINUTE,

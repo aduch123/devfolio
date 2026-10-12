@@ -1,6 +1,7 @@
 import prisma from "../../config/prisma.js";
 import { env } from "../../config/env.js";
 import { conflict, notFound } from "../../utils/AppError.js";
+import { storage } from "../../config/storage.js";
 import { reorderOwned, nextSortOrder } from "../../utils/reorder.js";
 
 export const PROJECT_ORDER = [{ sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }];
@@ -62,6 +63,7 @@ export const deleteProject = async (req, res) => {
   }
 
   await prisma.project.delete({ where: { id } });
+  await storage.remove(project.coverImageUrl);
   res.status(204).send();
 };
 

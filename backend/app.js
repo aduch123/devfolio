@@ -21,6 +21,8 @@ import socialRoutes from "./modules/social/social.routes.js"
 import timelineRoutes from "./modules/timeline/timeline.routes.js"
 import onboardingRoutes from "./modules/onboarding/onboarding.routes.js"
 import shareRoutes from "./modules/share/share.routes.js"
+import mediaRoutes from "./modules/media/media.routes.js"
+import { storage } from "./config/storage.js"
 import messageRoutes from "./modules/messages/messages.routes.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +65,20 @@ app.use(pinoHttp({ logger }));
 
 app.use(express.static(path.join(__dirname, "../frontend")));
 
+// Uploaded files: random names never change, so they cache well. The headers keep a hostile file inert.
+app.use(
+  "/uploads",
+  express.static(storage.root, {
+    dotfiles: "deny",
+    index: false,
+    setHeaders(res) {
+      res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    },
+  })
+);
+
 app.get("/health", (req, res) => {
   res.status(200).json({ message: "Server working perfectly!" })
 })
@@ -86,6 +102,7 @@ app.use("/api/v1", profileRoutes);
 app.use("/api/v1", skillRoutes);
 app.use("/api/v1", projectRoutes);
 app.use("/api/v1", socialRoutes);
+app.use("/api/v1", mediaRoutes);
 app.use("/api/v1", timelineRoutes);
 app.use("/api/v1", onboardingRoutes);
 app.use("/api/v1", shareRoutes);

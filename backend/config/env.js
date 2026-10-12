@@ -34,6 +34,8 @@ const envSchema = z.object({
     .default("false")
     .refine((v) => v !== "true", "use the number of proxy hops (for example 1), not true")
     .transform((v) => (v === "false" ? false : /^\d+$/.test(v) ? Number(v) : v)),
+  // Where uploaded images and resumes are stored (optional, default backend/uploads).
+  UPLOAD_DIR: z.string().trim().min(1).optional(),
   // Most projects a user may mark as featured.
   MAX_FEATURED_PROJECTS: z.coerce.number().int().min(0).max(20).default(3),
   // Comma-separated browser origins allowed to call the API cross-origin. Empty = same-origin only.

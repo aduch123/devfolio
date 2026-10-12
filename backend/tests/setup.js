@@ -1,6 +1,9 @@
 // Imported first by every test file: points the app at the test database before config/env.js runs.
 // (Test-only exception to "all env access goes through config/env.js", like prisma.config.ts.)
 import "dotenv/config";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const testUrl = process.env.DATABASE_URL_TEST;
 if (!testUrl) {
@@ -14,3 +17,5 @@ process.env.NODE_ENV = "test";
 process.env.DATABASE_URL = testUrl;
 process.env.RESEND_API_KEY ||= "re_test_dummy";
 process.env.JWT_SECRET ||= "test-secret-test-secret-test-secret-0123456789";
+// Uploads go to a throwaway folder, never to the real uploads directory.
+process.env.UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "devfolio-test-uploads-"));
