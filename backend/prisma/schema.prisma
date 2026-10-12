@@ -20,6 +20,8 @@ model User {
   profile            Profile?
   skills             Skill[]
   projects           Project[]
+  socialLinks        SocialLink[]
+  timelineItems      TimelineItem[]
   sessions           Session[]
   emailTokens        EmailToken[]
 
@@ -34,6 +36,12 @@ model Profile {
   contactEmail  String?
   contactPhone  String?
   githubUrl     String?
+  headline      String?
+  location      String?
+  avatarUrl     String?
+  resumeUrl     String?
+  // Per-section { visible, order }; validated in Phase 2.5. null = defaults.
+  sectionConfig Json?
 
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -44,10 +52,16 @@ model Skill {
   name     String
   icon     String?
   level    String
+  category String   @default("other")
+  iconKey  String?
+  isCustom Boolean  @default(false)
+  sortOrder Int     @default(0)
   createdAt DateTime @default(now())
 
   userId   String
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sortOrder])
 }
 
 model Project {
@@ -57,10 +71,50 @@ model Project {
   repoUrl     String?
   liveUrl     String?
   tags        String[]
+  coverImageUrl String?
+  featured    Boolean  @default(false)
+  sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
 
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sortOrder])
+}
+
+model SocialLink {
+  id        String   @id @default(uuid())
+  platform  String
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sortOrder])
+}
+
+enum TimelineType {
+  EXPERIENCE
+  EDUCATION
+}
+
+model TimelineItem {
+  id           String       @id @default(uuid())
+  type         TimelineType
+  title        String
+  organization String
+  startDate    DateTime
+  endDate      DateTime?
+  description  String?
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, sortOrder])
 }
 
 model Session {
