@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { signup, login, refresh, logout, me, usernameAvailable, verifyEmail, resendVerification } from "./auth.controller.js";
-import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema } from "./auth.schema.js";
+import { signup, login, refresh, logout, me, usernameAvailable, verifyEmail, resendVerification, forgotPassword, resetPassword } from "./auth.controller.js";
+import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, resetPasswordSchema } from "./auth.schema.js";
 import { validate } from "../../middleware/validate.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
-import { authLimiter, refreshLimiter, usernameCheckLimiter, emailTokenLimiter, resendLimiter } from "../../middleware/rateLimit.js";
+import { authLimiter, refreshLimiter, usernameCheckLimiter, emailTokenLimiter, resendLimiter, forgotLimiter } from "../../middleware/rateLimit.js";
 
 const router = Router();
 
@@ -18,6 +18,8 @@ router.post("/login", authLimiter, validate(loginSchema), login);
 router.get("/username-available", usernameCheckLimiter, usernameAvailable);
 router.post("/verify-email", emailTokenLimiter, validate(verifyEmailSchema), verifyEmail);
 router.post("/resend-verification", resendLimiter, validate(resendVerificationSchema), resendVerification);
+router.post("/forgot-password", forgotLimiter, validate(forgotPasswordSchema), forgotPassword);
+router.post("/reset-password", emailTokenLimiter, validate(resetPasswordSchema), resetPassword);
 router.post("/refresh", refreshLimiter, refresh);
 router.post("/logout", logout);
 router.get("/me", requireAuth, me);

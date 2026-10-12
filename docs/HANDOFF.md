@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 10: subphase 1.4 implemented, awaiting verification; 1.1 to 1.3 applied by the user)
-**Current position:** **Phase 0 is merged into `main`** (user confirmed; the 0.8 walkthrough result was not reported in detail). Now on **Phase 1** (branch `phase-1-accounts`). **Batch 1 (1.1 session backend + 1.2 frontend sessions) is implemented and tested in the sandbox against a real local Postgres; awaiting user verification** (`devfolio-1.1-changes.zip`, then `devfolio-1.2-changes.zip` cumulative on top). Subphase 1.3 (signup/login UX) and 1.4 (email verification, `devfolio-1.4-changes.zip`) are implemented on top of them. Next: 1.5 password reset, then batch 3 (1.6 account settings API, 1.7 auth tests). Plan: `docs/PHASE_1_PLAN.md`.
-**Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1, 1.2 (Session 8), 1.3 (Session 9) and 1.4 (Session 10).
+**Last updated:** 2026-10-12 (Session 11: subphase 1.5 implemented, awaiting verification; 1.1 to 1.4 applied by the user)
+**Current position:** **Phase 0 is merged into `main`** (user confirmed; the 0.8 walkthrough result was not reported in detail). Now on **Phase 1** (branch `phase-1-accounts`). **Batch 1 (1.1 session backend + 1.2 frontend sessions) is implemented and tested in the sandbox against a real local Postgres; awaiting user verification** (`devfolio-1.1-changes.zip`, then `devfolio-1.2-changes.zip` cumulative on top). Subphase 1.3 (signup/login UX) 1.4 (email verification) and 1.5 (password reset, `devfolio-1.5-changes.zip`) are implemented on top of them. Next: batch 3 (1.6 account settings API, 1.7 auth tests) (1.6 account settings API, 1.7 auth tests). Plan: `docs/PHASE_1_PLAN.md`.
+**Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1, 1.2 (Session 8), 1.3 (Session 9), 1.4 (Session 10) and 1.5 (Session 11).
 
 ---
 
@@ -105,6 +105,7 @@ The goal is an **intermediate-level** project that is also well structured and s
 - **Frontend sessions (1.2):** no token or user object in `localStorage`. `apiFetch` uses `credentials: "same-origin"`; on a 401 it calls `POST auth/refresh` once (shared by parallel requests) and retries the request, and only if that fails clears the hint and goes to `/login`. Options: `skipAuthRedirect` (login and signup: no refresh, no redirect), `noRedirect` (refresh yes, redirect no), `anonymous` (public pages). `authGuard.requireAuth()` is async and returns the user from `/auth/me` (use `const user = await requireAuth()`); it never resolves when it is redirecting. `session.js` keeps a non-secret hint `devfolio_session` in `localStorage` so anonymous visitors of public pages never call session endpoints; the owner controls on a portfolio page check `/auth/me` only when the hint is set.
 - **Signup and login UX (1.3):** separate pages `/login` and `/signup` (`frontend/pages/login.html`, `signup.html`; routes in `app.js`; scripts `login.js`, `signup.js`, shared `authUi.js` with password show/hide and the strength hint). `pages/auth.html` and `js/auth.js` are gone; every login redirect (`api.js`, `authGuard.js`, `requirePage`, landing "Get started" -> `/signup`) now targets `/login`. `GET /api/v1/auth/username-available?username=` is public, limited to 30 per minute per IP (`usernameCheckLimiter`) and answers 200 `{ available, reason?, message? }` (`reason`: `invalid`, `reserved`, `taken`); the signup page calls it 400 ms after typing stops and ignores stale answers. Signup success redirects to `/login?registered=1` (notice shown; no auto-login). Confirm-password and the strength meter are client-side only (the server rule stays 8 to 128 characters). Login compares against a dummy bcrypt hash when the email is unknown, so unknown email and wrong password take the same time and give the same `401 INVALID_CREDENTIALS`. Signup keeps the 409 "already in use" answer.
 - **Email verification (1.4):** `User.emailVerifiedAt` and a generic `EmailToken` table (`type` `VERIFY_EMAIL` or `PASSWORD_RESET`, unique `tokenHash` = sha256 of a 32-byte random token, `expiresAt`, `usedAt`), reused by 1.5. Helpers in `utils/emailTokens.js`: `createEmailToken(userId, type, ttlMs)` (deletes the user's older unused tokens of that type, returns the raw token) and `consumeEmailToken(raw, type)` (atomic `updateMany ... usedAt: null, expiresAt > now`; throws 400 `TOKEN_USED`, `TOKEN_EXPIRED` or `TOKEN_INVALID`), plus `appUrl()`. Signup creates a token and emails `${APP_URL}/verify-email?token=...` without awaiting it (a failed send is only logged). `POST auth/verify-email { token }` (limiter 20 per 15 min) marks the user verified; the `/verify-email` page reads the token from the URL, removes it from the address bar and posts it, so a link scanner's GET never consumes it. `POST auth/resend-verification { email }` (5 per hour per IP) always answers 202 with the same message; per account it skips sending within 60 s of the last token (`EMAIL_RESEND_COOLDOWN_MS`). TTL is `EMAIL_VERIFY_TTL_MS` (24 h). `GET auth/me` and login now include `emailVerified`. Nothing is gated on verification yet. New env var `APP_URL` (optional, default `http://localhost:PORT`). `verify-email` is a reserved username. Mailer: `deliver()` shared by `sendContactEmail` and `sendVerificationEmail`.
+- **Password reset (1.5):** `POST auth/forgot-password { email }` (limiter 5 per hour per IP) always answers 202 with the same text; for an existing account it creates a `PASSWORD_RESET` token (`PASSWORD_RESET_TTL_MS` = 1 h, same 60 s per-account cooldown) and emails `${APP_URL}/reset-password?token=...` without awaiting. `POST auth/reset-password { token, password }` (limiter 20 per 15 min) consumes the token, hashes the new password (8 to 128 characters) and, in one transaction, updates it and revokes every session of the user, then clears cookies. Pages `/forgot-password` and `/reset-password` (token removed from the URL on load); login shows "Forgot password?" and a notice after `?reset=1`. `forgot-password` and `reset-password` are reserved usernames. Verification state is not touched by a reset.
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -131,9 +132,9 @@ README.md                   # at repo root
 ```
 frontend/
   index.html                # landing (title "Devfolio"), "Get started" -> /signup
-  pages/                    # login, signup, verify-email, onboarding, edit, portfolio (.html)
+  pages/                    # login, signup, verify-email, forgot-password, reset-password, onboarding, edit, portfolio (.html)
   js/                       # config (API_BASE_URL="", API_PREFIX="/api/v1"), api (apiFetch -> { ok, status, data, error }),
-                            # forms (showFieldErrors, setFieldError, clearFieldErrors, errorText), authGuard, login, signup, authUi, verifyEmail,
+                            # forms (showFieldErrors, setFieldError, clearFieldErrors, errorText), authGuard, login, signup, authUi, verifyEmail, forgotPassword, resetPassword,
                             # onboarding, edit, portfolio, session (login hint), script (nav/scroll-reveal), skillStyles
   css/                      # global, auth, onboarding, edit
 ```
@@ -143,7 +144,7 @@ frontend/
 **Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> many `Session` (refreshHash, prevRefreshHash?, rotatedAt?, expiresAt, revokedAt?, userAgent?, createdAt, lastUsedAt; 1.1) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. `Skill` and `Project` have `createdAt` (0.5). `Skill` has a unique `(userId, lower(name))` index. Note: `other` is one of the 16 skill presets, so a user can have only one `other` skill until custom skills arrive in Phase 2.
 
 **Current API (all under `/api/v1`; paths below are relative to it):**
-`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/refresh`, `POST auth/logout`, `GET auth/me`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (public since 0.6), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
+`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/forgot-password`, `POST auth/reset-password`, `POST auth/refresh`, `POST auth/logout`, `GET auth/me`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (public since 0.6), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
 
 **Page routes in `app.js`:** static files, `/health`, `/healthz`, API routers (`/api/v1`), then `/onboarding`, `/edit`, `/share/:token`, `/:username` (catch-all that serves `portfolio.html`), then a 404 handler and the error handler.
 
@@ -209,7 +210,7 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 - [~] 1.2 Frontend sessions: **implemented, awaiting user verification**
 - [~] 1.3 Signup and login UX: **implemented, awaiting user verification**
 - [~] 1.4 Email verification: **implemented, awaiting user verification**
-- [ ] 1.5 Password reset ← **NEXT** · [ ] 1.6 Account settings API · [ ] 1.7 Auth tests
+- [~] 1.5 Password reset: **implemented, awaiting user verification** · [ ] 1.6 Account settings API ← **NEXT** · [ ] 1.7 Auth tests
 
 ### Phases 2 to 10
 - [ ] Phase 2 · [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5 · [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
@@ -236,16 +237,16 @@ Apply `devfolio-1.1-changes.zip`, then (after committing 1.1) `devfolio-1.2-chan
 
 Then tick 1.1 and 1.2 in section 7.
 
-### 8b. Verify 1.4, then 1.5 (password reset)
+### 8b. Verify 1.5, then batch 3 (1.6 account settings API, 1.7 auth tests)
 
-**1.4 setup** (after applying `devfolio-1.4-changes.zip`, no new dependency): in `backend/` run `npx prisma migrate dev` then `npx prisma generate`. Optional `APP_URL` in `.env` (default `http://localhost:5000`-style from `PORT`). Resend's test sender only delivers to your own Resend account email, so sign up with that address.
+**1.5 setup** (after applying `devfolio-1.5-changes.zip`): no new dependency, no migration, no new env var.
 
-**1.4 checks**
-- [ ] `npm run lint` passes. Signup sends an email with a link; opening it shows "Email verified"; `User.emailVerifiedAt` is set; `GET /api/v1/auth/me` returns `emailVerified: true`.
-- [ ] Opening the same link again shows "already been used" and a resend form. A garbage token shows "not valid". Set `expiresAt` in the past in the DB to see "expired".
-- [ ] Resend gives the same message for a real, unknown and already verified email; a second request within 60 s sends nothing; only the newest link works. The token is not left in the address bar. In the DB `tokenHash` is 64 characters.
+**1.5 checks**
+- [ ] `npm run lint` passes. `/forgot-password` gives the same message for a real and an unknown email; only the real one gets an email (use your Resend account email). A second request within 60 s sends nothing.
+- [ ] The link opens `/reset-password` with the token gone from the address bar. A mismatch of the two passwords shows an inline error. Success lands on `/login` with "Password changed"; the old password fails, the new one works.
+- [ ] Log in in two browsers, reset the password: both lose their session on the next refresh (within 15 min for already-issued access tokens). The same link a second time says "already been used"; an old link after requesting a new one is no longer valid.
 
-**Next (1.5):** read `docs/PHASE_1_PLAN.md` row 1.5, send a short brief, wait for approval. Reuse `createEmailToken` and `consumeEmailToken` with `PASSWORD_RESET`; `/forgot-password` must answer identically for any email; `/reset-password` consumes the token and revokes all of the user's sessions; add `forgot-password` and `reset-password` to `RESERVED_USERNAMES`.
+**Next (1.6):** read `docs/PHASE_1_PLAN.md` rows 1.6 and 1.7, send a short brief, wait for approval. 1.6 adds `node-cron` and also purges expired sessions and used or expired `EmailToken` rows. Changing the email must re-verify (reuse `createEmailToken` with `VERIFY_EMAIL`).
 
 ## 9. How this file is updated
 
@@ -485,7 +486,20 @@ Leftovers / TODOs for later:
 - The email is plain text only.
 Must not break: only the sha256 of tokens is stored; resend answers identically for every email; the verify page never leaves the token in the URL.
 
-*(Add Session 11 and onward below this line.)*
+### Session 11: Subphase 1.5, Password reset (2026-10-12)
+Result: **implemented; awaiting user verification** (sandbox: only `node --check`; no database or Resend)
+Files created: `frontend/pages/forgot-password.html`, `reset-password.html`, `frontend/js/forgotPassword.js`, `resetPassword.js`
+Files changed: `backend/config/constants.js` (reserved names, `PASSWORD_RESET_TTL_MS`), `utils/mailer.js` (`sendPasswordResetEmail`), `middleware/rateLimit.js` (`forgotLimiter`), `modules/auth/auth.schema.js`, `auth.routes.js`, `auth.controller.js`, `backend/app.js`, `frontend/pages/login.html` (forgot link), `frontend/js/login.js` (reset notice), `frontend/css/auth.css`, `README.md`, `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: none
+Decisions made (and why): reset link TTL is 1 hour (shorter than verification, the plan gave none); reset also revokes all sessions in the same transaction as the password update; forgot-password never awaits the email so timing does not reveal accounts; a reset does not mark the email verified (kept separate); no auto-login after reset (the user logs in with the new password).
+Leftovers / TODOs for later:
+- Used and expired `EmailToken` rows are still not purged (1.6 cron).
+- An access JWT issued before the reset stays valid until it expires (max 15 min), as for logout.
+- Password change inside settings (1.6) should also revoke the user's other sessions.
+Must not break: forgot-password answers identically for every email; only token hashes are stored; reset always revokes all sessions.
+
+*(Add Session 12 and onward below this line.)*
 
 ---
 

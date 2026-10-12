@@ -137,3 +137,7 @@
 }
 
 .auth-form .btn[hidden], .auth-form-inner[hidden] { display: none; }
+
+.auth-forgot { text-align: right; margin-top: -8px; }
+
+.auth-form [hidden] { display: none !important; }

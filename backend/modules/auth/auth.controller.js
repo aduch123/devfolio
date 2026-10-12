@@ -4,6 +4,7 @@ import logger from "../../config/logger.js";
 import {
   EMAIL_RESEND_COOLDOWN_MS,
   EMAIL_VERIFY_TTL_MS,
+  PASSWORD_RESET_TTL_MS,
   REFRESH_COOKIE,
   REFRESH_REUSE_GRACE_MS,
   REFRESH_TOKEN_TTL_MS,
@@ -12,7 +13,7 @@ import { conflict, unauthorized } from "../../utils/AppError.js";
 import { isUniqueViolation } from "../../utils/prismaErrors.js";
 import { usernameSchema } from "./auth.schema.js";
 import { appUrl, consumeEmailToken, createEmailToken } from "../../utils/emailTokens.js";
-import { sendVerificationEmail } from "../../utils/mailer.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../../utils/mailer.js";
 import {
   buildRefreshToken,
   clearAuthCookies,
@@ -35,6 +36,17 @@ const publicUser = (user) => ({
   onboardingComplete: user.onboardingComplete,
   emailVerified: Boolean(user.emailVerifiedAt),
 });
+
+// Same idea for the password reset email: never throws, only logs.
+const sendPasswordReset = async (user) => {
+  try {
+    const token = await createEmailToken(user.id, "PASSWORD_RESET", PASSWORD_RESET_TTL_MS);
+    const link = `${appUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+    await sendPasswordResetEmail({ to: user.email, username: user.username, link });
+  } catch (err) {
+    logger.error({ err, userId: user.id }, "could not send password reset email");
+  }
+};
 
 // Creates a fresh verification token and emails the link. Never throws: callers do not wait for it,
 // and a failed send only shows up in the logs (the user can ask for another email).
@@ -149,6 +161,33 @@ export const resendVerification = async (req, res) => {
     if (!coolingDown) sendVerification(user);
   }
   res.status(202).json({ message: "If that account exists and is not verified yet, we sent a new link." });
+};
+
+// POST auth/forgot-password { email }: identical 202 for every email, nothing is revealed.
+export const forgotPassword = async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+  if (user) {
+    const latest = await prisma.emailToken.findFirst({
+      where: { userId: user.id, type: "PASSWORD_RESET" },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    const coolingDown = latest && Date.now() - latest.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS;
+    if (!coolingDown) sendPasswordReset(user); // not awaited, so the answer takes the same time either way
+  }
+  res.status(202).json({ message: "If an account exists for that email, we sent a link to reset the password." });
+};
+
+// POST auth/reset-password { token, password }: consumes the link, sets the password, ends every session.
+export const resetPassword = async (req, res) => {
+  const { userId } = await consumeEmailToken(req.body.token, "PASSWORD_RESET");
+  const passwordHash = await bcrypt.hash(req.body.password, 10);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+    prisma.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+  ]);
+  clearAuthCookies(res);
+  res.status(200).json({ reset: true });
 };
 
 export const refresh = async (req, res) => {

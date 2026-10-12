@@ -32,6 +32,13 @@ export const sendContactEmail = ({ to, senderName, senderEmail, message }) =>
     text: `From: ${senderName} (${senderEmail})\n\n${message}`,
   });
 
+export const sendPasswordResetEmail = ({ to, username, link }) =>
+  deliver({
+    to,
+    subject: "Reset your Devfolio password",
+    text: `Hi ${username},\n\nSomeone asked to reset the password for your Devfolio account. To choose a new one, open:\n\n${link}\n\nThis link works once and expires in 1 hour. If it wasn't you, ignore this email: your password stays the same.`,
+  });
+
 export const sendVerificationEmail = ({ to, username, link }) =>
   deliver({
     to,

@@ -11,7 +11,11 @@ const pwField = (key) => (key === "password" ? form.elements.password.closest(".
 
 initPasswordToggles();
 
-if (new URLSearchParams(window.location.search).get("registered") === "1") {
+const params = new URLSearchParams(window.location.search);
+if (params.get("reset") === "1") {
+  notice.textContent = "Password changed. Log in with your new password.";
+  notice.hidden = false;
+} else if (params.get("registered") === "1") {
   notice.textContent = "Account created. We emailed you a link to verify your address. You can log in meanwhile.";
   notice.hidden = false;
 }

@@ -82,7 +82,7 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 
 | Area | Endpoints (relative to `/api/v1`) | Auth |
 |---|---|---|
-| Auth | `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
+| Auth | `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/forgot-password`, `POST auth/reset-password`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
 | Session | `GET auth/me` | yes |
 | Onboarding | `POST onboarding` (409 `ALREADY_ONBOARDED` if repeated) | yes |
 | Profile | `GET`, `PATCH profile` | yes |
@@ -95,6 +95,8 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 **Sessions:** login sets two `HttpOnly`, `SameSite=Lax` cookies (`Secure` in production): `dev_access` (JWT, 15 minutes) and `dev_refresh` (30 days, sent only to `/api/v1/auth`). The refresh token is stored hashed in the `Session` table and rotates on every refresh; presenting an already-rotated token after a 10-second grace window revokes that session. The client refreshes silently once on a 401 and retries. Logout revokes the session server-side (an access token already issued stays valid until it expires, at most 15 minutes). State-changing `/api/v1` requests whose `Origin` header is another site are refused (`BAD_ORIGIN`, 403). Run `npm install` after pulling (adds `cookie-parser`).
 
 **Email verification:** signup emails a single-use link (`/verify-email?token=...`, valid 24 hours; only the token hash is stored in `EmailToken`). The page posts the token to the API, so a link scanner opening the URL cannot use it up. Resending is public by email, answers the same for every address, and has a 60-second cooldown per account plus 5 requests per hour per IP. Nothing is blocked for unverified users yet. Resend's test sender only delivers to your own Resend account email until you verify a domain.
+
+**Password reset:** `/forgot-password` always answers the same for any email (5 per hour per IP, 60 s cooldown per account). The emailed link (`/reset-password?token=...`) is single-use and valid for 1 hour. Resetting sets the new password and revokes every session of that account (an access token already issued can still work for up to 15 minutes).
 
 Public portfolio responses contain only public fields (no account email, ids, hashes or share token).
 

@@ -97,6 +97,14 @@ app.get("/verify-email", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/verify-email.html"));
 });
 
+app.get("/forgot-password", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/pages/forgot-password.html"));
+});
+
+app.get("/reset-password", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/pages/reset-password.html"));
+});
+
 app.get("/onboarding", requirePage, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/onboarding.html"));
 });

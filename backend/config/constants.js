@@ -6,7 +6,7 @@ export const RESERVED_USERNAMES = new Set([
   "api", "edit", "dashboard", "login", "logout", "signup", "register",
   "settings", "account", "onboarding", "share", "pages", "css", "js",
   "uploads", "static", "assets", "admin", "help", "support", "health",
-  "healthz", "auth", "verify-email", "portfolio", "profile", "skills", "projects",
+  "healthz", "auth", "verify-email", "forgot-password", "reset-password", "portfolio", "profile", "skills", "projects",
   "messages", "about", "terms", "privacy", "www", "root", "null", "undefined",
 ]);
 
@@ -23,3 +23,6 @@ export const REFRESH_COOKIE_PATH = "/api/v1/auth";
 // Email tokens (Phase 1): verification links live 24 hours; a new one may be requested after the cooldown.
 export const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 export const EMAIL_RESEND_COOLDOWN_MS = 60 * 1000;
+
+// Password reset links live 1 hour; the resend cooldown above also applies.
+export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;

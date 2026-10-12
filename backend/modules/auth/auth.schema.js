@@ -35,3 +35,15 @@ export const verifyEmailSchema = z.object({
 export const resendVerificationSchema = z.object({
   email: identityEmail,
 });
+
+export const forgotPasswordSchema = z.object({
+  email: identityEmail,
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(20, "Invalid link").max(200, "Invalid link"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be at most 128 characters"),
+});

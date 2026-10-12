@@ -58,6 +58,13 @@ export const resendLimiter = build({
   message: "Too many emails requested. Please try again in an hour.",
 });
 
+// Asking for a password reset email.
+export const forgotLimiter = build({
+  windowMs: 60 * MINUTE,
+  limit: 5,
+  message: "Too many reset requests. Please try again in an hour.",
+});
+
 // Contact form: per IP and per portfolio (username or share token).
 export const contactLimiter = build({
   windowMs: 60 * MINUTE,
