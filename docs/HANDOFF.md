@@ -3,7 +3,7 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 3b, git workflow; Session 3, subphases 0.3 and 0.4 implemented)
+**Last updated:** 2026-10-12 (Session 3c, command-block rule; Session 3b, git workflow; Session 3, subphases 0.3 and 0.4 implemented)
 **Current position:** Phase 0. Subphases **0.2, 0.3 and 0.4 implemented, awaiting user verification** (0.2 is pushed to the Phase 0 branch). Next: **0.5** (after 0.4 is verified and committed on the Phase 0 branch).
 **Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3).
 
@@ -24,6 +24,7 @@
 9. **Watch the context budget.** If the session is getting long or you are near the limit, stop adding scope, finish the current edit, and produce the handoff update block (section 9) **before** running out.
 10. **Verify cheaply.** Run `node --check`, lint or a quick import test on changed files when possible. The user will run the app, database migrations and browser tests locally, since the chat sandbox has no access to their database.
 11. **Update `HANDOFF.md` after every change, not just at the end of a subphase.** Any edit to code, docs, config or decisions (including small follow-up fixes the user requests) must be reflected in the handoff in the same reply: header, status tracker, section 4 if the codebase changed, and a session log line. Re-deliver the updated `docs/HANDOFF.md` with it. Never finish a reply that changed something without having updated the handoff.
+12. **End every subphase (or batch) with a copy-paste command block for the user.** In the same reply as the zip, give the exact shell commands, in order, for: (a) switching to the phase branch; (b) unzipping if a path is needed; (c) **removals** (`rm`, `git rm` for deleted or renamed files, empty folders to delete); (d) **additions or setup** (`npm install`, `npx prisma generate` or `migrate dev`, new `.env` keys, new ignore entries, anything to install or configure); (e) `git add` for exactly the changed paths, followed by `git status` with a note on what must **not** appear (`.env`, `node_modules`); (f) `git commit -m "type(N.X): summary"`; (g) `git push`. For a batch of subphases, give one block per subphase, in order, with the files each commit should contain. Say clearly when a step is optional, and never tell the user to merge into `main` before the phase is complete.
 
 ---
 
@@ -32,7 +33,7 @@
 1. **Brief first.** Before changing anything, Claude sends a short brief: what it will do, which files it will touch, what is out of scope, and any choices that need a decision. **No code changes until the user approves.**
 2. **User approves** (or adjusts the brief).
 3. **Claude implements** only that subphase, checking cheaply (`node --check`, lint, import or startup tests where possible). The sandbox has no database and may block Prisma binary downloads, so DB-backed flows are tested by the user locally.
-4. **Claude delivers**, in one reply: (a) a **zip of changed and new files only**, with project-relative paths so it can be unzipped over the repo root; (b) a list of **files to delete**, if any; (c) the **updated `HANDOFF.md`** (Claude edits it itself with targeted edits; the user does not paste anything; this applies to every change, see rule 11); (d) a suggested **commit message**.
+4. **Claude delivers**, in one reply: (a) a **zip of changed and new files only**, with project-relative paths so it can be unzipped over the repo root; (b) a list of **files to delete**, if any; (c) the **updated `HANDOFF.md`** (Claude edits it itself with targeted edits; the user does not paste anything; this applies to every change, see rule 11); (d) a ready-to-run **"Apply and commit" command block** (see rule 12): removals, additions, staging, status check, commit with the suggested message, and push.
 5. **User applies and verifies:** unzips over the repo, runs `npm install` if `package.json` changed, runs the subphase's success criteria, commits it on the **phase branch** (`phase-N-name`, one commit per subphase). The phase branch is merged into `main` only when every subphase of the phase passes.
 **Batching (allowed when the user asks):** several consecutive subphases can be done in one session. Send one brief covering all of them, build them in order, and deliver **one zip per subphase** (each cumulative on top of the previous) plus one `HANDOFF.md`, so each subphase can still be its own commit on the phase branch. If the session runs long, stop after the last finished subphase and hand off. (First batch: 0.3 + 0.4, Session 3.)
 6. **Next session** starts from the updated `HANDOFF.md` (section 8 holds the next task).
@@ -263,6 +264,8 @@ Tick `[x]` for 0.1 to 0.4 in section 7 once each passes. **Do not merge to `main
 
 ## 9. How this file is updated
 
+(Every update to this file also follows rule 12: the delivery reply ends with the command block.)
+
 At the end of every subphase, **Claude updates this file itself** (workflow step 4) using **targeted edits** (do not regenerate the whole file; that wastes tokens). Each update must:
 
 1. Update the header (**Last updated**, **Current position**, **Code changes made so far**).
@@ -369,6 +372,12 @@ Files changed: `docs/HANDOFF.md` (git conventions, workflow step 5, D12, tracker
 Decisions made (and why): branches are per **phase**, not per subphase: fewer branches to manage, subphases are already small verified commits, and `main` only receives a fully verified phase. `phase-0.1-hygiene` is renamed to `phase-0-foundation` (`git branch -m`, which keeps all commits). The remote branch `phase-0.1-hygiene` is replaced by `phase-0-foundation`.
 User action: run the rename and push commands given in the chat, then check `git branch -a` shows only `main` and `phase-0-foundation`.
 Must not break: all later subphase work goes on the phase branch; nothing is merged to `main` until the phase is complete.
+
+### Session 3c: Command-block rule (2026-10-12)
+Result: completed (docs only, no code changed)
+Files changed: `docs/HANDOFF.md` (rule 12 in section 1, workflow step 4(d), this log entry)
+Decisions made (and why): the user wants ready-to-run commands at the end of each subphase (staging, committing, removals, additions and setup) instead of only a suggested commit message, to avoid mistakes when applying zips (for example, when two cumulative zips are unzipped together).
+Must not break: every delivery ends with the "Apply and commit" block described in rule 12.
 
 *(Add Session 4 and onward below this line.)*
 
