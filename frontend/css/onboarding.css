@@ -1,49 +1,434 @@
-.onboarding-body {
-  padding: 32px;
+/* Onboarding wizard: progress, step card, live preview. */
+.wiz-body {
+  background-color: var(--paper);
+  min-height: 100vh;
+  color: var(--ink);
+}
+.wiz-body :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.wiz-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background-color: var(--dark);
+  color: var(--dark-text);
+}
+.wiz-brand {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 17px;
+}
+.wiz-brand-accent {
+  color: #8c99ff;
+}
+.wiz-top-note {
+  font-size: 13px;
+  color: #9aa0ab;
+}
+
+.wiz-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+@media (min-width: 1024px) {
+  .wiz-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+/* ---- Progress ---- */
+.wiz-steps {
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  overflow-x: auto;
+}
+.wiz-step {
+  flex: 1 0 auto;
+}
+.wiz-step button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wiz-step button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.wiz-step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.wiz-step.is-current button {
+  border-color: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+}
+.wiz-step.is-current .wiz-step-num {
+  background: var(--accent);
+  color: #fff;
+}
+.wiz-step.is-done .wiz-step-num {
+  background: #2e7d32;
+  color: #fff;
+}
+.wiz-step.is-skipped .wiz-step-num {
+  background: #b8860b;
+  color: #fff;
+}
+@media (max-width: 599px) {
+  .wiz-step-label {
+    display: none;
+  }
+  .wiz-step.is-current .wiz-step-label {
+    display: inline;
+  }
+}
+
+/* ---- Card and form ---- */
+.wiz-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-
-.onboarding-body .field textarea,
-.onboarding-body .field input {
-  padding: 11px 13px;
-  border: 1px solid var(--dark-border);
-  border-radius: 7px;
-  background-color: #1a1d24;
-  color: var(--dark-text);
-  font-family: inherit;
+.wiz-loading {
+  color: var(--ink-soft);
+}
+.wiz-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin: 0;
+}
+.wiz-sub {
+  margin: 0;
+  color: var(--ink-soft);
   font-size: 14px;
 }
+.wiz-card .field input,
+.wiz-card .field textarea,
+.wiz-card select,
+.wiz-row input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  min-width: 0;
+}
+.wiz-card textarea {
+  resize: vertical;
+}
+.wiz-card input:focus,
+.wiz-card textarea:focus,
+.wiz-card select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.wiz-card [aria-invalid="true"] {
+  border-color: #d93025;
+}
+.wiz-count {
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.wiz-section-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.wiz-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+@media (min-width: 600px) {
+  .wiz-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
-.onboarding-body .field label {
-  color: var(--dark-text);
+/* Repeating rows (roles, links) */
+.wiz-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.wiz-row input {
+  flex: 1 1 160px;
+}
+.wiz-row .field-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+.wiz-remove {
+  background: none;
+  border: none;
+  color: #d93025;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Skills */
+.wiz-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.wiz-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.wiz-chip.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+.wiz-skill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Projects */
+.wiz-project {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wiz-project-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 13px;
   font-weight: 600;
 }
 
-.dynamic-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: center;
+/* Review */
+.wiz-review {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wiz-review-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.wiz-review-item h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.wiz-review-item p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.wiz-review-item.is-skipped {
+  background: #fff8e6;
+  border-color: #f0d98c;
+}
+.wiz-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
 }
 
-.dynamic-row input,
-.dynamic-row select {
+/* Buttons */
+.wiz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+.wiz-actions .wiz-spacer {
+  flex: 1;
+}
+.wiz-error {
+  color: #d93025;
+  font-size: 13px;
+  min-height: 16px;
+  margin: 0;
+}
+.wiz-btn-ghost {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
   padding: 8px 10px;
-  border: 1px solid var(--dark-border);
-  border-radius: 6px;
-  background-color: #1a1d24;
-  color: var(--dark-text);
+}
+.wiz-btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---- Live preview (desktop only) ---- */
+.wiz-preview {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .wiz-preview {
+    display: block;
+    position: sticky;
+    top: 24px;
+    align-self: start;
+  }
+}
+.pv-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+}
+.pv-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.pv-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  margin: 0;
+}
+.pv-muted {
+  color: var(--ink-soft);
+  font-size: 13px;
+  margin: 0;
+}
+.pv-placeholder {
+  color: #b5b9c2;
+  font-style: italic;
+}
+.pv-roles {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  margin: 0;
+}
+.pv-h {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 4px 0 0;
+}
+.pv-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pv-tag {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+.pv-list {
+  margin: 0;
+  padding-left: 18px;
   font-size: 13px;
 }
 
-.remove-row {
-  background: none;
-  border: none;
-  color: #ff6b6b;
-  font-size: 18px;
-  cursor: pointer;
+/* Keep field errors and remove buttons in a sensible order inside rows */
+.wiz-row .field-error {
+  order: 10;
+}
+.wiz-row .wiz-remove {
+  order: 5;
+}
+.wiz-hint {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* Overrides for global styles meant for the landing page */
+.wiz-main {
+  padding: 0;
+  min-width: 0;
+}
+.wiz-card .btn-outline {
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 9px 16px;
+  font-size: 14px;
+  width: fit-content;
+}
+.wiz-card .btn-outline:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--panel);
+}
+.wiz-card .btn-outline:disabled {
+  opacity: 0.5;
+}
+.wiz-skill-list .wiz-section-label {
+  min-width: 96px;
 }

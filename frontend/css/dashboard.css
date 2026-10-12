@@ -613,3 +613,17 @@
     padding-right: 6px;
   }
 }
+
+/* ---- Skipped setup sections (Overview) ---- */
+.dash-todo {
+  background: #fff8e6;
+  border: 1px solid #f0d98c;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+.dash-todo-list {
+  margin: 6px 0 10px;
+  padding-left: 20px;
+  font-size: 14px;
+}

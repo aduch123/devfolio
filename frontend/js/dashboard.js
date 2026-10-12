@@ -1,4 +1,6 @@
 import { requireAuth } from "./authGuard.js";
+import { API_PREFIX } from "./config.js";
+import { apiFetch } from "./api.js";
 import { mountShell, NAV_TITLES } from "./shell.js";
 import { make, makeIcon, emptyState } from "./ui.js";
 
@@ -53,7 +55,27 @@ function card({ icon, title, value, text, links = [] }) {
   return el;
 }
 
+// Sections the user skipped in the setup wizard (step numbers 2 to 5).
+const SKIPPED_NAMES = { 2: "About and roles", 3: "Skills", 4: "Projects", 5: "Links" };
+
+async function skippedNotice() {
+  const result = await apiFetch(`${API_PREFIX}/onboarding/state`, { noRedirect: true });
+  const names = result.ok ? (result.data.skipped ?? []).map((n) => SKIPPED_NAMES[n]).filter(Boolean) : [];
+  if (!names.length) return null;
+  const box = make("div", "dash-todo");
+  const head = make("div", "card-head");
+  head.append(makeIcon("fa-list-check"), make("h2", "card-title", "Finish setting up"));
+  const list = make("ul", "dash-todo-list");
+  for (const name of names) list.append(make("li", "", name));
+  const link = make("a", "card-link", "Add them in the editor");
+  link.href = "/edit";
+  box.append(head, make("p", "card-text", "You skipped these sections during setup:"), list, link);
+  return box;
+}
+
 if (active === "overview") {
+  const notice = await skippedNotice();
+  if (notice) main.append(notice);
   const grid = make("div", "cards");
   grid.append(
     card({
