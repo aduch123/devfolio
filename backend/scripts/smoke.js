@@ -53,6 +53,21 @@ await check("GET /healthz returns { status: 'ok' }", async () => {
   if (res.status !== 200 || body?.status !== "ok") return `got ${res.status} ${JSON.stringify(body)}`;
 });
 
+await check("GET /auth/me without a session returns 401 in the standard shape", async () => {
+  const { res, body } = await call("/api/v1/auth/me");
+  if (res.status !== 401 || !isErrorShape(body)) return `got ${res.status} ${JSON.stringify(body)}`;
+});
+
+await check("POST /auth/refresh without a refresh cookie returns 401", async () => {
+  const { res, body } = await call("/api/v1/auth/refresh", { method: "POST" });
+  if (res.status !== 401 || body?.error?.code !== "NO_REFRESH_TOKEN") return `got ${res.status} ${JSON.stringify(body)}`;
+});
+
+await check("POST from a foreign Origin is refused (BAD_ORIGIN)", async () => {
+  const { res, body } = await call("/api/v1/auth/logout", { method: "POST", headers: { Origin: "https://evil.example" } });
+  if (res.status !== 403 || body?.error?.code !== "BAD_ORIGIN") return `got ${res.status} ${JSON.stringify(body)}`;
+});
+
 if (username) {
   await check(`GET public portfolio /${username} (no login, no private fields)`, async () => {
     const { res, body } = await call(`/api/v1/portfolio/${encodeURIComponent(username)}`);

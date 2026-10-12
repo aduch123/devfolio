@@ -3,11 +3,13 @@ import { fileURLToPath } from "url"
 import express from 'express'
 import helmet from "helmet"
 import cors from "cors"
+import cookieParser from "cookie-parser"
 import pinoHttp from "pino-http"
 import logger from "./config/logger.js"
 import prisma from "./config/prisma.js"
 import { env } from "./config/env.js"
 import { globalLimiter } from "./middleware/rateLimit.js"
+import { originCheck } from "./middleware/origin.js"
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js"
 import authRoutes from "./modules/auth/auth.routes.js"
 import profileRoutes from "./modules/profile/profile.routes.js"
@@ -52,6 +54,7 @@ app.use(
 app.use(cors({ origin: env.CORS_ORIGINS.length > 0 ? env.CORS_ORIGINS : false }))
 
 app.use(express.json({ limit: "100kb" }))
+app.use(cookieParser())
 app.use(pinoHttp({ logger }));
 
 app.use(express.static(path.join(__dirname, "../frontend")));
@@ -71,6 +74,7 @@ app.get("/healthz", async (req, res) => {
 })
 
 app.use("/api/v1", globalLimiter);
+app.use("/api/v1", originCheck);
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1", profileRoutes);

@@ -30,6 +30,13 @@ export const authLimiter = build({
   message: "Too many login or signup attempts. Please wait 15 minutes and try again.",
 });
 
+// Silent token refresh: legitimate clients need only a few per 15 minutes.
+export const refreshLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 60,
+  message: "Too many session refreshes. Please wait a few minutes and try again.",
+});
+
 // Contact form: per IP and per portfolio (username or share token).
 export const contactLimiter = build({
   windowMs: 60 * MINUTE,

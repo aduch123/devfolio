@@ -9,3 +9,13 @@ export const RESERVED_USERNAMES = new Set([
   "healthz", "auth", "portfolio", "profile", "skills", "projects",
   "messages", "about", "terms", "privacy", "www", "root", "null", "undefined",
 ]);
+
+// Sessions (Phase 1): short-lived access cookie plus a rotating refresh cookie.
+export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
+export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// A refresh token that was just rotated may be presented again for this long (two tabs refreshing at once).
+export const REFRESH_REUSE_GRACE_MS = 10 * 1000;
+export const ACCESS_COOKIE = "dev_access";
+export const REFRESH_COOKIE = "dev_refresh";
+// The refresh cookie is only ever sent to the auth endpoints.
+export const REFRESH_COOKIE_PATH = "/api/v1/auth";
