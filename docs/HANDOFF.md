@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 2, subphase 0.2 implemented)
-**Current position:** Phase 0. Subphase **0.2 implemented, awaiting user verification**. Next: **0.3** (after 0.2 is verified and merged).
-**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on `phase-0.1-hygiene`) and 0.2 (restructure and `/api/v1`, delivered as `devfolio-0.2-changes.zip`).
+**Last updated:** 2026-10-12 (Session 3b, git workflow; Session 3, subphases 0.3 and 0.4 implemented)
+**Current position:** Phase 0. Subphases **0.2, 0.3 and 0.4 implemented, awaiting user verification** (0.2 is pushed to the Phase 0 branch). Next: **0.5** (after 0.4 is verified and committed on the Phase 0 branch).
+**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3).
 
 ---
 
@@ -33,10 +33,15 @@
 2. **User approves** (or adjusts the brief).
 3. **Claude implements** only that subphase, checking cheaply (`node --check`, lint, import or startup tests where possible). The sandbox has no database and may block Prisma binary downloads, so DB-backed flows are tested by the user locally.
 4. **Claude delivers**, in one reply: (a) a **zip of changed and new files only**, with project-relative paths so it can be unzipped over the repo root; (b) a list of **files to delete**, if any; (c) the **updated `HANDOFF.md`** (Claude edits it itself with targeted edits; the user does not paste anything; this applies to every change, see rule 11); (d) a suggested **commit message**.
-5. **User applies and verifies:** unzips over the repo, runs `npm install` if `package.json` changed, runs the subphase's success criteria, commits on the subphase branch (`phase-0.X-name`), merges into `main` when all pass.
+5. **User applies and verifies:** unzips over the repo, runs `npm install` if `package.json` changed, runs the subphase's success criteria, commits it on the **phase branch** (`phase-N-name`, one commit per subphase). The phase branch is merged into `main` only when every subphase of the phase passes.
+**Batching (allowed when the user asks):** several consecutive subphases can be done in one session. Send one brief covering all of them, build them in order, and deliver **one zip per subphase** (each cumulative on top of the previous) plus one `HANDOFF.md`, so each subphase can still be its own commit on the phase branch. If the session runs long, stop after the last finished subphase and hand off. (First batch: 0.3 + 0.4, Session 3.)
 6. **Next session** starts from the updated `HANDOFF.md` (section 8 holds the next task).
 
-**Git conventions:** one branch per subphase (`git switch -c phase-0.X-name`); tag `v0-baseline` marks the original code; commit messages use `type: summary` (`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `style:`).
+**Git conventions (one branch per phase):**
+- One branch per **phase**, created from `main` when the phase starts and named `phase-N-name` (Phase 0 is `phase-0-foundation`, Phase 1 would be `phase-1-accounts`). Subphases are **not** separate branches.
+- Each subphase is **one commit** (or a few) on the phase branch, made once that subphase's success criteria pass. Suggested format: `type(N.X): summary`, for example `refactor(0.2): move code into modules`. Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `style`.
+- When **all subphases of the phase** are verified, merge the phase branch into `main` with `git merge --no-ff phase-N-name`, then tag it `phase-N-complete`. Tag `v0-baseline` marks the original code.
+- Do not merge to `main` mid-phase, unless a fix is urgent.
 
 ---
 
@@ -87,7 +92,9 @@ The goal is an **intermediate-level** project that is also well structured and s
 **Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
 
 **Notes on the stack that matter:**
-- Express 5 forwards rejected promises from async handlers to the error middleware automatically, so the existing `catchAsync` wrapper is redundant (still present; keep or remove consistently in 0.2 or 0.3).
+- Express 5 forwards rejected promises from async handlers (and errors thrown in sync middleware) to the error middleware automatically. `catchAsync` was removed in 0.3: controllers and routes are plain `async` functions that `throw` an `AppError`.
+- **Error contract (0.3):** every API error is `{ "error": { "code", "message", "fields?" } }`. Throw helpers from `utils/AppError.js` (`badRequest`, `validationError`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `tooMany`). Request validation is `validate(schema)` middleware in the route (`middleware/validate.js`), which replaces `req.body` with the parsed data, so controllers read `req.body` as already valid. Unknown errors become a generic 500 and are logged only.
+- **Validation (0.4):** reusable zod pieces live in `utils/validators.js` (`safeUrl` http/https only, `phone`, `optionalText/Url/Email/Phone` which turn `""` into `null`, `requiredText`, tags and role lists, the single `SKILL_VALUES` list, and `LIMITS`). Optional fields can be cleared by sending `null` or `""`; omitted keys mean "do not change".
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -97,12 +104,13 @@ The goal is an **intermediate-level** project that is also well structured and s
 backend/
   app.js                    # builds Express app: middleware, static, /health + /healthz, /api/v1 routers, page routes, 404, errorHandler
   server.js                 # imports app, listens on env.PORT
-  modules/<name>/           # <name>.routes.js + <name>.controller.js (validation still inline in controllers)
+  modules/<name>/           # <name>.routes.js + <name>.controller.js + <name>.schema.js (zod schemas; messages and onboarding included)
                             # names: auth, profile, skills, projects, onboarding, share, messages
   config/                   # env.js (zod-validated env, exits on error), constants.js (APP_NAME),
                             # prisma.js, logger.js (pino-pretty only when NODE_ENV != production)
-  middleware/               # auth.middleware.js (Bearer JWT), error.middleware.js
-  utils/                    # catchAsync.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
+  middleware/               # auth.middleware.js (Bearer JWT, throws AppError), validate.js (validate(schema), zodFields),
+                            # error.middleware.js (errorHandler + notFoundHandler, standard error shape)
+  utils/                    # AppError.js, validators.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
   prisma/                   # schema.prisma + 4 migrations
   eslint.config.js, .prettierrc, .prettierignore, .env.example
   .env                      # NOT to be uploaded (contains secrets)
@@ -114,7 +122,8 @@ README.md                   # at repo root
 frontend/
   index.html                # landing (title "Devfolio"), "Get started" -> /pages/auth.html
   pages/                    # auth (title "Log in | Devfolio"), onboarding, edit, portfolio (.html)
-  js/                       # config (API_BASE_URL="", API_PREFIX="/api/v1"), api (apiFetch), authGuard, auth,
+  js/                       # config (API_BASE_URL="", API_PREFIX="/api/v1"), api (apiFetch -> { ok, status, data, error }),
+                            # forms (showFieldErrors, setFieldError, clearFieldErrors, errorText), authGuard, auth,
                             # onboarding, edit, portfolio, script (nav/scroll-reveal), skillStyles
   css/                      # global, auth, onboarding, edit
 ```
@@ -128,7 +137,7 @@ frontend/
 
 **Page routes in `app.js`:** static files, `/health`, `/healthz`, API routers (`/api/v1`), then `/onboarding`, `/edit`, `/share/:token`, `/:username` (catch-all that serves `portfolio.html`), then a 404 handler and the error handler.
 
-**Auth today:** login returns a JWT (7 days); the frontend stores `token` and `user` in `localStorage`; `apiFetch` adds the `Authorization: Bearer` header and on any 401 clears storage and redirects to `/pages/auth.html`. (Replaced by cookies in Phase 1. Do not change it in Phase 0.)
+**Auth today:** login returns a JWT (7 days); the frontend stores `token` and `user` in `localStorage`; `apiFetch` adds the `Authorization: Bearer` header, always resolves to `{ ok, status, data, error }` (never throws, network failures give `NETWORK_ERROR`), accepts `skipAuthRedirect` (used by login and signup), and on any other 401 clears storage and redirects to `/pages/auth.html`. (Replaced by cookies in Phase 1. Do not change it in Phase 0.)
 
 ---
 
@@ -139,8 +148,8 @@ frontend/
 | 1 | Secrets (`.env`) were shared in a zip, so they must be rotated | 0.1 (user action, **pending user confirmation**) |
 | 2 | No env validation, no `.env.example`, server and app not split, no linter, dead code (`models/`, unused endpoint) | 0.1 **(implemented, awaiting verification)** |
 | 3 | Flat structure, unversioned API | 0.2 **(implemented, awaiting verification)** |
-| 4 | Inconsistent errors; flattened zod object shows "[object Object]" in the UI | 0.3 |
-| 5 | URL fields accept `javascript:`; phone is free text; no max lengths; optional fields cannot be cleared (`undefined` is dropped from JSON) | 0.4 |
+| 4 | Inconsistent errors; flattened zod object shows "[object Object]" in the UI | 0.3 **(implemented, awaiting verification)** |
+| 5 | URL fields accept `javascript:`; phone is free text; no max lengths; optional fields cannot be cleared (`undefined` is dropped from JSON) | 0.4 **(implemented, awaiting verification)** |
 | 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 |
 | 7 | Public portfolio route requires login; stored XSS via unescaped `githubUrl`, `repoUrl`, `liveUrl`, `contactPhone`; dead `#` buttons and empty sections render | 0.6 |
 | 8 | No security headers or rate limits; mail sender hardcoded | 0.7 |
@@ -162,6 +171,8 @@ frontend/
 - **D10** `zod` for all validation.
 - **D11** Product name is **Devfolio**. Used in `package.json` (`devfolio`), page titles, README, email sender display name (`Devfolio <...>`), Open Graph `og:site_name`, landing page and legal pages. Keep the name in one `APP_NAME` constant. (The code today still says "Portfolio"; `package.json` name is `Portfolio`, `index.html` title is "Portfolio Builder", mailer sender is "Portfolio Contact".)
 
+- **D12** **Git: one branch per phase** (`phase-N-name`), one commit per subphase, merge to `main` when the whole phase is verified (see "Git conventions" in section 1b). Decided in Session 3b; the original per-subphase branches idea was dropped, and `phase-0.1-hygiene` is renamed to `phase-0-foundation`.
+
 **Phase 0 specific decisions**
 - Onboarding resubmission is **rejected with 409** (not replaced). The wizard replaces it in Phase 3.
 - Usernames: lowercase `a-z 0-9 -`, 3 to 30 characters, no leading or trailing dash, reserved names blocked.
@@ -170,7 +181,7 @@ frontend/
 **Decisions made in 0.1**
 - `JWT_SECRET` must be at least 32 characters (enforced at startup). `PORT` defaults to 5000; `NODE_ENV` defaults to `development`. `RESEND_API_KEY` stays required.
 - `APP_NAME = "Devfolio"` lives in `config/constants.js` (0.5 adds the reserved-username list there).
-- Prettier is **configured but not applied**: running it now would reformat every file (`format:check` reports about 37 files). Apply once, in its own commit (`style: format with prettier`), right after 0.1 is merged and before 0.2, so later diffs stay readable.
+- Prettier is **configured but not applied**: running it now would reformat every file (`format:check` reports about 37 files). Apply once, in its own commit on the phase branch (`style: format with prettier`), at a clean point between subphases, so later diffs stay readable.
 - ESLint rule `no-unused-vars` is set with `args: none` (Express error handlers need unused `next`) and `caughtErrors: none` (existing `catch (err)` blocks left unchanged to avoid behavior edits).
 - README lives at the repo root; setup instructions run `npx prisma migrate dev` then `npx prisma generate`.
 
@@ -181,11 +192,11 @@ frontend/
 Mark `[x]` when **all** success criteria of that item are verified by the user. `[~]` means implemented but not yet verified.
 
 ### Phase 0: Foundation, cleanup and critical fixes
-- [~] **0.1** Hygiene and bootstrap: committed on `phase-0.1-hygiene`; user verification and merge into `main` not yet confirmed
+- [~] **0.1** Hygiene and bootstrap: committed on `phase-0-foundation` (renamed from `phase-0.1-hygiene`); user verification not yet confirmed
 - [~] 0.2 Restructure and API versioning: **implemented, awaiting user verification** (see section 8a)
-- [ ] 0.3 Error contract  ← **NEXT** (after 0.2 is verified)
-- [ ] 0.4 Input validation and clearable fields
-- [ ] 0.5 Data integrity
+- [~] 0.3 Error contract: **implemented, awaiting user verification** (see section 8a)
+- [~] 0.4 Input validation and clearable fields: **implemented, awaiting user verification** (see section 8a)
+- [ ] 0.5 Data integrity  ← **NEXT** (after 0.4 is verified)
 - [ ] 0.6 Public access and XSS fixes
 - [ ] 0.7 Security middleware
 - [ ] 0.8 Verification and docs
@@ -198,40 +209,55 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 
 ## 8. NEXT TASK
 
-### 8a. First: user verifies 0.2 (no Claude work needed)
+### 8a. First: user verifies
 
-Unzip `devfolio-0.2-changes.zip` over the repo root, then **delete the now-empty `backend/routes/` and `backend/controllers/` folders** (the old files are replaced by `backend/modules/`). Run `cd backend && npm install` if you have not since 0.1 (the old `package-lock.json` was out of sync with `package.json`; commit the regenerated lock), then check:
+Apply `devfolio-0.3-changes.zip` over the repo root, then `devfolio-0.4-changes.zip` (cumulative on top of 0.3; unzip it after 0.3 is committed so each subphase stays its own commit). **Delete `backend/utils/catchAsync.js`** locally. 0.2 is already pushed on `phase-0-foundation`; keep the same branch, since 0.3 builds on its layout. No new dependencies, no migrations.
 
-- [ ] Server boots with no import errors.
-- [ ] Signup, login, onboarding, view portfolio, edit profile, skills and projects, share, and contact form all work through `/api/v1`.
-- [ ] `grep -rn "/api" frontend` shows the prefix only in `frontend/js/config.js`.
-- [ ] `GET /healthz` returns 200 with the DB up; with the DB stopped it returns 503.
-- [ ] `npm run lint` passes.
+**0.3 checks**
+- [ ] Server boots; `npm run lint` passes.
+- [ ] Every API failure uses `{ error: { code, message, fields? } }` (check: bad signup, wrong login, 404 portfolio, unauthorized, unknown `/api/v1/...` route).
+- [ ] Signing up with a 25-character username shows a message next to the username field, never "[object Object]".
+- [ ] A forced server error returns the generic 500 message without internals.
+- [ ] Readable errors on login, signup, onboarding (including a bad project row), edit tabs (profile, skills, projects) and the contact form.
 
-Then commit on `phase-0.2-structure` (suggested: `refactor: move code into modules, version API under /api/v1, add /healthz`), merge into `main`, and tick `[x]` for 0.2 in section 7. Also confirm 0.1 is merged and secrets rotated (a `.env` and `.git` were inside the last uploaded zip: do not include them again).
+Suggested commit on `phase-0-foundation`: `refactor(0.3): add AppError, validate middleware and one error shape across API and frontend`
 
-### 8b. Then: Subphase 0.3 (Error contract)
+**0.4 checks**
+- [ ] `javascript:alert(1)`, `data:` and `ftp:` URLs are rejected with a field error for GitHub URL, repo URL and live URL (profile, projects, onboarding).
+- [ ] A phone like `"><script>` is rejected.
+- [ ] Clearing description, repo URL, live URL, tags, contact email, phone and GitHub URL in the editor persists as empty after reload.
+- [ ] Over-length values (display name 80, about 2000, project title 100, description 1000, tags 10 x 30) are rejected with a clear message.
+- [ ] Only one skill list exists in the backend (`utils/validators.js`).
 
-**Goal:** one error shape everywhere, so the "[object Object]" bug disappears and later phases have a stable foundation.
+Suggested commit on `phase-0-foundation`: `feat(0.4): add shared validators, safe URLs, phone rules, length limits and clearable optional fields`
+
+Tick `[x]` for 0.1 to 0.4 in section 7 once each passes. **Do not merge to `main` yet**: Phase 0 merges when 0.8 is done. Also confirm secrets are rotated.
+
+### 8b. Then: Subphase 0.5 (Data integrity)
+
+**Goal:** make the data layer correct: identities, uniqueness, ordering and onboarding repeatability.
 
 **Tasks**
-- Add `utils/AppError.js` (`status`, `code`, `message`, optional `fields`) with helpers like `badRequest`, `unauthorized`, `notFound`, `conflict`, `tooMany`.
-- Add `middleware/validate.js`: takes a zod schema, parses `req.body` (or query), and on failure throws a `400 VALIDATION_ERROR` with `fields: { fieldName: "message" }`.
-- Standard response: `{ "error": { "code": "...", "message": "...", "fields": { ... } } }`. Update `error.middleware.js` to produce it for `AppError`, for zod errors, for unknown errors (500 with a generic message, full error only in logs) and for the 404 handler.
-- Refactor all controllers: replace `res.status(...).json({ error: ... })` and inline `safeParse` blocks with `validate(schema)` plus thrown `AppError`s.
-- Frontend: update `api.js` to return a consistent result shape (for example `{ ok, data, error }`), and update `auth.js`, `onboarding.js`, `edit.js` and `portfolio.js` to show `error.message` and map `error.fields` to the matching inputs.
-- Add a small `showFieldErrors(form, fields)` helper in the frontend.
+- **Lowercase identities:** normalize `email` and `username` to lowercase in signup and login (and in the lookups by username in the public portfolio, share and message code). Write a migration that lowercases existing rows, and **check for collisions first** (the migration should stop with a message if two users would collide).
+- **Username rules:** zod schema `^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$` (3 to 30, no leading or trailing dash). Add `config/constants.js` with a **reserved list** (`api`, `edit`, `dashboard`, `login`, `signup`, `settings`, `onboarding`, `share`, `pages`, `css`, `js`, `admin`, `help`, `healthz`, `health`, and similar) and reject those at signup.
+- **Unique skills:** de-duplicate existing skill rows (keep the oldest), then add a **unique index on `(userId, lower(name))`** through a raw SQL migration (Prisma cannot express this in the schema file). Return a `409` with a clear message when a user adds a duplicate.
+- **Idempotent onboarding:** if `onboardingComplete` is already true, return `409 ALREADY_ONBOARDED`. Wrap the update in the existing transaction. (The wizard in Phase 3 will replace this endpoint.)
+- **Stable ordering:** add `createdAt` to `Skill` and `Project` (migration), and add `orderBy: { createdAt: "asc" }` to every list query (own lists and public portfolio reads). Real drag-ordering comes in Phase 2.
+- Frontend: add `pattern` and `maxlength` to the username input in `auth.html` and show the rules as helper text.
 
-**Files touched (about 15):** error and validate utilities, error middleware, all controllers, `api.js`, `auth.js`, `onboarding.js`, `edit.js`, `portfolio.js`, one helper file.
+**Files touched (about 10):** `schema.prisma`, 2 to 3 migration files, `auth`, `skill`, `onboarding`, `profile` and `share` controllers, `constants.js`, `auth.html`.
 
-**Out of scope:** changing what is validated (0.4).
+**Out of scope:** custom skill names (Phase 2), the wizard (Phase 3).
+
+**You do:** back up your dev database, then run `npx prisma migrate dev`. Report any collision errors back to the chat.
 
 **Success criteria**
-- [ ] Every API failure response matches the standard shape (check at least: bad signup, wrong login, 404 portfolio, unauthorized, server error).
-- [ ] Signing up with a 25-character username shows a message next to the username field, never "[object Object]".
-- [ ] A forced server error returns a generic 500 message without leaking internals.
-- [ ] Unknown `/api/v1/...` routes return the standard 404 shape.
-- [ ] Frontend shows readable errors on login, signup, onboarding, edit tabs and the contact form.
+- [ ] Migrations apply cleanly on your existing dev data and no rows are lost.
+- [ ] `Ali@Mail.com` and `ali@mail.com` are the same account, and login works with either casing.
+- [ ] Signing up as `edit`, `Dashboard`, `a b`, `ab`, `-bob` or `bob-` is rejected with a field error.
+- [ ] Adding the same skill twice returns a `409` and the editor shows the message.
+- [ ] Posting onboarding a second time returns `409` and creates no extra rows.
+- [ ] Skills and projects keep a consistent order across reloads.
 
 ---
 
@@ -291,7 +317,7 @@ Sandbox checks passed: `node --check` on all backend files; lint clean on backen
 Not testable in sandbox: anything using the database or Resend, and `prisma generate` (binary download blocked).
 Decisions made: see section 6, "Decisions made in 0.1".
 Leftovers / TODOs for later:
-- `npm run format:check` reports about 37 files; apply `npm run format` in its own commit after 0.1 merges.
+- `npm run format:check` reports about 37 files; apply `npm run format` in its own commit on the phase branch.
 - `catchAsync` is redundant under Express 5; decide in 0.2 or 0.3.
 - Mailer sender still says "Portfolio Contact" (renamed in 0.7).
 - `prisma.config.ts` still reads `process.env` directly (intentional, Prisma CLI config).
@@ -313,7 +339,38 @@ Leftovers / TODOs for later:
 - Prettier still not applied (separate `style:` commit).
 Must not break: `app.js` importable without starting a server; all env access via `config/env.js`; frontend API paths only via `API_PREFIX`.
 
-*(Add Session 3 and onward below this line.)*
+### Session 3: Subphases 0.3 + 0.4 (batch) (2026-10-12)
+Result: **implemented; awaiting user verification** (DB-backed flows and browser UI were not testable in the sandbox)
+
+**0.3 Error contract**
+Files created: `backend/utils/AppError.js`, `backend/middleware/validate.js`, `backend/modules/<auth|profile|skills|projects|onboarding|messages>/<name>.schema.js` (schemas moved out of controllers unchanged), `frontend/js/forms.js`
+Files changed: `backend/app.js` (notFoundHandler), `backend/middleware/error.middleware.js`, `backend/middleware/auth.middleware.js`, all 7 controllers and routes (use `validate(schema)` and `throw AppError`), `frontend/js/api.js`, `auth.js`, `onboarding.js`, `edit.js`, `portfolio.js`, `frontend/css/global.css` (`.field-error`)
+Files deleted: `backend/utils/catchAsync.js`
+New env vars / commands: none
+Sandbox checks: `node --check` and lint clean; app booted with a stubbed Prisma client and all standard-shape cases returned correctly: bad signup (field error on `username`), wrong login 401 `INVALID_CREDENTIALS`, missing/invalid token 401, 404 portfolio / share / contact, unknown `/api/v1/...` route 404 `ROUTE_NOT_FOUND`, malformed JSON 400 `INVALID_JSON`, forced server error 500 with a generic message (the thrown message did not leak), onboarding nested field keys (`skills.0.name`). Browser behavior of the frontend was not tested here.
+Decisions made (and why): `<name>.schema.js` per module (needed by `validate`); `catchAsync` removed (Express 5); `apiFetch` returns `{ ok, status, data, error }` and never throws; `skipAuthRedirect` option added so login and signup 401s show a message; nested onboarding errors map to rows via `resolveNested`; the 401 redirect behavior for other calls is unchanged (0.6 will exempt public pages).
+
+**0.4 Input validation**
+Files created: `backend/utils/validators.js`
+Files changed: all `<name>.schema.js` files now use the shared validators; `frontend/js/edit.js` and `onboarding.js` (send `null` for emptied optional fields, tags filtered for blanks, `escapeAttr` now escapes `& < > " '`, skill label escaped)
+New env vars / commands: none
+Sandbox checks: lint clean; over HTTP with a stubbed Prisma client: `javascript:`, `data:` and `ftp:` rejected for `githubUrl`, `repoUrl` and `liveUrl` (field errors); phone `"><script>` rejected; clearing contact email, phone, GitHub URL and project description, repo, live URL, tags reaches Prisma as `null` / `[]`; over-length name, about and description rejected; bad skill rejected; onboarding row errors reported as `projects.0.title` and `projects.0.repoUrl`. Persistence after reload needs a real DB (user to verify).
+Decisions made (and why): `""` and whitespace-only become `null`, omitted keys are left unchanged; profile `displayName` and `aboutText` stay required (cannot be cleared) since the editor marks them required; limits: display name 80, about 2000, role phrase 60 (max 5), email 254, URL 300, project title 100, description 1000, tag 30 (max 10 per project), 20 projects and 16 skills in onboarding, contact name 100, contact message 2000, password 8 to 128; `http:` and `https:` are the only allowed URL schemes; phone is 7 to 20 characters of digits, spaces, `+ - ( )`.
+Leftovers / TODOs for later:
+- Zod default messages are used for `email` shape errors only where not customized; add more friendly messages as schemas grow.
+- `GET /api/v1/portfolio/:username` still requires auth (0.6). `apiFetch` still redirects to login on any non-login 401, which is why 0.6 must exempt public calls.
+- Mailer sender still says "Portfolio Contact" (0.7). Prettier still not applied (separate `style:` commit).
+- Signup username limit is still 3 to 20 characters (0.5 changes the rules to 3 to 30 lowercase with reserved names).
+Must not break: every API error uses the standard shape; controllers never build error JSON by hand; all validation goes through `validate(schema)`; frontend API calls go through `apiFetch`; `app.js` importable without starting a server; env access via `config/env.js`.
+
+### Session 3b: Git workflow change (2026-10-12)
+Result: completed (docs only, no code changed)
+Files changed: `docs/HANDOFF.md` (git conventions, workflow step 5, D12, tracker, section 8a), `docs/PHASE_0_PLAN.md`, `docs/BUILD_PLAN.md`
+Decisions made (and why): branches are per **phase**, not per subphase: fewer branches to manage, subphases are already small verified commits, and `main` only receives a fully verified phase. `phase-0.1-hygiene` is renamed to `phase-0-foundation` (`git branch -m`, which keeps all commits). The remote branch `phase-0.1-hygiene` is replaced by `phase-0-foundation`.
+User action: run the rename and push commands given in the chat, then check `git branch -a` shows only `main` and `phase-0-foundation`.
+Must not break: all later subphase work goes on the phase branch; nothing is merged to `main` until the phase is complete.
+
+*(Add Session 4 and onward below this line.)*
 
 ---
 

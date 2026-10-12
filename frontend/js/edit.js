@@ -1,6 +1,7 @@
 import { API_PREFIX } from "./config.js";
 import { requireAuth } from "./authGuard.js";
 import { apiFetch } from "./api.js";
+import { showFieldErrors, setFieldError, clearFieldError, errorText } from "./forms.js";
 import { skillOptions } from "./skillStyles.js";
 
 const { user } = requireAuth();
@@ -26,8 +27,12 @@ const profilePanel = document.getElementById("panel-profile");
 
 async function loadProfileTab() {
   profilePanel.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
-  const data = await apiFetch(`${API_PREFIX}/profile`);
-  const profile = data?.profile || {};
+  const loaded = await apiFetch(`${API_PREFIX}/profile`);
+  if (!loaded.ok) {
+    profilePanel.innerHTML = `<p class="auth-error">${escapeHtml(loaded.error.message)}</p>`;
+    return;
+  }
+  const profile = loaded.data?.profile || {};
 
   profilePanel.innerHTML = `
     <form id="profile-form">
@@ -70,6 +75,8 @@ async function loadProfileTab() {
     e.preventDefault();
     const errorEl = document.getElementById("profile-error");
     errorEl.textContent = "";
+    const profileForm = e.currentTarget;
+    showFieldErrors(profileForm, {});
 
     const heroRoleTexts = [...rolesList.querySelectorAll(".role-text")]
       .map((i) => i.value.trim())
@@ -78,9 +85,9 @@ async function loadProfileTab() {
     const payload = {
       displayName: document.getElementById("displayName").value,
       aboutText: document.getElementById("aboutText").value,
-      contactEmail: document.getElementById("contactEmail").value || undefined,
-      contactPhone: document.getElementById("contactPhone").value || undefined,
-      githubUrl: document.getElementById("githubUrl").value || undefined,
+      contactEmail: document.getElementById("contactEmail").value || null,
+      contactPhone: document.getElementById("contactPhone").value || null,
+      githubUrl: document.getElementById("githubUrl").value || null,
       heroRoleTexts,
     };
 
@@ -89,8 +96,9 @@ async function loadProfileTab() {
       body: JSON.stringify(payload),
     });
 
-    if (!result || result.error) {
-      errorEl.textContent = "Failed to save. Try again.";
+    if (!result.ok) {
+      const unmatched = showFieldErrors(profileForm, result.error.fields);
+      errorEl.textContent = errorText(result.error, unmatched);
       return;
     }
 
@@ -105,8 +113,12 @@ const skillLabelMap = Object.fromEntries(skillOptions.map((s) => [s.value, s.lab
 
 async function loadSkillsTab() {
   skillsPanel.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
-  const data = await apiFetch(`${API_PREFIX}/skills`);
-  const skills = data?.skills || [];
+  const loaded = await apiFetch(`${API_PREFIX}/skills`);
+  if (!loaded.ok) {
+    skillsPanel.innerHTML = `<p class="auth-error">${escapeHtml(loaded.error.message)}</p>`;
+    return;
+  }
+  const skills = loaded.data?.skills || [];
 
   skillsPanel.innerHTML = `
     <div id="existing-skills"></div>
@@ -131,6 +143,7 @@ async function loadSkillsTab() {
   document.getElementById("add-skill-btn").addEventListener("click", async () => {
     const errorEl = document.getElementById("skills-error");
     errorEl.textContent = "";
+    showFieldErrors(skillsPanel, {});
 
     const name = document.getElementById("new-skill-name").value;
     const level = document.getElementById("new-skill-level").value;
@@ -140,8 +153,9 @@ async function loadSkillsTab() {
       body: JSON.stringify({ name, level }),
     });
 
-    if (!result || result.error) {
-      errorEl.textContent = "Failed to add skill.";
+    if (!result.ok) {
+      const unmatched = showFieldErrors(skillsPanel, result.error.fields);
+      errorEl.textContent = errorText(result.error, unmatched);
       return;
     }
 
@@ -162,7 +176,7 @@ function renderExistingSkills(skills) {
     const row = document.createElement("div");
     row.className = "existing-item";
     row.innerHTML = `
-      <span>${skillLabelMap[skill.name] || skill.name}</span>
+      <span>${escapeHtml(skillLabelMap[skill.name] || skill.name)}</span>
       <select class="skill-level-select">
         <option value="great" ${skill.level === "great" ? "selected" : ""}>great</option>
         <option value="good" ${skill.level === "good" ? "selected" : ""}>good</option>
@@ -172,14 +186,23 @@ function renderExistingSkills(skills) {
     `;
 
     row.querySelector(".skill-level-select").addEventListener("change", async (e) => {
-      await apiFetch(`${API_PREFIX}/skills/${skill.id}`, {
+      const errorEl = document.getElementById("skills-error");
+      errorEl.textContent = "";
+      const result = await apiFetch(`${API_PREFIX}/skills/${skill.id}`, {
         method: "PATCH",
         body: JSON.stringify({ level: e.target.value }),
       });
+      if (!result.ok) errorEl.textContent = result.error.message;
     });
 
     row.querySelector(".remove-row").addEventListener("click", async () => {
-      await apiFetch(`${API_PREFIX}/skills/${skill.id}`, { method: "DELETE" });
+      const errorEl = document.getElementById("skills-error");
+      errorEl.textContent = "";
+      const result = await apiFetch(`${API_PREFIX}/skills/${skill.id}`, { method: "DELETE" });
+      if (!result.ok) {
+        errorEl.textContent = result.error.message;
+        return;
+      }
       row.remove();
     });
 
@@ -192,8 +215,12 @@ const projectsPanel = document.getElementById("panel-projects");
 
 async function loadProjectsTab() {
   projectsPanel.innerHTML = `<p style="color:var(--ink-soft); font-size:13px;">Loading…</p>`;
-  const data = await apiFetch(`${API_PREFIX}/projects`);
-  const projects = data?.projects || [];
+  const loaded = await apiFetch(`${API_PREFIX}/projects`);
+  if (!loaded.ok) {
+    projectsPanel.innerHTML = `<p class="auth-error">${escapeHtml(loaded.error.message)}</p>`;
+    return;
+  }
+  const projects = loaded.data?.projects || [];
 
   projectsPanel.innerHTML = `
     <div id="existing-projects"></div>
@@ -215,6 +242,7 @@ async function loadProjectsTab() {
   document.getElementById("add-project-btn").addEventListener("click", async () => {
     const errorEl = document.getElementById("projects-error");
     errorEl.textContent = "";
+    showFieldErrors(projectsPanel, {});
 
     const title = document.getElementById("new-project-title").value.trim();
     if (!title) {
@@ -224,11 +252,11 @@ async function loadProjectsTab() {
 
     const payload = {
       title,
-      description: document.getElementById("new-project-desc").value || undefined,
-      repoUrl: document.getElementById("new-project-repo").value || undefined,
-      liveUrl: document.getElementById("new-project-live").value || undefined,
+      description: document.getElementById("new-project-desc").value || null,
+      repoUrl: document.getElementById("new-project-repo").value || null,
+      liveUrl: document.getElementById("new-project-live").value || null,
       tags: document.getElementById("new-project-tags").value
-        ? document.getElementById("new-project-tags").value.split(",").map((t) => t.trim())
+        ? document.getElementById("new-project-tags").value.split(",").map((t) => t.trim()).filter(Boolean)
         : [],
     };
 
@@ -237,8 +265,18 @@ async function loadProjectsTab() {
       body: JSON.stringify(payload),
     });
 
-    if (!result || result.error) {
-      errorEl.textContent = "Failed to add project.";
+    if (!result.ok) {
+      const unmatched = showFieldErrors(projectsPanel, result.error.fields, (key) => {
+        const ids = {
+          title: "new-project-title",
+          description: "new-project-desc",
+          repoUrl: "new-project-repo",
+          liveUrl: "new-project-live",
+          tags: "new-project-tags",
+        };
+        return ids[key] ? document.getElementById(ids[key]) : null;
+      });
+      errorEl.textContent = errorText(result.error, unmatched);
       return;
     }
 
@@ -271,24 +309,32 @@ function renderExistingProjects(projects) {
       <button type="button" class="remove-row" style="align-self:flex-end;">Delete project</button>
     `;
 
-    const saveField = async (field, value) => {
-      await apiFetch(`${API_PREFIX}/projects/${project.id}`, {
+    const saveField = async (input, field, value) => {
+      clearFieldError(input);
+      const result = await apiFetch(`${API_PREFIX}/projects/${project.id}`, {
         method: "PATCH",
         body: JSON.stringify({ [field]: value }),
       });
+      if (!result.ok) {
+        setFieldError(input, result.error.fields?.[field] || result.error.message);
+      }
     };
 
-    wrapper.querySelector(".proj-title").addEventListener("blur", (e) => saveField("title", e.target.value));
-    wrapper.querySelector(".proj-desc").addEventListener("blur", (e) => saveField("description", e.target.value || undefined));
-    wrapper.querySelector(".proj-repo").addEventListener("blur", (e) => saveField("repoUrl", e.target.value || undefined));
-    wrapper.querySelector(".proj-live").addEventListener("blur", (e) => saveField("liveUrl", e.target.value || undefined));
+    wrapper.querySelector(".proj-title").addEventListener("blur", (e) => saveField(e.target, "title", e.target.value));
+    wrapper.querySelector(".proj-desc").addEventListener("blur", (e) => saveField(e.target, "description", e.target.value || null));
+    wrapper.querySelector(".proj-repo").addEventListener("blur", (e) => saveField(e.target, "repoUrl", e.target.value || null));
+    wrapper.querySelector(".proj-live").addEventListener("blur", (e) => saveField(e.target, "liveUrl", e.target.value || null));
     wrapper.querySelector(".proj-tags").addEventListener("blur", (e) => {
-      const tags = e.target.value ? e.target.value.split(",").map((t) => t.trim()) : [];
-      saveField("tags", tags);
+      const tags = e.target.value ? e.target.value.split(",").map((t) => t.trim()).filter(Boolean) : [];
+      saveField(e.target, "tags", tags);
     });
 
-    wrapper.querySelector(".remove-row").addEventListener("click", async () => {
-      await apiFetch(`${API_PREFIX}/projects/${project.id}`, { method: "DELETE" });
+    wrapper.querySelector(".remove-row").addEventListener("click", async (e) => {
+      const result = await apiFetch(`${API_PREFIX}/projects/${project.id}`, { method: "DELETE" });
+      if (!result.ok) {
+        setFieldError(e.target, result.error.message);
+        return;
+      }
       wrapper.remove();
     });
 
@@ -314,7 +360,12 @@ function escapeHtml(str) {
 }
 
 function escapeAttr(str) {
-  return (str || "").replace(/"/g, "&quot;");
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 loadProfileTab();

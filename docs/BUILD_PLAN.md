@@ -6,6 +6,8 @@ A phase-by-phase plan to turn the current portfolio generator into a full portfo
 
 **How to use this document:** work through the phases in order. Each phase ends with **Success criteria**, a checklist that must be fully ticked before the next phase starts. Every phase should leave the app in a working, runnable state.
 
+**Git workflow:** one branch per **phase** (`phase-N-name`, for example `phase-0-foundation`), created from `main` at the start of the phase. Each subphase or logical step is a commit on that branch (`type(N.X): summary`). When every success criterion of the phase is ticked, merge the branch into `main` with `git merge --no-ff` and tag it `phase-N-complete`.
+
 ---
 
 ## Table of contents

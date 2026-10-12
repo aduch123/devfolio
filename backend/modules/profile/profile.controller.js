@@ -1,14 +1,5 @@
-import { z } from "zod";
 import prisma from "../../config/prisma.js";
-
-const profileUpdateSchema = z.object({
-  displayName: z.string().min(1).optional(),
-  aboutText: z.string().optional(),
-  heroRoleTexts: z.array(z.string()).optional(),
-  contactEmail: z.string().email().optional(),
-  contactPhone: z.string().optional(),
-  githubUrl: z.string().url().optional(),
-});
+import { notFound } from "../../utils/AppError.js";
 
 export const getOwnProfile = async (req, res) => {
   const profile = await prisma.profile.findUnique({
@@ -18,14 +9,9 @@ export const getOwnProfile = async (req, res) => {
 };
 
 export const updateOwnProfile = async (req, res) => {
-  const result = profileUpdateSchema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({ error: result.error.flatten() });
-  }
-
   const profile = await prisma.profile.update({
     where: { userId: req.user.id },
-    data: result.data,
+    data: req.body,
   });
 
   res.status(200).json({ profile });
@@ -45,7 +31,7 @@ export const getPublicPortfolio = async (req, res) => {
   });
 
   if (!user) {
-    return res.status(404).json({ error: "User not found" });
+    throw notFound("User not found", "USER_NOT_FOUND");
   }
 
   res.status(200).json(user);

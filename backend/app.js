@@ -4,7 +4,7 @@ import express from 'express'
 import pinoHttp from "pino-http"
 import logger from "./config/logger.js"
 import prisma from "./config/prisma.js"
-import { errorHandler } from "./middleware/error.middleware.js"
+import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js"
 import authRoutes from "./modules/auth/auth.routes.js"
 import profileRoutes from "./modules/profile/profile.routes.js"
 import skillRoutes from "./modules/skills/skills.routes.js"
@@ -60,12 +60,7 @@ app.get("/:username", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/portfolio.html"));
 });
 
-app.use((req, res, next) => {
-    const err = new Error('Not Found');
-    err.status = 404;
-    
-    next(err);
-})
+app.use(notFoundHandler)
 
 app.use(errorHandler);
 

@@ -1,29 +1,18 @@
 import bcrypt from "bcrypt";
-import { z } from "zod";
-import prisma from "../../config/prisma.js";
 import jwt from "jsonwebtoken";
+import prisma from "../../config/prisma.js";
 import { env } from "../../config/env.js";
-
-const signupSchema = z.object({
-  email: z.string().email(),
-  username: z.string().min(3).max(20),
-  password: z.string().min(8),
-});
+import { conflict, unauthorized } from "../../utils/AppError.js";
 
 export const signup = async (req, res) => {
-  const result = signupSchema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({ error: result.error.flatten() });
-  }
-
-  const { email, username, password } = result.data;
+  const { email, username, password } = req.body;
 
   const existingUser = await prisma.user.findFirst({
     where: { OR: [{ email }, { username }] },
   });
 
   if (existingUser) {
-    return res.status(409).json({ error: "Email or username already in use" });
+    throw conflict("Email or username already in use", "USER_EXISTS");
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -41,27 +30,17 @@ export const signup = async (req, res) => {
   res.status(201).json({ user });
 };
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
-
 export const login = async (req, res) => {
-  const result = loginSchema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({ error: result.error.flatten() });
-  }
-
-  const { email, password } = result.data;
+  const { email, password } = req.body;
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    return res.status(401).json({ error: "Invalid email or password" });
+    throw unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
   }
 
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
-    return res.status(401).json({ error: "Invalid email or password" });
+    throw unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
   }
 
   const token = jwt.sign(

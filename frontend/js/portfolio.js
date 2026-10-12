@@ -1,5 +1,6 @@
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
+import { showFieldErrors, errorText } from "./forms.js";
 import { logout } from "./authGuard.js";
 import { skillStyles } from "./skillStyles.js";
 
@@ -26,14 +27,14 @@ async function init() {
     ? `${API_PREFIX}/portfolio/share/${shareToken}`
     : `${API_PREFIX}/portfolio/${username}`;
 
-  const data = await apiFetch(endpoint);
+  const result = await apiFetch(endpoint);
 
-  if (!data || data.error) {
+  if (!result.ok) {
     showError();
     return;
   }
 
-  render(data);
+  render(result.data);
   setupContactForm();
 
   if (!isShareMode) {
@@ -224,12 +225,12 @@ function setupShareButton() {
       loaded = true;
       dropdown.innerHTML = `<p style="color:var(--ink-soft); font-size:12px;">Generating link…</p>`;
 
-      const data = await apiFetch(`${API_PREFIX}/share`);
-      let token = data?.shareToken;
+      const existing = await apiFetch(`${API_PREFIX}/share`);
+      let token = existing.data?.shareToken;
 
       if (!token) {
-        const result = await apiFetch(`${API_PREFIX}/share`, { method: "POST" });
-        token = result?.shareToken;
+        const created = await apiFetch(`${API_PREFIX}/share`, { method: "POST" });
+        token = created.data?.shareToken;
       }
 
       renderShareDropdown(token || null);
@@ -264,7 +265,7 @@ function setupShareButton() {
 
     document.getElementById("regenerate-share")?.addEventListener("click", async () => {
       const result = await apiFetch(`${API_PREFIX}/share`, { method: "POST" });
-      if (result && !result.error) renderShareDropdown(result.shareToken);
+      if (result.ok) renderShareDropdown(result.data.shareToken);
     });
 
     document.getElementById("revoke-share")?.addEventListener("click", async () => {
@@ -301,6 +302,7 @@ function setupContactForm() {
     submitBtn.disabled = true;
     submitBtn.textContent = "Sending...";
     status.textContent = "";
+    showFieldErrors(form, {});
 
     const endpoint = isShareMode
       ? `${API_PREFIX}/portfolio/share/${shareToken}/message`
@@ -314,8 +316,9 @@ function setupContactForm() {
     submitBtn.disabled = false;
     submitBtn.textContent = "Send message";
 
-    if (!result || result.error) {
-      status.textContent = "Something went wrong. Try again.";
+    if (!result.ok) {
+      const unmatched = showFieldErrors(form, result.error.fields);
+      status.textContent = errorText(result.error, unmatched);
       return;
     }
 

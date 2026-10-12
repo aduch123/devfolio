@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import prisma from "../../config/prisma.js";
+import { notFound } from "../../utils/AppError.js";
 
 export const generateShareToken = async (req, res) => {
   const shareToken = crypto.randomBytes(16).toString("hex");
@@ -35,7 +36,7 @@ export const getSharedPortfolio = async (req, res) => {
   });
 
   if (!user) {
-    return res.status(404).json({ error: "Invalid or expired share link" });
+    throw notFound("Invalid or expired share link", "SHARE_LINK_NOT_FOUND");
   }
 
   res.status(200).json(user);

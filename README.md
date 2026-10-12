@@ -57,10 +57,10 @@ backend/
   app.js          # builds the Express app (importable without starting a server)
   server.js       # starts the HTTP server
   config/         # env validation, constants, prisma client, logger
-  modules/        # one folder per feature: <name>.routes.js + <name>.controller.js
+  modules/        # one folder per feature: <name>.routes.js + .controller.js + .schema.js
     auth/ profile/ skills/ projects/ onboarding/ share/ messages/
-  middleware/     # auth and error handling
-  utils/          # helpers (mailer, catchAsync)
+  middleware/     # auth, validate(schema), error handling
+  utils/          # AppError, validators, mailer
   prisma/         # schema and migrations
 frontend/
   index.html      # landing page
@@ -71,6 +71,10 @@ frontend/
 ## API
 
 All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` after a database ping (503 if the DB is unreachable); `/health` is a legacy alias.
+
+## Errors
+
+Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "fieldName": "message" } } }` (`fields` only for validation errors).
 
 ## Notes
 

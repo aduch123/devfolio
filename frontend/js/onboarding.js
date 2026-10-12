@@ -1,6 +1,7 @@
 import { API_PREFIX } from "./config.js";
 import { requireAuth } from "./authGuard.js";
 import { apiFetch } from "./api.js";
+import { showFieldErrors, errorText } from "./forms.js";
 import { skillOptions } from "./skillStyles.js";
 
 const { user } = requireAuth();
@@ -53,9 +54,31 @@ document.getElementById("add-project").addEventListener("click", () => {
   `);
 });
 
+const NESTED_CLASSES = {
+  skills: { name: ".skill-name", level: ".skill-level" },
+  projects: {
+    title: ".project-title",
+    description: ".project-desc",
+    repoUrl: ".project-repo",
+    liveUrl: ".project-live",
+    tags: ".project-tags",
+  },
+};
+
+// Maps "projects.0.repoUrl" style keys to the input inside the matching row.
+function resolveNested(key) {
+  const m = key.match(/^(skills|projects)\.(\d+)\.(\w+)/);
+  if (!m) return null;
+  const list = m[1] === "skills" ? skillsList : projectsList;
+  const row = list.querySelectorAll(".dynamic-row")[Number(m[2])];
+  const selector = NESTED_CLASSES[m[1]][m[3]];
+  return row && selector ? row.querySelector(selector) : null;
+}
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorEl.textContent = "";
+  showFieldErrors(form, {});
 
   const heroRoleTexts = [...rolesList.querySelectorAll(".role-text")]
     .map((i) => i.value.trim())
@@ -68,32 +91,33 @@ form.addEventListener("submit", async (e) => {
 
   const projects = [...projectsList.querySelectorAll(".dynamic-row")].map((row) => ({
     title: row.querySelector(".project-title").value,
-    description: row.querySelector(".project-desc").value || undefined,
-    repoUrl: row.querySelector(".project-repo").value || undefined,
-    liveUrl: row.querySelector(".project-live").value || undefined,
+    description: row.querySelector(".project-desc").value || null,
+    repoUrl: row.querySelector(".project-repo").value || null,
+    liveUrl: row.querySelector(".project-live").value || null,
     tags: row.querySelector(".project-tags").value
-      ? row.querySelector(".project-tags").value.split(",").map((t) => t.trim())
+      ? row.querySelector(".project-tags").value.split(",").map((t) => t.trim()).filter(Boolean)
       : [],
   }));
 
   const payload = {
     displayName: document.getElementById("displayName").value,
     aboutText: document.getElementById("aboutText").value,
-    contactEmail: document.getElementById("contactEmail").value || undefined,
-    contactPhone: document.getElementById("contactPhone").value || undefined,
-    githubUrl: document.getElementById("githubUrl").value || undefined,
+    contactEmail: document.getElementById("contactEmail").value || null,
+    contactPhone: document.getElementById("contactPhone").value || null,
+    githubUrl: document.getElementById("githubUrl").value || null,
     heroRoleTexts,
     skills,
     projects,
   };
 
-  const data = await apiFetch(`${API_PREFIX}/onboarding`, {
+  const result = await apiFetch(`${API_PREFIX}/onboarding`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
-  if (!data || data.error) {
-    errorEl.textContent = "Something went wrong. Try again.";
+  if (!result.ok) {
+    const unmatched = showFieldErrors(form, result.error.fields, resolveNested);
+    errorEl.textContent = errorText(result.error, unmatched);
     return;
   }
 
