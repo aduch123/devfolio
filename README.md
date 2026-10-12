@@ -34,8 +34,13 @@ Open <http://localhost:5000> (or the `PORT` you set). The Express server serves 
 | `DATABASE_URL` | yes | PostgreSQL connection string |
 | `JWT_SECRET` | yes | Secret for signing login tokens, **at least 32 characters** (`openssl rand -hex 32`) |
 | `RESEND_API_KEY` | yes | Resend API key for contact-form emails |
+| `RESEND_FROM` | no | Email sender, default `Devfolio <onboarding@resend.dev>`. Resend's test sender only delivers to your own Resend account email until you verify a domain (planned for Phase 6) |
+| `TRUST_PROXY` | no | Number of reverse proxies in front of the app (default `false`). Set `1` behind one proxy so rate limits see real client IPs |
+| `CORS_ORIGINS` | no | Comma-separated origins allowed to call the API cross-origin (default: none, same-origin only) |
 | `PORT` | no | Server port (default `5000`) |
 | `NODE_ENV` | no | `development` (default), `test` or `production` |
+
+Security defaults: helmet headers with a Content Security Policy, JSON bodies capped at 100 KB, and rate limits (API 300 requests per 15 minutes, login and signup 10 per 15 minutes, contact form 5 per hour per portfolio, all per IP). Hitting a limit returns HTTP 429 with code `RATE_LIMITED`; restart the server to reset the counters while developing.
 
 The server validates these at startup and exits with a clear message if any are missing or invalid. Never commit `.env`.
 

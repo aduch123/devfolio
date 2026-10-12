@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 5, subphase 0.6 implemented; Session 4, subphase 0.5 verified and committed; Session 3c, command-block rule; Session 3b, git workflow)
-**Current position:** Phase 0. Subphase **0.5 verified by the user**; **0.6 implemented, awaiting user verification** (`devfolio-0.6-changes.zip`, on top of 0.5). 0.1 to 0.4 are committed on `phase-0-foundation` (user verification of 0.1 to 0.4 not explicitly confirmed). Next: **0.7**.
-**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, committed), 0.6 (public access and XSS, `devfolio-0.6-changes.zip`, on top of 0.5).
+**Last updated:** 2026-10-12 (Session 6, subphase 0.7 implemented; Session 5, subphase 0.6 verified and committed; Session 4, subphase 0.5 verified and committed; Session 3c, command-block rule; Session 3b, git workflow)
+**Current position:** Phase 0. Subphases **0.5 and 0.6 verified by the user**; **0.7 implemented, awaiting user verification** (`devfolio-0.7-changes.zip`, on top of 0.6; needs `npm install helmet express-rate-limit`). 0.1 to 0.4 are committed on `phase-0-foundation` (verification of 0.1 to 0.4 not explicitly confirmed). Next: **0.8**.
+**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, committed), 0.6 (public access and XSS, committed), 0.7 (security middleware, `devfolio-0.7-changes.zip`, on top of 0.6).
 
 ---
 
@@ -88,9 +88,9 @@ The goal is an **intermediate-level** project that is also well structured and s
 
 ---
 
-## 4. Current codebase (after subphase 0.6)
+## 4. Current codebase (after subphase 0.7)
 
-**Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
+**Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `helmet`, `express-rate-limit` (0.7), `cors`, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
 
 **Notes on the stack that matter:**
 - Express 5 forwards rejected promises from async handlers (and errors thrown in sync middleware) to the error middleware automatically. `catchAsync` was removed in 0.3: controllers and routes are plain `async` functions that `throw` an `AppError`.
@@ -99,6 +99,8 @@ The goal is an **intermediate-level** project that is also well structured and s
 - **Data integrity (0.5):** `email` and `username` are lowercased by the zod schemas (`identityEmail` in `utils/validators.js`, `usernameSchema` in `modules/auth/auth.schema.js`), so signup and login always see lowercase. Username lookups from URL params call `.toLowerCase()`. Username rules: 3 to 30, `a-z 0-9 -`, no leading or trailing dash, reserved names in `RESERVED_USERNAMES` (`config/constants.js`). Skills are unique per user, case-insensitive (raw SQL index `Skill_userId_lower_name_key`; controllers pre-check and also map Prisma `P2002` via `utils/prismaErrors.js` to `409 SKILL_EXISTS`). Onboarding returns `409 ALREADY_ONBOARDED` (atomic `updateMany ... onboardingComplete:false` inside an interactive transaction). Every list and public read orders by `createdAt asc, id asc`.
 - **Public access (0.6):** `GET /api/v1/portfolio/:username` and `GET /api/v1/portfolio/share/:token` need no login and return only `PUBLIC_PORTFOLIO_SELECT` (`utils/publicPortfolio.js`): `username`, profile (`displayName, aboutText, heroRoleTexts, contactEmail, contactPhone, githubUrl`), skills (`name, icon, level`), projects (`title, description, repoUrl, liveUrl, tags`), ordered by `createdAt, id`. No user id, account email, hash, share token or row ids. `contactEmail` is the owner's chosen public contact address. Add new public fields in that one file.
 - **Frontend rendering rule (0.6):** `portfolio.js` builds the page with `createElement` and `textContent` only (helpers `make`, `makeIcon`, `makeLink`, `safeHref` allowing `http`, `https`, `mailto`, `tel`). Never use `innerHTML` with stored values there. Empty links, skills, projects and about are not rendered (section and nav link hidden). `apiFetch(path, { anonymous: true })` sends no token and never redirects to login; use it for every public call (portfolio read, contact form).
+- **Security middleware (0.7):** `app.js` order is `trust proxy` (from `TRUST_PROXY`), `helmet` with a CSP (self scripts; styles from self, Google Fonts, cdnjs and `'unsafe-inline'` because of inline `style=""` attributes, to be tightened in Phase 10; fonts from `fonts.gstatic.com` and cdnjs; images self and `data:`; `frame-ancestors 'none'`; `upgrade-insecure-requests` and HSTS only when `NODE_ENV=production`), `cors` (same-origin unless `CORS_ORIGINS`), `express.json({ limit: "100kb" })` (413 `PAYLOAD_TOO_LARGE`), pino, static, health routes, then `globalLimiter` on `/api/v1`. Limiters live in `middleware/rateLimit.js` and all answer 429 `RATE_LIMITED` in the standard shape: global 300 per 15 min per IP, `authLimiter` 10 per 15 min per IP (login and signup share one bucket), `contactLimiter` 5 per hour per IP and portfolio. Limiters are skipped when `NODE_ENV=test`. Counters are in memory (reset on restart; fine for one instance, revisit in Phase 10).
+- **Mailer (0.7):** sender comes from `RESEND_FROM` (default `Devfolio <onboarding@resend.dev>`); Resend returns failures in `error` instead of throwing, so the mailer checks both and throws `502 EMAIL_SEND_FAILED` with a generic message (details only in logs).
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -155,8 +157,8 @@ frontend/
 | 4 | Inconsistent errors; flattened zod object shows "[object Object]" in the UI | 0.3 **(implemented, awaiting verification)** |
 | 5 | URL fields accept `javascript:`; phone is free text; no max lengths; optional fields cannot be cleared (`undefined` is dropped from JSON) | 0.4 **(implemented, awaiting verification)** |
 | 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 **(done)** |
-| 7 | Public portfolio route requires login; stored XSS via unescaped `githubUrl`, `repoUrl`, `liveUrl`, `contactPhone`; dead `#` buttons and empty sections render | 0.6 **(implemented, awaiting verification)** |
-| 8 | No security headers or rate limits; mail sender hardcoded | 0.7 |
+| 7 | Public portfolio route requires login; stored XSS via unescaped `githubUrl`, `repoUrl`, `liveUrl`, `contactPhone`; dead `#` buttons and empty sections render | 0.6 **(done)** |
+| 8 | No security headers or rate limits; mail sender hardcoded | 0.7 **(implemented, awaiting verification)** |
 | 9 | No end-to-end verification or docs | 0.8 |
 
 ---
@@ -183,7 +185,7 @@ frontend/
 - Empty optional fields are normalized to `null`.
 
 **Decisions made in 0.1**
-- `JWT_SECRET` must be at least 32 characters (enforced at startup). `PORT` defaults to 5000; `NODE_ENV` defaults to `development`. `RESEND_API_KEY` stays required.
+- `JWT_SECRET` must be at least 32 characters (enforced at startup). `PORT` defaults to 5000; `NODE_ENV` defaults to `development`. `RESEND_API_KEY` stays required. New optional vars in 0.7: `RESEND_FROM`, `TRUST_PROXY` (number of proxy hops or `false`; `true` is rejected), `CORS_ORIGINS`.
 - `APP_NAME = "Devfolio"` lives in `config/constants.js` (0.5 adds the reserved-username list there).
 - Prettier is **configured but not applied**: running it now would reformat every file (`format:check` reports about 37 files). Apply once, in its own commit on the phase branch (`style: format with prettier`), at a clean point between subphases, so later diffs stay readable.
 - ESLint rule `no-unused-vars` is set with `args: none` (Express error handlers need unused `next`) and `caughtErrors: none` (existing `catch (err)` blocks left unchanged to avoid behavior edits).
@@ -201,9 +203,9 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 - [~] 0.3 Error contract: **implemented, awaiting user verification** (see section 8a)
 - [~] 0.4 Input validation and clearable fields: **implemented, awaiting user verification** (see section 8a)
 - [x] 0.5 Data integrity: verified by the user
-- [~] 0.6 Public access and XSS fixes: **implemented, awaiting user verification** (see section 8a)
-- [ ] 0.7 Security middleware  ← **NEXT** (after 0.6 is verified)
-- [ ] 0.8 Verification and docs
+- [x] 0.6 Public access and XSS fixes: verified by the user
+- [~] 0.7 Security middleware: **implemented, awaiting user verification** (see section 8a)
+- [ ] 0.8 Verification and docs  ← **NEXT** (after 0.7 is verified)
 
 ### Phases 1 to 10
 - [ ] Phase 1 · [ ] Phase 2 · [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5
@@ -213,51 +215,37 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 
 ## 8. NEXT TASK
 
-### 8a. First: user verifies 0.6
+### 8a. First: user verifies 0.7
 
-Apply `devfolio-0.6-changes.zip` over the repo root. No new dependencies, no migrations; restart the server.
+Apply `devfolio-0.7-changes.zip` over the repo root, then in `backend/` run `npm install helmet express-rate-limit` (updates `package.json` and `package-lock.json`; commit both). Add to `backend/.env` (optional but recommended): `RESEND_FROM=Devfolio <onboarding@resend.dev>`. Restart the server. No migrations.
 
-**0.6 checks**
-- [ ] In a private (logged-out) window, `/username` loads the portfolio.
-- [ ] With a garbage `token` in `localStorage`, `/username` still loads (no redirect to login).
-- [ ] `GET /api/v1/portfolio/<username>` in the browser shows no account email, password hash, share token or ids.
-- [ ] Payloads such as `"><img src=x onerror=alert(1)>` saved in name, about, project title, description, tags and skill-adjacent text show as plain text and do not run.
-- [ ] A project without URLs shows no Code or Live buttons; empty skills, projects or about sections (and their nav links) are hidden; `javascript:` links cannot be saved (0.4) and would not render anyway.
-- [ ] The share link (`/share/<token>`) and the username view both work, and the owner controls still appear when you are logged in on your own page.
+**0.7 checks**
+- [ ] Browser console shows **no CSP violations** on landing, auth, onboarding, portfolio and edit pages; fonts, icons and styles still load.
+- [ ] `curl -I http://localhost:5000/` shows helmet headers (`content-security-policy`, `x-content-type-options`, no `x-powered-by`).
+- [ ] The 11th login attempt within 15 minutes returns 429 `RATE_LIMITED`, and the login form shows the friendly message. Restart the server to reset the counters.
+- [ ] The 6th contact message in an hour from one IP to the same portfolio returns 429.
+- [ ] A JSON body over 100 KB returns 413 `PAYLOAD_TOO_LARGE`.
+- [ ] The contact flow still sends an email (to the account owner while using the Resend test sender, and the email shows the sender name "Devfolio"). With a wrong `RESEND_API_KEY` the form shows "We couldn't send your message right now" (502) instead of crashing or saying success.
 
-Suggested commit on `phase-0-foundation`: `fix(0.6): public portfolio without login, safe DOM rendering, safeHref and empty states`
+Suggested commit on `phase-0-foundation`: `feat(0.7): add helmet CSP, rate limits, CORS and body cap, configurable mail sender and mailer error handling`
 
-Tick `[x]` for 0.6 once it passes. **Do not merge to `main` yet.** Also confirm secrets are rotated.
+Tick `[x]` for 0.7 once it passes. **Do not merge to `main` yet** (Phase 0 merges after 0.8). Also confirm secrets are rotated.
 
-### 8b. Then: Subphase 0.7: Security middleware
+### 8b. Then: Subphase 0.8: Verification and docs
 
-**Goal:** baseline protection: headers, rate limits and email configuration.
+**Goal:** prove Phase 0 is done and leave the project documented. Little new code, mostly testing and writing.
 
 **Tasks**
-- Add `helmet` with a **Content Security Policy** allowing what the app really uses: its own scripts, Google Fonts (`fonts.googleapis.com` styles and `fonts.gstatic.com` fonts), Font Awesome from `cdnjs.cloudflare.com`, and images from self and `data:`. Note that the current HTML uses **inline `style=""` attributes**, so either allow `style-src 'unsafe-inline'` for now or move those styles into CSS (preferred if small). Add a code comment marking this as something to tighten in Phase 10.
-- Add `express-rate-limit`:
-  - global limiter (for example 300 requests per 15 minutes per IP),
-  - auth limiter (for example 10 login or signup attempts per 15 minutes),
-  - contact limiter (for example 5 messages per hour per IP and portfolio).
-  - Return the standard error shape with code `RATE_LIMITED` and a friendly frontend message.
-- Set `app.set("trust proxy", ...)` through an env flag so IP detection works behind a proxy.
-- Configure CORS explicitly (same-origin by default) and cap JSON body size (`express.json({ limit: "100kb" })`).
-- Email: make the sender a config value (`RESEND_FROM`, for example `Devfolio <onboarding@resend.dev>`), with the test sender as the development default, so emails show **Devfolio** as the sender name (replacing the current "Portfolio Contact"). Validate it in `config/env.js`. Document in the README that Resend's test sender only delivers to the account owner until a domain is verified (Phase 6).
-- Make the mailer failure return a clear, generic error rather than crashing the request.
+- Run an **XSS payload pass** against every user-editable field and every place it renders (public page, share page, edit forms, onboarding). Record results in a short table. Fix anything found.
+- Run a **regression walkthrough** of every flow: signup, login, onboarding, view portfolio (logged in and out), edit profile, add, edit and delete skills and projects, share link create, regenerate and revoke, contact form, logout.
+- Add a small **smoke test script** (`npm run smoke`) that hits `/healthz`, a public portfolio, a 404 and a validation error and checks the response shapes (a few `fetch` calls in a Node script, no framework needed yet).
+- Update the README: setup, env variables, scripts, folder structure, API base path, error format and reserved usernames.
+- Confirm `.env` is ignored and `.env.example` is complete, and run `npm audit` and note results.
+- Write the **Phase 0 handoff summary** to carry into Phase 1 (final folder tree, conventions: error shape, validators, naming, how to add a route).
 
-**Files touched (about 7):** `app.js`, `config/env.js`, `middleware/rateLimit.js`, `utils/mailer.js`, routes for auth and messages, `.env.example`, `README.md`, possibly small HTML and CSS changes for inline styles.
+**Files touched (about 4 to 6):** smoke script, README, `package.json`, plus any bugs found.
 
-**Out of scope:** bot detection and message storage (Phase 6).
-
-**You do:** add `RESEND_FROM` to your `.env`.
-
-**Success criteria**
-- [ ] The browser console shows **no CSP violations** on landing, auth, onboarding, portfolio and edit pages (fonts, icons and styles still load).
-- [ ] Response headers include the helmet set (check with browser dev tools or `curl -I`).
-- [ ] The 11th login attempt in the window returns HTTP 429 with the standard error shape, and the UI shows a friendly message.
-- [ ] The 6th contact message in an hour from one IP returns 429.
-- [ ] A JSON body over 100 KB is rejected.
-- [ ] The contact flow still sends an email (to the account owner while using the Resend test sender).
+**Success criteria:** the full Phase 0 checklist below.
 
 ---
 
@@ -406,7 +394,22 @@ Leftovers / TODOs for later:
 - Owner controls still depend on `localStorage.user` (replaced by cookies in Phase 1).
 Must not break: public reads need no login; public API fields stay limited to `PUBLIC_PORTFOLIO_SELECT`; `portfolio.js` never uses `innerHTML` with stored values; public calls use `anonymous: true`.
 
-*(Add Session 6 and onward below this line.)*
+### Session 6: Subphase 0.7, Security middleware (2026-10-12)
+Result: **implemented; awaiting user verification** (browser CSP behavior and real Resend delivery could not be tested in the sandbox)
+Files created: `backend/middleware/rateLimit.js`
+Files changed: `backend/app.js`, `backend/config/env.js`, `backend/utils/mailer.js`, `backend/modules/auth/auth.routes.js`, `backend/modules/messages/messages.routes.js`, `backend/.env.example`, `frontend/js/api.js` (429 fallback message), `README.md`, `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: `RESEND_FROM`, `TRUST_PROXY`, `CORS_ORIGINS` (all optional); new dependencies `helmet` and `express-rate-limit` (`npm install helmet express-rate-limit` in `backend/`; `package.json` and the lock file are updated by that command, not shipped in the zip, so they match your local lock)
+Sandbox checks passed: lint clean; headers on a page response (CSP with the planned sources, nosniff, no `x-powered-by`, HSTS and `upgrade-insecure-requests` in production); 10th login 401 and 11th 429 `RATE_LIMITED` with `Retry-After`, signup shares the bucket; body over 100 KB gives 413 `PAYLOAD_TOO_LARGE`; contact: 6th message to the same portfolio 429 while another portfolio is still allowed; Resend failure (no network) returns 502 `EMAIL_SEND_FAILED` with a generic message; env validation rejects a bad `RESEND_FROM`, `TRUST_PROXY=true` and bad `CORS_ORIGINS`, defaults are correct.
+Decisions made (and why): CSP keeps `style-src 'unsafe-inline'` (many inline `style=""` attributes in HTML and JS-built markup; moving them is not small; marked TODO for Phase 10) while scripts stay `'self'` only; `upgrade-insecure-requests` and HSTS only in production so plain-http local dev keeps working; the global limiter covers `/api/v1` only (static files and health checks are not counted); contact limiter counts every attempt, valid or not, per IP and portfolio; `TRUST_PROXY=true` is rejected because trusting every proxy lets clients spoof IPs; Resend's `{ error }` result is treated as failure (before, a failed send still returned success); limiters skip `NODE_ENV=test` for future tests; in-memory counters are acceptable for one instance.
+Leftovers / TODOs for later:
+- Tighten the CSP (remove `'unsafe-inline'` styles) in Phase 10; consider self-hosting fonts and icons.
+- Rate-limit counters reset on restart and are per instance; use a shared store if the app ever runs multiple instances.
+- Resend's test sender only delivers to your own Resend account email until a domain is verified (Phase 6).
+- `x-frame-options` is `SAMEORIGIN` from helmet alongside `frame-ancestors 'none'` (CSP wins in modern browsers).
+Must not break: all new env vars go through `config/env.js`; every 429 uses the standard error shape; the mailer never returns success on a failed send; limiter middleware stays before `validate` on public write routes.
+
+*(Add Session 7 and onward below this line.)*
 
 ---
 

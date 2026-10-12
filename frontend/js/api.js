@@ -54,5 +54,8 @@ export async function apiFetch(path, options = {}) {
   if (body && typeof body.error === "object" && body.error && typeof body.error.message === "string") {
     return { ok: false, status: res.status, data: null, error: body.error };
   }
+  if (res.status === 429) {
+    return fail(429, "RATE_LIMITED", "Too many attempts. Please wait a few minutes and try again.");
+  }
   return fail(res.status, `HTTP_${res.status}`, "Something went wrong. Try again.");
 }

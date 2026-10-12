@@ -11,6 +11,29 @@ const envSchema = z.object({
     .string({ error: "is missing" })
     .min(32, "must be at least 32 characters (try: openssl rand -hex 32)"),
   RESEND_API_KEY: z.string({ error: "is missing" }).min(1, "is required"),
+  // Sender shown on contact emails. The default is Resend's test sender, which only
+  // delivers to the Resend account owner until a domain is verified (Phase 6).
+  RESEND_FROM: z
+    .string()
+    .trim()
+    .default("Devfolio <onboarding@resend.dev>")
+    .refine(
+      (v) => /^(?:[^<>@]+ <[^<>@\s]+@[^<>@\s]+>|[^<>@\s]+@[^<>@\s]+)$/.test(v),
+      'must look like "Devfolio <noreply@example.com>" or "noreply@example.com"'
+    ),
+  // How many reverse proxies sit in front of the app (0 or "false" = none). Needed for correct client IPs.
+  TRUST_PROXY: z
+    .string()
+    .trim()
+    .default("false")
+    .refine((v) => v !== "true", "use the number of proxy hops (for example 1), not true")
+    .transform((v) => (v === "false" ? false : /^\d+$/.test(v) ? Number(v) : v)),
+  // Comma-separated browser origins allowed to call the API cross-origin. Empty = same-origin only.
+  CORS_ORIGINS: z
+    .string()
+    .default("")
+    .transform((v) => v.split(",").map((o) => o.trim()).filter(Boolean))
+    .refine((list) => list.every((o) => /^https?:\/\/[^/\s]+$/.test(o)), "must be origins like https://example.com, comma-separated"),
 });
 
 const parsed = envSchema.safeParse(process.env);
