@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 6, subphase 0.7 implemented; Session 5, subphase 0.6 verified and committed; Session 4, subphase 0.5 verified and committed; Session 3c, command-block rule; Session 3b, git workflow)
-**Current position:** Phase 0. Subphases **0.5 and 0.6 verified by the user**; **0.7 implemented, awaiting user verification** (`devfolio-0.7-changes.zip`, on top of 0.6; needs `npm install helmet express-rate-limit`). 0.1 to 0.4 are committed on `phase-0-foundation` (verification of 0.1 to 0.4 not explicitly confirmed). Next: **0.8**.
-**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, committed), 0.6 (public access and XSS, committed), 0.7 (security middleware, `devfolio-0.7-changes.zip`, on top of 0.6).
+**Last updated:** 2026-10-12 (Session 7, subphase 0.8 implemented, Phase 0 pending final verification; Session 6, subphase 0.7 verified and committed; Session 5, subphase 0.6 verified and committed; Session 4, subphase 0.5 verified and committed; Session 3c, command-block rule; Session 3b, git workflow)
+**Current position:** Phase 0, last subphase. **0.5 to 0.7 verified by the user**; **0.8 implemented, awaiting user verification** (`devfolio-0.8-changes.zip`, on top of 0.7). When the 0.8 checks and the regression walkthrough pass, merge `phase-0-foundation` into `main` and start **Phase 1** (section 8b). 0.1 to 0.4 are committed (verification not explicitly confirmed; the walkthrough covers them).
+**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, committed), 0.6 (public access and XSS, committed), 0.7 (security middleware, committed), 0.8 (smoke script, README, audit notes, `devfolio-0.8-changes.zip`, on top of 0.7).
 
 ---
 
@@ -134,7 +134,7 @@ frontend/
   css/                      # global, auth, onboarding, edit
 ```
 
-**Scripts (run in `backend/`):** `dev`, `start`, `lint`, `lint:fix`, `format`, `format:check`. Lint and format scripts `cd ..` first so they cover `backend/` and `frontend/` together; configs live in `backend/`.
+**Scripts (run in `backend/`):** `dev`, `start`, `smoke` (0.8, checks a running server), `lint`, `lint:fix`, `format`, `format:check`. Lint and format scripts `cd ..` first so they cover `backend/` and `frontend/` together; configs live in `backend/`.
 
 **Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. `Skill` and `Project` have `createdAt` (0.5). `Skill` has a unique `(userId, lower(name))` index. Note: `other` is one of the 16 skill presets, so a user can have only one `other` skill until custom skills arrive in Phase 2.
 
@@ -158,8 +158,8 @@ frontend/
 | 5 | URL fields accept `javascript:`; phone is free text; no max lengths; optional fields cannot be cleared (`undefined` is dropped from JSON) | 0.4 **(implemented, awaiting verification)** |
 | 6 | Email and username case-sensitive; reserved usernames collide with routes; duplicate skills allowed; onboarding resubmit duplicates data; list order unstable | 0.5 **(done)** |
 | 7 | Public portfolio route requires login; stored XSS via unescaped `githubUrl`, `repoUrl`, `liveUrl`, `contactPhone`; dead `#` buttons and empty sections render | 0.6 **(done)** |
-| 8 | No security headers or rate limits; mail sender hardcoded | 0.7 **(implemented, awaiting verification)** |
-| 9 | No end-to-end verification or docs | 0.8 |
+| 8 | No security headers or rate limits; mail sender hardcoded | 0.7 **(done)** |
+| 9 | No end-to-end verification or docs | 0.8 **(implemented, awaiting verification)** |
 
 ---
 
@@ -204,48 +204,100 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 - [~] 0.4 Input validation and clearable fields: **implemented, awaiting user verification** (see section 8a)
 - [x] 0.5 Data integrity: verified by the user
 - [x] 0.6 Public access and XSS fixes: verified by the user
-- [~] 0.7 Security middleware: **implemented, awaiting user verification** (see section 8a)
-- [ ] 0.8 Verification and docs  ← **NEXT** (after 0.7 is verified)
+- [x] 0.7 Security middleware: verified by the user
+- [~] 0.8 Verification and docs: **implemented, awaiting user verification** (see section 8a)
 
 ### Phases 1 to 10
-- [ ] Phase 1 · [ ] Phase 2 · [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5
+- [ ] Phase 1  ← **NEXT** (after Phase 0 is merged) · [ ] Phase 2 · [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5
 - [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
 
 ---
 
 ## 8. NEXT TASK
 
-### 8a. First: user verifies 0.7
+### 8a. First: finish Phase 0
 
-Apply `devfolio-0.7-changes.zip` over the repo root, then in `backend/` run `npm install helmet express-rate-limit` (updates `package.json` and `package-lock.json`; commit both). Add to `backend/.env` (optional but recommended): `RESEND_FROM=Devfolio <onboarding@resend.dev>`. Restart the server. No migrations.
+Apply `devfolio-0.8-changes.zip` over the repo root. No new dependencies, no migrations. Then in `backend/` run `npm pkg set scripts.smoke="node scripts/smoke.js"` (adds the `smoke` script to your own `package.json`; commit it). Also run `npm audit fix` (see the audit note in the Session 7 log; it is non-breaking) and commit the lock file separately if it changes.
 
-**0.7 checks**
-- [ ] Browser console shows **no CSP violations** on landing, auth, onboarding, portfolio and edit pages; fonts, icons and styles still load.
-- [ ] `curl -I http://localhost:5000/` shows helmet headers (`content-security-policy`, `x-content-type-options`, no `x-powered-by`).
-- [ ] The 11th login attempt within 15 minutes returns 429 `RATE_LIMITED`, and the login form shows the friendly message. Restart the server to reset the counters.
-- [ ] The 6th contact message in an hour from one IP to the same portfolio returns 429.
-- [ ] A JSON body over 100 KB returns 413 `PAYLOAD_TOO_LARGE`.
-- [ ] The contact flow still sends an email (to the account owner while using the Resend test sender, and the email shows the sender name "Devfolio"). With a wrong `RESEND_API_KEY` the form shows "We couldn't send your message right now" (502) instead of crashing or saying success.
+**0.8 checks**
+- [ ] `npm run lint` passes and `npm run smoke` (server running, `SMOKE_USERNAME=<your username>` set) ends with "All checks passed."
+- [ ] README setup works from a clean clone with only `.env.example` (boots, `npx prisma migrate dev`, `npx prisma generate`).
+- [ ] `git ls-files | grep .env` lists only `backend/.env.example`; secrets (JWT secret, Resend key, database password) have been **rotated**.
+- [ ] **Regression walkthrough passes** (browser, normal and private window):
+  1. Sign up (`Test@Mail.com`, valid username), then log in with `test@mail.com`.
+  2. Onboarding with 2 skills and 1 project; a second submit is refused.
+  3. View your portfolio logged in (owner controls visible) and in a private window (no controls, no redirect).
+  4. Edit profile; clear an optional field and reload (stays empty).
+  5. Skills: add, change level, delete; adding a duplicate shows a message.
+  6. Projects: add, edit, delete; a project without URLs shows no buttons.
+  7. Share link: create, open in a private window, regenerate (old link dies), revoke.
+  8. Contact form sends an email; bad input shows field errors.
+  9. Log out; protected pages send you to login.
+  10. Paste `"><img src=x onerror=alert(1)>` into name, about, role, project title, description and tags: it shows as plain text on the portfolio, share page and edit page.
+- [ ] No CSP violations in the browser console on all pages.
 
-Suggested commit on `phase-0-foundation`: `feat(0.7): add helmet CSP, rate limits, CORS and body cap, configurable mail sender and mailer error handling`
+When everything passes, **close Phase 0** (these steps replace the usual per-subphase merge rule):
 
-Tick `[x]` for 0.7 once it passes. **Do not merge to `main` yet** (Phase 0 merges after 0.8). Also confirm secrets are rotated.
+```bash
+git checkout main
+git pull
+git merge --no-ff phase-0-foundation -m "merge: phase 0 foundation"
+git tag phase-0-complete
+git push && git push --tags
+git checkout -b phase-1-accounts
+```
 
-### 8b. Then: Subphase 0.8: Verification and docs
+Optional, as its own commit before the merge (it reformats every file): `cd backend && npm run format`, then `git add -A` and `git commit -m "style: format with prettier"`.
 
-**Goal:** prove Phase 0 is done and leave the project documented. Little new code, mostly testing and writing.
+Tick `[x]` for 0.1 to 0.8 and Phase 0 in section 7 after the walkthrough.
 
-**Tasks**
-- Run an **XSS payload pass** against every user-editable field and every place it renders (public page, share page, edit forms, onboarding). Record results in a short table. Fix anything found.
-- Run a **regression walkthrough** of every flow: signup, login, onboarding, view portfolio (logged in and out), edit profile, add, edit and delete skills and projects, share link create, regenerate and revoke, contact form, logout.
-- Add a small **smoke test script** (`npm run smoke`) that hits `/healthz`, a public portfolio, a 404 and a validation error and checks the response shapes (a few `fetch` calls in a Node script, no framework needed yet).
-- Update the README: setup, env variables, scripts, folder structure, API base path, error format and reserved usernames.
-- Confirm `.env` is ignored and `.env.example` is complete, and run `npm audit` and note results.
-- Write the **Phase 0 handoff summary** to carry into Phase 1 (final folder tree, conventions: error shape, validators, naming, how to add a route).
+### 8b. Then: Phase 1: Accounts and secure sessions
 
-**Files touched (about 4 to 6):** smoke script, README, `package.json`, plus any bugs found.
+**Goal:** a complete, secure account system: signup through recovery and deletion.
 
-**Success criteria:** the full Phase 0 checklist below.
+### Tasks
+
+**Sessions**
+- Replace the 7-day JWT in `localStorage` with an **httpOnly, Secure, SameSite=Lax** access cookie (about 15 minutes) and a **rotating refresh token** (about 30 days) stored hashed in `Session`.
+- Add `POST /auth/refresh`, `POST /auth/logout` (revokes the session) and `GET /auth/me`.
+- The frontend API client silently refreshes once on a 401 and retries, then redirects to login only if the refresh fails.
+- Add Origin/CSRF protection for state-changing requests (SameSite plus an Origin header check).
+- Auth middleware also supports page requests, so the server can redirect based on the session.
+
+**Signup and login UX**
+- Separate `/signup` and `/login` pages, with signup as the default for new visitors coming from "Get started".
+- Live **username availability** check (debounced).
+- Show/hide password toggle, a password strength hint and a confirm-password field.
+- Field-level inline errors from the standard error shape.
+- Generic login failure messages (no account enumeration) and login attempt rate limiting.
+
+**Email verification**
+- On signup, send a verification email with a single-use token (hashed in DB, 24-hour expiry).
+- `/verify-email` page consumes the token. A resend button is rate limited.
+- Unverified users can log in and edit, but **cannot publish** until verified (enforced in Phase 4).
+
+**Password reset**
+- `/forgot-password` accepts an email and always replies with the same message.
+- `/reset-password` consumes the token, sets a new password and **revokes all sessions**.
+
+**Account settings** (backend now, UI in Phase 3)
+- Change email (re-verification), username (checked against reserved list and uniqueness, with old-URL behavior documented) and password (requires current password).
+- **Delete account**: requires password, soft-deletes immediately, hard-deletes all data after a grace window by cron, and revokes all sessions.
+
+### Success criteria
+
+- [ ] No token appears in `localStorage`, and cookies are `HttpOnly`.
+- [ ] After the 15-minute access expiry, a user mid-session continues without being logged out.
+- [ ] Logging out on one device invalidates that session's refresh token server-side.
+- [ ] Signup shows live username availability and per-field errors.
+- [ ] Verification email arrives, the link works once, and an expired or reused link shows a helpful message.
+- [ ] Forgot-password gives an identical response for existing and non-existing emails.
+- [ ] Completing a password reset logs out all other sessions.
+- [ ] Changing password requires the current password.
+- [ ] Deleting an account removes access immediately and all rows after the grace window (verified in DB).
+- [ ] Auth endpoints are rate limited and covered by automated tests (happy path plus at least 3 failure paths each).
+
+**Phase 1 starts like every phase: split it into subphases (a `PHASE_1_PLAN.md`, about 6 to 8 steps), send a brief, and wait for approval.** Read section 12 first.
 
 ---
 
@@ -409,10 +461,72 @@ Leftovers / TODOs for later:
 - `x-frame-options` is `SAMEORIGIN` from helmet alongside `frame-ancestors 'none'` (CSP wins in modern browsers).
 Must not break: all new env vars go through `config/env.js`; every 429 uses the standard error shape; the mailer never returns success on a failed send; limiter middleware stays before `validate` on public write routes.
 
-*(Add Session 7 and onward below this line.)*
+### Session 7: Subphase 0.8, Verification and docs (2026-10-12)
+Result: **implemented; awaiting user verification** (the browser walkthrough and database flows need your machine)
+Files created: `backend/scripts/smoke.js`
+Files changed: `README.md` (scripts, structure, API table, error codes, usernames and reserved list, notes), `docs/HANDOFF.md` (this file: status, section 8, section 12). No application code changed, so no bugs were found that needed fixing.
+Files deleted: none
+New env vars / commands: `npm run smoke` (add with `npm pkg set scripts.smoke="node scripts/smoke.js"`; optional `SMOKE_URL`, `SMOKE_USERNAME`)
+Sandbox checks passed: lint clean; `smoke.js` against a stubbed-DB server: 6 of 6 checks pass (healthz, public portfolio with no private fields, unknown user 404, unknown route 404, validation error with `fields`, security headers), and the portfolio check is skipped when `SMOKE_USERNAME` is unset; `.env` is ignored and not tracked (only `.env.example`); every key in `config/env.js` is present in `.env.example`.
+
+**XSS payload pass** (payload `"><img src=x onerror=alert(1)>` and variants; jsdom with a stubbed API)
+| Field | Server | Rendering |
+|---|---|---|
+| displayName, aboutText, hero roles | accepted as text | public page: text only; edit form: value intact, nothing injected |
+| project title, description, tags | accepted as text | public page: text only; edit form: intact |
+| skill name | enum only | n/a |
+| contactEmail, contactPhone | rejected | n/a |
+| githubUrl, repoUrl, liveUrl (`javascript:`, `data:`) | rejected | `safeHref` would also drop them |
+| username | rejected | n/a |
+| contact form name, message | accepted as text | plain-text email, never rendered as HTML |
+Result: 0 injected `img`, `svg` or `script` nodes and 0 inline event handlers in the public and edit pages. Onboarding and auth pages render no stored data. Real-browser confirmation is part of the walkthrough in 8a.
+
+**npm audit** (`npm audit` on the lock file from the uploaded project): 12 findings. `npm audit fix` (non-breaking) clears the critical one (`proxy-addr`, via Express), the moderate ones (`qs`, `fast-copy`) and 3 highs (`fast-uri`, `brace-expansion`). 7 highs remain, all **dev-only tooling**: `prisma` CLI chain (`@prisma/config`, `deepmerge-ts`, `mysql2`) and `nodemon` chain (`braces`, `chokidar`). Audit's suggested "fixes" are major downgrades (`prisma@6`, `nodemon@1`), so they are **not applied**. They do not ship in production (`npm ci --omit=dev`). Revisit in Phase 10.
+Decisions made (and why): the XSS pass and audit are recorded here instead of new docs; the smoke script uses plain `fetch` and exits non-zero on failure; the validation check uses `POST auth/login` and counts as one attempt of the auth rate limit; Prettier is left as an optional separate `style:` commit before the merge.
+Leftovers / TODOs for later:
+- Verify with the walkthrough, then merge Phase 0 (see 8a).
+- Prettier still not applied (`npm run format:check` lists many files).
+- Dev-only audit findings above; rate-limit counters are in memory; CSP still allows `'unsafe-inline'` styles (Phase 10).
+- Public page for users who skipped onboarding is still mostly empty (Phase 3 or 5).
+Must not break: see section 12.
+
+*(Add Session 8 and onward below this line.)*
 
 ---
 
 ## 11. Starting message to paste into the new chat
 
 > I'm building **Devfolio**, a developer portfolio platform, following the attached plan. I'm on a **free Claude plan, so be very economical with tokens**. Read `HANDOFF.md` (attached) first, and follow its rules in section 1 and the workflow in section 1b. Work on the **NEXT TASK in section 8** only. **Send me a brief first and wait for my approval before changing anything.** Attached: `HANDOFF.md` and my project zip (without `.env` and `node_modules`). When done, send me a zip of the changed files only, the updated `HANDOFF.md`, and a suggested commit message.
+
+---
+
+## 12. Phase 0 summary (carry into Phase 1)
+
+**Final backend tree**
+```
+backend/
+  app.js  server.js  eslint.config.js  .prettierrc  .env.example  prisma.config.ts
+  config/       env.js (all env access) constants.js (APP_NAME, RESERVED_USERNAMES) prisma.js logger.js
+  middleware/   auth.middleware.js  validate.js  rateLimit.js  error.middleware.js
+  modules/<n>/  <n>.routes.js  <n>.controller.js  <n>.schema.js   (auth profile skills projects onboarding share messages)
+  utils/        AppError.js  validators.js  publicPortfolio.js  prismaErrors.js  mailer.js
+  scripts/      smoke.js
+  prisma/       schema.prisma  migrations/ (6)
+frontend/       index.html  pages/ (auth onboarding edit portfolio)  js/ (config api forms authGuard auth onboarding edit portfolio script skillStyles)  css/
+docs/           HANDOFF.md  BUILD_PLAN.md  PHASE_0_PLAN.md
+```
+
+**Conventions (do not break)**
+- **Errors:** controllers `throw` helpers from `utils/AppError.js`; the only error shape is `{ error: { code, message, fields? } }`; never build error JSON by hand. Express 5 forwards async errors, so no `try/catch` unless mapping something (for example `isUniqueViolation`).
+- **Validation:** zod schema in `<n>.schema.js`, built from `utils/validators.js` pieces, applied with `validate(schema)` in the route; controllers read already-valid `req.body`. Optional fields: `""` and `null` clear them, an omitted key means unchanged.
+- **Env:** only through `config/env.js`; add a key there, to `.env.example` and to the README table together.
+- **Identities:** email and username are lowercase everywhere (normalized in schemas, params lowercased on lookup).
+- **Lists:** every list query orders by `createdAt, id`; public reads use `PUBLIC_PORTFOLIO_SELECT` (add public fields only there).
+- **Frontend:** API calls only through `apiFetch` (`API_PREFIX`; `anonymous: true` for public pages); never `innerHTML` with stored values (use `textContent` or `escapeAttr`/`escapeHtml`); links through `safeHref`/`makeLink`.
+- **Security:** limiters in `middleware/rateLimit.js` come before `validate`; every new public write endpoint needs a limiter; any new external host needs a CSP entry in `app.js`.
+- **Git:** one branch per phase (`phase-N-name`), one commit per subphase (`type(N.X): summary`), merge `--no-ff` and tag `phase-N-complete` when the phase is verified.
+
+**How to add a route:** (1) schema in `modules/<n>/<n>.schema.js`; (2) controller function that throws `AppError`s; (3) route in `<n>.routes.js` with `requireAuth`, a limiter if public, then `validate(schema)`; (4) mounted under `/api/v1` in `app.js` if it is a new module; (5) update README API table and this file; (6) add a smoke check if it is a key endpoint.
+
+**Known debt carried forward:** Phase 1 replaces `localStorage` JWT with cookies (the `apiFetch` 401 redirect and `authGuard.js` change with it); CSP `'unsafe-inline'` styles; in-memory rate limits; dev-only audit findings; Prettier not applied; `other` is a single skill preset until Phase 2.
+
