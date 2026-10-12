@@ -30,6 +30,48 @@ export const authLimiter = build({
   message: "Too many login or signup attempts. Please wait 15 minutes and try again.",
 });
 
+// Silent token refresh: legitimate clients need only a few per 15 minutes.
+export const refreshLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 60,
+  message: "Too many session refreshes. Please wait a few minutes and try again.",
+});
+
+// Live username availability checks while typing (debounced on the client).
+export const usernameCheckLimiter = build({
+  windowMs: MINUTE,
+  limit: 30,
+  message: "Too many username checks. Please wait a minute.",
+});
+
+// Verification link clicks (the token itself is unguessable; this only limits abuse).
+export const emailTokenLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 20,
+  message: "Too many attempts. Please wait a few minutes and try again.",
+});
+
+// Asking for another verification email.
+export const resendLimiter = build({
+  windowMs: 60 * MINUTE,
+  limit: 5,
+  message: "Too many emails requested. Please try again in an hour.",
+});
+
+// Asking for a password reset email.
+export const forgotLimiter = build({
+  windowMs: 60 * MINUTE,
+  limit: 5,
+  message: "Too many reset requests. Please try again in an hour.",
+});
+
+// Account settings (password, email, username, deletion): they all re-check passwords with bcrypt.
+export const accountLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 20,
+  message: "Too many account changes. Please wait a few minutes and try again.",
+});
+
 // Contact form: per IP and per portfolio (username or share token).
 export const contactLimiter = build({
   windowMs: 60 * MINUTE,

@@ -3,9 +3,9 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-12 (Session 7, subphase 0.8 implemented, Phase 0 pending final verification; Session 6, subphase 0.7 verified and committed; Session 5, subphase 0.6 verified and committed; Session 4, subphase 0.5 verified and committed; Session 3c, command-block rule; Session 3b, git workflow)
-**Current position:** Phase 0, last subphase. **0.5 to 0.7 verified by the user**; **0.8 implemented, awaiting user verification** (`devfolio-0.8-changes.zip`, on top of 0.7). When the 0.8 checks and the regression walkthrough pass, merge `phase-0-foundation` into `main` and start **Phase 1** (section 8b). 0.1 to 0.4 are committed (verification not explicitly confirmed; the walkthrough covers them).
-**Code changes made so far:** 0.1 (hygiene and bootstrap, committed on the Phase 0 branch `phase-0-foundation`), 0.2 (restructure and `/api/v1`, pushed to the Phase 0 branch), 0.3 (error contract, `devfolio-0.3-changes.zip`) and 0.4 (validation, `devfolio-0.4-changes.zip`, cumulative on top of 0.3), 0.5 (data integrity, committed), 0.6 (public access and XSS, committed), 0.7 (security middleware, committed), 0.8 (smoke script, README, audit notes, `devfolio-0.8-changes.zip`, on top of 0.7).
+**Last updated:** 2026-10-12 (Session 13: subphase 1.7 implemented, awaiting verification; 1.1 to 1.6 applied by the user)
+**Current position:** **Phase 0 is merged into `main`** (user confirmed; the 0.8 walkthrough result was not reported in detail). Now on **Phase 1** (branch `phase-1-accounts`). **Batch 1 (1.1 session backend + 1.2 frontend sessions) is implemented and tested in the sandbox against a real local Postgres; awaiting user verification** (`devfolio-1.1-changes.zip`, then `devfolio-1.2-changes.zip` cumulative on top). Subphase 1.3 (signup/login UX) 1.4 (email verification) and 1.5 (password reset, `devfolio-1.5-changes.zip`) are implemented on top of them. 1.6 and 1.7 (auth tests, `devfolio-1.7-changes.zip`) are implemented too. Next: verify 1.7, then merge Phase 1 (1.6 account settings API, 1.7 auth tests). Plan: `docs/PHASE_1_PLAN.md`.
+**Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1, 1.2 (Session 8), 1.3 (Session 9), 1.4 (Session 10), 1.5 (Session 11), 1.6 (Session 12) and 1.7 (Session 13).
 
 ---
 
@@ -88,9 +88,9 @@ The goal is an **intermediate-level** project that is also well structured and s
 
 ---
 
-## 4. Current codebase (after subphase 0.7)
+## 4. Current codebase (after subphase 1.2)
 
-**Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT (`jsonwebtoken`), `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `helmet`, `express-rate-limit` (0.7), `cors`, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
+**Stack:** Node (ES modules, `"type": "module"`), **Express 5**, **Prisma 7** with PostgreSQL via `@prisma/adapter-pg` (datasource URL is set in `prisma.config.ts`, not in `schema.prisma`), JWT access tokens (`jsonwebtoken`) in httpOnly cookies via `cookie-parser`, `bcrypt`, `zod` v4, `pino` and `pino-http`, `resend` for email, `helmet`, `express-rate-limit` (0.7), `cors`, `nodemon` in dev. Dev tooling: ESLint 10 (flat config) and Prettier 3. Frontend: **vanilla HTML, CSS and JS** (ES modules), served by Express as static files. No build step, no tests.
 
 **Notes on the stack that matter:**
 - Express 5 forwards rejected promises from async handlers (and errors thrown in sync middleware) to the error middleware automatically. `catchAsync` was removed in 0.3: controllers and routes are plain `async` functions that `throw` an `AppError`.
@@ -101,6 +101,13 @@ The goal is an **intermediate-level** project that is also well structured and s
 - **Frontend rendering rule (0.6):** `portfolio.js` builds the page with `createElement` and `textContent` only (helpers `make`, `makeIcon`, `makeLink`, `safeHref` allowing `http`, `https`, `mailto`, `tel`). Never use `innerHTML` with stored values there. Empty links, skills, projects and about are not rendered (section and nav link hidden). `apiFetch(path, { anonymous: true })` sends no token and never redirects to login; use it for every public call (portfolio read, contact form).
 - **Security middleware (0.7):** `app.js` order is `trust proxy` (from `TRUST_PROXY`), `helmet` with a CSP (self scripts; styles from self, Google Fonts, cdnjs and `'unsafe-inline'` because of inline `style=""` attributes, to be tightened in Phase 10; fonts from `fonts.gstatic.com` and cdnjs; images self and `data:`; `frame-ancestors 'none'`; `upgrade-insecure-requests` and HSTS only when `NODE_ENV=production`), `cors` (same-origin unless `CORS_ORIGINS`), `express.json({ limit: "100kb" })` (413 `PAYLOAD_TOO_LARGE`), pino, static, health routes, then `globalLimiter` on `/api/v1`. Limiters live in `middleware/rateLimit.js` and all answer 429 `RATE_LIMITED` in the standard shape: global 300 per 15 min per IP, `authLimiter` 10 per 15 min per IP (login and signup share one bucket), `contactLimiter` 5 per hour per IP and portfolio. Limiters are skipped when `NODE_ENV=test`. Counters are in memory (reset on restart; fine for one instance, revisit in Phase 10).
 - **Mailer (0.7):** sender comes from `RESEND_FROM` (default `Devfolio <onboarding@resend.dev>`); Resend returns failures in `error` instead of throwing, so the mailer checks both and throws `502 EMAIL_SEND_FAILED` with a generic message (details only in logs).
+- **Sessions (1.1 and 1.2):** login creates a `Session` row and sets two cookies, both `HttpOnly`, `SameSite=Lax`, `Secure` only when `NODE_ENV=production`: `dev_access` (JWT `{ id, username, sid }`, 15 min, path `/`) and `dev_refresh` (`<sessionId>.<secret>`, 30 days sliding, path `/api/v1/auth` only). Only `sha256(secret)` is stored (`refreshHash`, plus `prevRefreshHash` and `rotatedAt`). `POST auth/refresh` rotates with a compare-and-swap; the previous token is accepted for 10 s (two tabs refreshing: access cookie only), after that it counts as theft and the session is revoked (`REFRESH_TOKEN_REUSED`). `POST auth/logout` revokes that session and clears cookies; `GET auth/me` returns `{ user: { id, email, username, onboardingComplete, emailVerified } }`. Constants (TTLs, cookie names) are in `config/constants.js`; cookie and token helpers in `utils/session.js`. `requireAuth` (async since 1.6) reads only the access cookie; `requirePage` (used on `/onboarding` and `/edit`) serves the page if an access or refresh cookie exists, else 302 to `/login`. `middleware/origin.js` refuses state-changing `/api/v1` requests whose `Origin` is another site (`BAD_ORIGIN`, 403; requests with no Origin pass). Auth responses send `Cache-Control: no-store`. Since 1.6, `requireAuth` also checks in the database that the access token's session is live and the account not deleted (`401 SESSION_ENDED`), so logout, reset and deletion take effect at once; expired sessions are purged by the 1.6 cron job.
+- **Frontend sessions (1.2):** no token or user object in `localStorage`. `apiFetch` uses `credentials: "same-origin"`; on a 401 it calls `POST auth/refresh` once (shared by parallel requests) and retries the request, and only if that fails clears the hint and goes to `/login`. Options: `skipAuthRedirect` (login and signup: no refresh, no redirect), `noRedirect` (refresh yes, redirect no), `anonymous` (public pages). `authGuard.requireAuth()` is async and returns the user from `/auth/me` (use `const user = await requireAuth()`); it never resolves when it is redirecting. `session.js` keeps a non-secret hint `devfolio_session` in `localStorage` so anonymous visitors of public pages never call session endpoints; the owner controls on a portfolio page check `/auth/me` only when the hint is set.
+- **Signup and login UX (1.3):** separate pages `/login` and `/signup` (`frontend/pages/login.html`, `signup.html`; routes in `app.js`; scripts `login.js`, `signup.js`, shared `authUi.js` with password show/hide and the strength hint). `pages/auth.html` and `js/auth.js` are gone; every login redirect (`api.js`, `authGuard.js`, `requirePage`, landing "Get started" -> `/signup`) now targets `/login`. `GET /api/v1/auth/username-available?username=` is public, limited to 30 per minute per IP (`usernameCheckLimiter`) and answers 200 `{ available, reason?, message? }` (`reason`: `invalid`, `reserved`, `taken`); the signup page calls it 400 ms after typing stops and ignores stale answers. Signup success redirects to `/login?registered=1` (notice shown; no auto-login). Confirm-password and the strength meter are client-side only (the server rule stays 8 to 128 characters). Login compares against a dummy bcrypt hash when the email is unknown, so unknown email and wrong password take the same time and give the same `401 INVALID_CREDENTIALS`. Signup keeps the 409 "already in use" answer.
+- **Email verification (1.4):** `User.emailVerifiedAt` and a generic `EmailToken` table (`type` `VERIFY_EMAIL` or `PASSWORD_RESET`, unique `tokenHash` = sha256 of a 32-byte random token, `expiresAt`, `usedAt`), reused by 1.5. Helpers in `utils/emailTokens.js`: `createEmailToken(userId, type, ttlMs)` (deletes the user's older unused tokens of that type, returns the raw token) and `consumeEmailToken(raw, type)` (atomic `updateMany ... usedAt: null, expiresAt > now`; throws 400 `TOKEN_USED`, `TOKEN_EXPIRED` or `TOKEN_INVALID`), plus `appUrl()`. Signup creates a token and emails `${APP_URL}/verify-email?token=...` without awaiting it (a failed send is only logged). `POST auth/verify-email { token }` (limiter 20 per 15 min) marks the user verified; the `/verify-email` page reads the token from the URL, removes it from the address bar and posts it, so a link scanner's GET never consumes it. `POST auth/resend-verification { email }` (5 per hour per IP) always answers 202 with the same message; per account it skips sending within 60 s of the last token (`EMAIL_RESEND_COOLDOWN_MS`). TTL is `EMAIL_VERIFY_TTL_MS` (24 h). `GET auth/me` and login now include `emailVerified`. Nothing is gated on verification yet. New env var `APP_URL` (optional, default `http://localhost:PORT`). `verify-email` is a reserved username. Mailer: `deliver()` shared by `sendContactEmail` and `sendVerificationEmail`.
+- **Password reset (1.5):** `POST auth/forgot-password { email }` (limiter 5 per hour per IP) always answers 202 with the same text; for an existing account it creates a `PASSWORD_RESET` token (`PASSWORD_RESET_TTL_MS` = 1 h, same 60 s per-account cooldown) and emails `${APP_URL}/reset-password?token=...` without awaiting. `POST auth/reset-password { token, password }` (limiter 20 per 15 min) consumes the token, hashes the new password (8 to 128 characters) and, in one transaction, updates it and revokes every session of the user, then clears cookies. Pages `/forgot-password` and `/reset-password` (token removed from the URL on load); login shows "Forgot password?" and a notice after `?reset=1`. `forgot-password` and `reset-password` are reserved usernames. Verification state is not touched by a reset.
+- **Account settings and cleanup (1.6):** new module `modules/account` mounted at `/api/v1/account`, all routes behind `requireAuth` and `accountLimiter` (20 per 15 min): `POST password { currentPassword, newPassword }` (204; revokes every other session, keeps this one; same password gives 400 `SAME_PASSWORD`), `POST email { password, email }` (updates at once, sets `emailVerifiedAt` null, emails a new verification link; 409 `EMAIL_EXISTS`; returns `{ user }`), `POST username { username }` (same schema and reserved list as signup; 409 `USERNAME_EXISTS`; issues a fresh access cookie because the JWT carries the username; the old URL 404s, no redirect), `POST delete { password }` (soft delete: `User.deletedAt`, revokes all sessions, clears cookies, 204). A wrong password is **403** `WRONG_PASSWORD` (not 401, so `apiFetch` does not redirect). Deleted accounts: login gives the generic 401, refresh and `/auth/me` refuse, forgot and resend send nothing, public portfolio, share link and contact form return 404 (`deletedAt: null` in those lookups); their email and username stay reserved until removal. `jobs/cleanup.js` (`node-cron`, started from `server.js` unless `NODE_ENV=test`, daily 03:30 and once 30 s after start) deletes users with `deletedAt` older than `ACCOUNT_DELETE_GRACE_DAYS` (14; cascades), sessions expired or revoked over 7 days ago, and email tokens expired or used over a day ago; `runCleanup()` is exported for tests. There is no settings UI yet (API only).
+- **Tests (1.7):** `backend/tests/` with `node:test` and Supertest, run by `npm test` (`node --test --test-concurrency=1 "tests/**/*.test.js"`; script set with `npm pkg set`, `supertest` is a dev dependency). `tests/setup.js` is imported first by `tests/helpers.js` and switches the app to `DATABASE_URL_TEST` (refuses when unset or equal to `DATABASE_URL`) and sets `NODE_ENV=test` (limiters off). `utils/mailer.js` pushes payloads to an in-memory `testOutbox` instead of calling Resend when `NODE_ENV=test`; helpers `waitForMail`, `expectNoMail`, `tokenFromMail` read it (emails are sent without being awaited). Test users use the email domain `@devfolio-test.dev` and are removed by `cleanupUsers()` (before and after each file). Files: `auth.test.js` (signup, login, username-available, me, refresh, logout, Origin), `email-flows.test.js` (verify-email, resend-verification, forgot-password, reset-password), `account.test.js` (password, email, username, delete, `runCleanup`). Every auth endpoint has its happy path and at least 3 failure paths.
 - All environment access now goes through `config/env.js` (`import { env } from "../config/env.js"`). Do not read `process.env` elsewhere. (Exception: `prisma.config.ts` is the Prisma CLI config and still reads `process.env.DATABASE_URL` directly on purpose.)
 - `app.js` exports the Express app (no `listen`); `server.js` only calls `listen`.
 - Prisma 7: `migrate dev` does not auto-run `generate`, so run `npx prisma generate` after installing.
@@ -111,13 +118,13 @@ backend/
   app.js                    # builds Express app: middleware, static, /health + /healthz, /api/v1 routers, page routes, 404, errorHandler
   server.js                 # imports app, listens on env.PORT
   modules/<name>/           # <name>.routes.js + <name>.controller.js + <name>.schema.js (zod schemas; messages and onboarding included)
-                            # names: auth, profile, skills, projects, onboarding, share, messages
+                            # names: auth, account, profile, skills, projects, onboarding, share, messages
   config/                   # env.js (zod-validated env, exits on error), constants.js (APP_NAME),
                             # prisma.js, logger.js (pino-pretty only when NODE_ENV != production)
-  middleware/               # auth.middleware.js (Bearer JWT, throws AppError), validate.js (validate(schema), zodFields),
+  middleware/               # auth.middleware.js (requireAuth from the access cookie, requirePage, readAccessUser), origin.js (originCheck), validate.js (validate(schema), zodFields),
                             # error.middleware.js (errorHandler + notFoundHandler, standard error shape)
-  utils/                    # AppError.js, prismaErrors.js (isUniqueViolation), publicPortfolio.js (public select), validators.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
-  prisma/                   # schema.prisma + 6 migrations (0.5 added lowercase_identities and skill_project_created_at_unique_skills)
+  utils/                    # emailTokens.js (one-time email tokens), session.js (cookies, tokens, hashing), AppError.js, prismaErrors.js (isUniqueViolation), publicPortfolio.js (public select), validators.js, mailer.js (Resend, from "Portfolio Contact <onboarding@resend.dev>", renamed in 0.7)
+  prisma/                   # schema.prisma + 7 migrations (0.5 added lowercase_identities and skill_project_created_at_unique_skills; 1.1 added add_sessions)
   eslint.config.js, .prettierrc, .prettierignore, .env.example
   .env                      # NOT to be uploaded (contains secrets)
 README.md                   # at repo root
@@ -126,24 +133,24 @@ README.md                   # at repo root
 **Frontend layout:**
 ```
 frontend/
-  index.html                # landing (title "Devfolio"), "Get started" -> /pages/auth.html
-  pages/                    # auth (title "Log in | Devfolio"), onboarding, edit, portfolio (.html)
+  index.html                # landing (title "Devfolio"), "Get started" -> /signup
+  pages/                    # login, signup, verify-email, forgot-password, reset-password, onboarding, edit, portfolio (.html)
   js/                       # config (API_BASE_URL="", API_PREFIX="/api/v1"), api (apiFetch -> { ok, status, data, error }),
-                            # forms (showFieldErrors, setFieldError, clearFieldErrors, errorText), authGuard, auth,
-                            # onboarding, edit, portfolio, script (nav/scroll-reveal), skillStyles
+                            # forms (showFieldErrors, setFieldError, clearFieldErrors, errorText), authGuard, login, signup, authUi, verifyEmail, forgotPassword, resetPassword,
+                            # onboarding, edit, portfolio, session (login hint), script (nav/scroll-reveal), skillStyles
   css/                      # global, auth, onboarding, edit
 ```
 
 **Scripts (run in `backend/`):** `dev`, `start`, `smoke` (0.8, checks a running server), `lint`, `lint:fix`, `format`, `format:check`. Lint and format scripts `cd ..` first so they cover `backend/` and `frontend/` together; configs live in `backend/`.
 
-**Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. `Skill` and `Project` have `createdAt` (0.5). `Skill` has a unique `(userId, lower(name))` index. Note: `other` is one of the 16 skill presets, so a user can have only one `other` skill until custom skills arrive in Phase 2.
+**Current data model:** `User` (email, username, passwordHash, onboardingComplete, shareToken?, createdAt) -> many `Session` (refreshHash, prevRefreshHash?, rotatedAt?, expiresAt, revokedAt?, userAgent?, createdAt, lastUsedAt; 1.1) -> one `Profile` (displayName, aboutText, heroRoleTexts[], contactEmail, contactPhone, githubUrl), many `Skill` (name enum-limited to 16 presets, icon?, level great/good/learning), many `Project` (title, description, repoUrl, liveUrl, tags[]). Cascade deletes. `Skill` and `Project` have `createdAt` (0.5). `Skill` has a unique `(userId, lower(name))` index. Note: `other` is one of the 16 skill presets, so a user can have only one `other` skill until custom skills arrive in Phase 2.
 
 **Current API (all under `/api/v1`; paths below are relative to it):**
-`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (public since 0.6), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
+`GET /healthz` (outside the prefix, with DB ping; `/health` kept as alias), `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/forgot-password`, `POST auth/reset-password`, `POST account/password|email|username|delete`, `POST auth/refresh`, `POST auth/logout`, `GET auth/me`, `POST onboarding`, `GET|PATCH profile`, `GET portfolio/:username` (public since 0.6), `GET|POST skills`, `PATCH|DELETE skills/:id`, `GET|POST projects`, `PATCH|DELETE projects/:id`, `POST|GET|DELETE share`, `GET portfolio/share/:token`, `POST portfolio/:username/message`, `POST portfolio/share/:token/message`. (The unused `auth/onboarding/complete` route was removed in 0.1.)
 
 **Page routes in `app.js`:** static files, `/health`, `/healthz`, API routers (`/api/v1`), then `/onboarding`, `/edit`, `/share/:token`, `/:username` (catch-all that serves `portfolio.html`), then a 404 handler and the error handler.
 
-**Auth today:** login returns a JWT (7 days); the frontend stores `token` and `user` in `localStorage`; `apiFetch` adds the `Authorization: Bearer` header, always resolves to `{ ok, status, data, error }` (never throws, network failures give `NETWORK_ERROR`), accepts `skipAuthRedirect` (used by login and signup), and on any other 401 clears storage and redirects to `/pages/auth.html`. (Replaced by cookies in Phase 1. Do not change it in Phase 0.)
+**Auth today (since 1.2):** cookie sessions as described under "Sessions" and "Frontend sessions" above. The Phase 0 `localStorage` JWT and the Bearer header are gone. Phase 1 continues with signup/login pages (1.3), email verification (1.4), password reset (1.5) and account settings (1.6).
 
 ---
 
@@ -198,108 +205,51 @@ frontend/
 Mark `[x]` when **all** success criteria of that item are verified by the user. `[~]` means implemented but not yet verified.
 
 ### Phase 0: Foundation, cleanup and critical fixes
-- [~] **0.1** Hygiene and bootstrap: committed on `phase-0-foundation` (renamed from `phase-0.1-hygiene`); user verification not yet confirmed
-- [~] 0.2 Restructure and API versioning: **implemented, awaiting user verification** (see section 8a)
-- [~] 0.3 Error contract: **implemented, awaiting user verification** (see section 8a)
-- [~] 0.4 Input validation and clearable fields: **implemented, awaiting user verification** (see section 8a)
-- [x] 0.5 Data integrity: verified by the user
-- [x] 0.6 Public access and XSS fixes: verified by the user
-- [x] 0.7 Security middleware: verified by the user
-- [~] 0.8 Verification and docs: **implemented, awaiting user verification** (see section 8a)
+- [x] 0.1 to 0.8, **Phase 0 merged into `main`** by the user (Session 8). Tag `phase-0-complete` and the 0.8 walkthrough details were not reported back; see the leftovers in Session 7.
 
-### Phases 1 to 10
-- [ ] Phase 1  ← **NEXT** (after Phase 0 is merged) · [ ] Phase 2 · [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5
-- [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
+### Phase 1: Accounts and secure sessions (branch `phase-1-accounts`, plan in `docs/PHASE_1_PLAN.md`)
+- [~] 1.1 Session backend: **implemented, awaiting user verification**
+- [~] 1.2 Frontend sessions: **implemented, awaiting user verification**
+- [~] 1.3 Signup and login UX: **implemented, awaiting user verification**
+- [~] 1.4 Email verification: **implemented, awaiting user verification**
+- [~] 1.5 Password reset: **implemented, awaiting user verification** 
+- [~] 1.6 Account settings API: **implemented, awaiting user verification**
+- [~] 1.7 Auth tests: **implemented, awaiting user verification** ← **NEXT: verify, then merge Phase 1**
+
+### Phases 2 to 10
+- [ ] Phase 2 · [ ] Phase 3 · [ ] Phase 4 · [ ] Phase 5 · [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
 
 ---
 
 ## 8. NEXT TASK
 
-### 8a. First: finish Phase 0
+### 8a. First: verify and commit batch 1 (1.1, then 1.2)
 
-Apply `devfolio-0.8-changes.zip` over the repo root. No new dependencies, no migrations. Then in `backend/` run `npm pkg set scripts.smoke="node scripts/smoke.js"` (adds the `smoke` script to your own `package.json`; commit it). Also run `npm audit fix` (see the audit note in the Session 7 log; it is non-breaking) and commit the lock file separately if it changes.
+Apply `devfolio-1.1-changes.zip`, then (after committing 1.1) `devfolio-1.2-changes.zip`, using the command blocks from the chat reply. In `backend/`: `npm install cookie-parser` (new dependency; updates `package.json` and the lock file, commit them with 1.1), then `npx prisma migrate dev` (adds the `Session` table) and `npx prisma generate`.
 
-**0.8 checks**
-- [ ] `npm run lint` passes and `npm run smoke` (server running, `SMOKE_USERNAME=<your username>` set) ends with "All checks passed."
-- [ ] README setup works from a clean clone with only `.env.example` (boots, `npx prisma migrate dev`, `npx prisma generate`).
-- [ ] `git ls-files | grep .env` lists only `backend/.env.example`; secrets (JWT secret, Resend key, database password) have been **rotated**.
-- [ ] **Regression walkthrough passes** (browser, normal and private window):
-  1. Sign up (`Test@Mail.com`, valid username), then log in with `test@mail.com`.
-  2. Onboarding with 2 skills and 1 project; a second submit is refused.
-  3. View your portfolio logged in (owner controls visible) and in a private window (no controls, no redirect).
-  4. Edit profile; clear an optional field and reload (stays empty).
-  5. Skills: add, change level, delete; adding a duplicate shows a message.
-  6. Projects: add, edit, delete; a project without URLs shows no buttons.
-  7. Share link: create, open in a private window, regenerate (old link dies), revoke.
-  8. Contact form sends an email; bad input shows field errors.
-  9. Log out; protected pages send you to login.
-  10. Paste `"><img src=x onerror=alert(1)>` into name, about, role, project title, description and tags: it shows as plain text on the portfolio, share page and edit page.
-- [ ] No CSP violations in the browser console on all pages.
+**1.1 checks** (server running; old users must log in again after the migration)
+- [ ] `npm run lint` passes; `npm run smoke` ends with "All checks passed." (3 new checks: `/auth/me` 401, `/auth/refresh` without cookie 401, foreign Origin 403).
+- [ ] Log in, then in DevTools, Application, Cookies: `dev_access` and `dev_refresh` exist, both `HttpOnly` (and `Secure` only in production).
+- [ ] Database: `Session` row created at login; `refreshHash` is a 64-character hash, not the cookie value.
 
-When everything passes, **close Phase 0** (these steps replace the usual per-subphase merge rule):
+**1.2 checks** (browser)
+- [ ] DevTools, Application, Local Storage: no `token` or `user` key (only the harmless `devfolio_session` hint).
+- [ ] Log in, onboard, view your portfolio (owner controls show), edit, share, log out. Visiting `/edit` while logged out redirects to login; a private window sees the public page without errors or extra 401s in the console.
+- [ ] Silent refresh: log in, delete only the `dev_access` cookie in DevTools, click around the edit page: everything keeps working and the Network tab shows one `refresh` call. (Waiting 15 minutes does the same.)
+- [ ] Log out, then copy a stale `dev_refresh` value back: `POST /api/v1/auth/refresh` returns 401.
+- [ ] No CSP violations in the console.
 
-```bash
-git checkout main
-git pull
-git merge --no-ff phase-0-foundation -m "merge: phase 0 foundation"
-git tag phase-0-complete
-git push && git push --tags
-git checkout -b phase-1-accounts
-```
+Then tick 1.1 and 1.2 in section 7.
 
-Optional, as its own commit before the merge (it reformats every file): `cd backend && npm run format`, then `git add -A` and `git commit -m "style: format with prettier"`.
+### 8b. Verify 1.7, then finish Phase 1
 
-Tick `[x]` for 0.1 to 0.8 and Phase 0 in section 7 after the walkthrough.
+**1.7 setup** (after applying `devfolio-1.7-changes.zip`): in `backend/` run `npm install -D supertest` and `npm pkg set scripts.test="node --test --test-concurrency=1 \"tests/**/*.test.js\""` (both change `package.json` and the lock file; commit them with 1.7). Create an empty database (for example `devfolio_test`), add `DATABASE_URL_TEST=...` to `.env`, then `DATABASE_URL=<that url> npx prisma migrate deploy`.
 
-### 8b. Then: Phase 1: Accounts and secure sessions
+**1.7 checks**
+- [ ] `npm run lint` passes and `npm test` passes (all tests green). If something fails, send me the failing test name and message: the tests were written without a database, so a first-run fix is likely.
+- [ ] With `DATABASE_URL_TEST` unset or equal to `DATABASE_URL`, `npm test` stops with a clear message and touches nothing.
 
-**Goal:** a complete, secure account system: signup through recovery and deletion.
-
-### Tasks
-
-**Sessions**
-- Replace the 7-day JWT in `localStorage` with an **httpOnly, Secure, SameSite=Lax** access cookie (about 15 minutes) and a **rotating refresh token** (about 30 days) stored hashed in `Session`.
-- Add `POST /auth/refresh`, `POST /auth/logout` (revokes the session) and `GET /auth/me`.
-- The frontend API client silently refreshes once on a 401 and retries, then redirects to login only if the refresh fails.
-- Add Origin/CSRF protection for state-changing requests (SameSite plus an Origin header check).
-- Auth middleware also supports page requests, so the server can redirect based on the session.
-
-**Signup and login UX**
-- Separate `/signup` and `/login` pages, with signup as the default for new visitors coming from "Get started".
-- Live **username availability** check (debounced).
-- Show/hide password toggle, a password strength hint and a confirm-password field.
-- Field-level inline errors from the standard error shape.
-- Generic login failure messages (no account enumeration) and login attempt rate limiting.
-
-**Email verification**
-- On signup, send a verification email with a single-use token (hashed in DB, 24-hour expiry).
-- `/verify-email` page consumes the token. A resend button is rate limited.
-- Unverified users can log in and edit, but **cannot publish** until verified (enforced in Phase 4).
-
-**Password reset**
-- `/forgot-password` accepts an email and always replies with the same message.
-- `/reset-password` consumes the token, sets a new password and **revokes all sessions**.
-
-**Account settings** (backend now, UI in Phase 3)
-- Change email (re-verification), username (checked against reserved list and uniqueness, with old-URL behavior documented) and password (requires current password).
-- **Delete account**: requires password, soft-deletes immediately, hard-deletes all data after a grace window by cron, and revokes all sessions.
-
-### Success criteria
-
-- [ ] No token appears in `localStorage`, and cookies are `HttpOnly`.
-- [ ] After the 15-minute access expiry, a user mid-session continues without being logged out.
-- [ ] Logging out on one device invalidates that session's refresh token server-side.
-- [ ] Signup shows live username availability and per-field errors.
-- [ ] Verification email arrives, the link works once, and an expired or reused link shows a helpful message.
-- [ ] Forgot-password gives an identical response for existing and non-existing emails.
-- [ ] Completing a password reset logs out all other sessions.
-- [ ] Changing password requires the current password.
-- [ ] Deleting an account removes access immediately and all rows after the grace window (verified in DB).
-- [ ] Auth endpoints are rate limited and covered by automated tests (happy path plus at least 3 failure paths each).
-
-**Phase 1 starts like every phase: split it into subphases (a `PHASE_1_PLAN.md`, about 6 to 8 steps), send a brief, and wait for approval.** Read section 12 first.
-
----
+**Then:** tick 1.1 to 1.7 here, run the whole Phase 1 walkthrough once in the browser (signup, verify, login, reset, logout), then `git checkout main`, `git merge --no-ff phase-1-accounts`, `git tag phase-1-complete`, push. Next phase: Phase 2 (content model and editor API), read its section in `BUILD_PLAN.md`; the prettier-format commit is still pending.
 
 ## 9. How this file is updated
 
@@ -490,7 +440,95 @@ Leftovers / TODOs for later:
 - Public page for users who skipped onboarding is still mostly empty (Phase 3 or 5).
 Must not break: see section 12.
 
-*(Add Session 8 and onward below this line.)*
+### Session 8: Phase 1 batch 1, subphases 1.1 and 1.2 (2026-10-12)
+Result: **implemented; awaiting user verification.** Unlike earlier sessions, the sandbox ran a real local PostgreSQL 16 (apt) with all 7 migration SQL files applied by `psql` and the Prisma client generated (`PRISMA_SCHEMA_ENGINE_BINARY=/bin/true npx prisma generate`), so the DB flows were tested for real. `prisma migrate dev` itself could not run (engine download blocked): the new migration SQL was written by hand and applied cleanly, but run `npx prisma migrate dev` locally; if it reports drift, tell Claude.
+Context: the user merged Phase 0, approved a 7-subphase Phase 1 in 3 batches and the decisions in `PHASE_1_PLAN.md`.
+
+**1.1 Session backend**
+Files created: `backend/utils/session.js`, `backend/middleware/origin.js`, `backend/prisma/migrations/20261012120000_add_sessions/migration.sql`, `docs/PHASE_1_PLAN.md`
+Files changed: `backend/prisma/schema.prisma` (`Session`, `User.sessions`), `backend/config/constants.js`, `backend/modules/auth/auth.controller.js` (login starts a session; `refresh`, `logout`, `me`), `auth.routes.js`, `backend/middleware/auth.middleware.js` (access cookie; Bearer kept temporarily in 1.1 only), `backend/middleware/rateLimit.js` (`refreshLimiter`, 60 per 15 min), `backend/app.js` (`cookieParser`, `originCheck`), `backend/scripts/smoke.js` (3 checks)
+New dependency: `cookie-parser` (not shipped in the zip; `npm install cookie-parser`). No new env vars.
+Tested (real DB, curl): signup, login sets both HttpOnly cookies, `/me`, refresh rotates and sets new cookies, old token within 10 s gets access cookie only, old token after 11 s gives 401 `REFRESH_TOKEN_REUSED` and the newest token of that session is then dead, logout revokes (stale refresh token 401), foreign Origin 403, 4 parallel refreshes with one token all 204, stored hash is 64 chars, smoke 8 of 8 plus 1 skipped.
+
+**1.2 Frontend sessions**
+Files created: `frontend/js/session.js`
+Files changed: `frontend/js/api.js`, `authGuard.js`, `auth.js`, `onboarding.js`, `edit.js`, `portfolio.js`, `backend/middleware/auth.middleware.js` (Bearer removed, `requirePage`), `backend/modules/auth/auth.controller.js` (login body no longer has `token`), `backend/app.js` (`requirePage` on `/onboarding` and `/edit`), `README.md`, `docs/HANDOFF.md`
+Tested (Node harness with a cookie-jar fetch shim against the live server, 13 of 13): cookies in the jar and nothing in storage after login; expired access cookie gives refresh plus retry in one call chain with no redirect; 3 parallel 401s share one refresh; no session redirects to login and clears the hint; `noRedirect` and `anonymous` behave; wrong login shows `INVALID_CREDENTIALS` without refresh or redirect; `requireAuth` resolves or never resolves; logout clears cookies and the server rejects the old refresh token. Page routes: `/edit` and `/onboarding` give 302 to login without cookies and 200 with a session; Bearer no longer works. **Not tested:** real browser rendering (DevTools checks above are yours).
+Decisions made (and why): refresh rotation with a compare-and-swap and a 10-second grace so two tabs do not log the user out (the grace issues only a new access cookie, the browser already holds the newer refresh cookie); refresh cookie path limited to `/api/v1/auth`; access JWT is not checked against the DB per request (stateless, 15 min), so logout and password change take effect within 15 minutes for already-issued access tokens (the refresh token dies at once); `localStorage` keeps only a non-secret hint so anonymous visitors do not fire 401 requests; refresh and logout return 204; Origin check allows requests without an Origin header (not cross-site browser requests) and relies on SameSite=Lax for the rest; cookies are same-origin only (no `cors` credentials).
+Leftovers / TODOs for later:
+- Expired and revoked `Session` rows are not purged yet (cron in 1.6).
+- Existing users must log in again after deploying (old localStorage JWTs no longer work); stale `token`/`user` keys are removed on the first `clearSession()`.
+- `LOGIN_PAGE` is still `/pages/auth.html` (changes in 1.3). Login timing for unknown emails is fixed in 1.3.
+- Phase 0 leftovers still open: Prettier not applied, CSP `'unsafe-inline'` styles, in-memory rate limits, dev-only audit findings.
+Must not break: only `requireAuth` reads the access cookie; never put tokens in `localStorage` or response bodies; every new state-changing route sits behind `originCheck` (mounted for all `/api/v1`); the refresh cookie stays on path `/api/v1/auth`; all frontend calls go through `apiFetch`; protected pages use `await requireAuth()`.
+
+### Session 9: Subphase 1.3, Signup and login UX (2026-10-12)
+Result: **implemented; awaiting user verification** (no database or `node_modules` in the sandbox, so only `node --check` and a unit check of the strength helper were run; lint and the live flows are for the user)
+Files created: `frontend/pages/login.html`, `frontend/pages/signup.html`, `frontend/js/login.js`, `signup.js`, `authUi.js`
+Files changed: `backend/app.js` (`/login`, `/signup` routes), `backend/middleware/auth.middleware.js` (redirect to `/login`), `backend/middleware/rateLimit.js` (`usernameCheckLimiter`), `backend/modules/auth/auth.controller.js` (dummy-hash login, `usernameAvailable`), `auth.routes.js`, `frontend/js/api.js`, `authGuard.js` (`LOGIN_PAGE = "/login"`), `frontend/index.html`, `frontend/css/auth.css` (panel switching removed; password toggle, strength bar, notice), `README.md`, `docs/HANDOFF.md`
+Files deleted: `frontend/pages/auth.html`, `frontend/js/auth.js`
+New env vars / commands: none (no new dependency, no migration)
+Decisions made (and why): the availability endpoint is public and returns the reason (taken or reserved) because usernames are already public URLs; signup success redirects to `/login?registered=1` instead of auto-login (login starts the session, and 1.4 will add verification); dummy bcrypt hash computed at startup (cost 10, same as signup) for timing; forms use `novalidate` so the page's own inline errors replace browser bubbles; the strength meter is only a hint.
+Leftovers / TODOs for later:
+- Username availability is checked again by the server at signup (the 409 race answer is unchanged).
+- A logged-in visitor opening `/login` is not redirected to their portfolio.
+Must not break: all auth redirects use `/login`; login failures stay generic; `/login` and `/signup` stay in `RESERVED_USERNAMES`.
+
+Follow-up fix (lint): removed unused `setFieldError` import and `usernameOk` variable from `frontend/js/signup.js` (the submit check uses the status element's state instead). No behavior change.
+
+### Session 10: Subphase 1.4, Email verification (2026-10-12)
+Result: **implemented; awaiting user verification** (no database, `node_modules` or Resend in the sandbox: only `node --check` was run)
+Files created: `backend/prisma/migrations/20261012140000_add_email_verification/migration.sql`, `backend/utils/emailTokens.js`, `frontend/pages/verify-email.html`, `frontend/js/verifyEmail.js`
+Files changed: `backend/prisma/schema.prisma` (`emailVerifiedAt`, `EmailTokenType`, `EmailToken`), `backend/config/constants.js` (reserved `verify-email`, TTL and cooldown), `config/env.js` and `.env.example` (`APP_URL`), `utils/mailer.js`, `middleware/rateLimit.js` (`emailTokenLimiter`, `resendLimiter`), `modules/auth/auth.schema.js`, `auth.routes.js`, `auth.controller.js`, `backend/app.js` (`/verify-email` route), `frontend/css/auth.css`, `frontend/js/login.js` (notice text), `README.md`, `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: `APP_URL` (optional); `npx prisma migrate dev` and `npx prisma generate` in `backend/`
+Decisions made (and why): the page posts the token (a GET from an email scanner cannot consume it); resend is public by email with an identical 202 reply (the user may not be logged in, and nothing leaks); a 60 s cooldown per account plus an IP limiter; one live link per user (older unused tokens are deleted when a new one is made); signup and resend do not await the email (no timing difference, signup never fails because of mail); `EmailToken` is generic so 1.5 reuses it; existing users stay unverified (nothing is gated yet).
+Leftovers / TODOs for later:
+- Used and expired `EmailToken` rows are not purged yet (the 1.6 cron job should also delete them).
+- No in-app "unverified" banner or resend button for logged-in users; add with the dashboard (Phase 3) if wanted.
+- The email is plain text only.
+Must not break: only the sha256 of tokens is stored; resend answers identically for every email; the verify page never leaves the token in the URL.
+
+### Session 11: Subphase 1.5, Password reset (2026-10-12)
+Result: **implemented; awaiting user verification** (sandbox: only `node --check`; no database or Resend)
+Files created: `frontend/pages/forgot-password.html`, `reset-password.html`, `frontend/js/forgotPassword.js`, `resetPassword.js`
+Files changed: `backend/config/constants.js` (reserved names, `PASSWORD_RESET_TTL_MS`), `utils/mailer.js` (`sendPasswordResetEmail`), `middleware/rateLimit.js` (`forgotLimiter`), `modules/auth/auth.schema.js`, `auth.routes.js`, `auth.controller.js`, `backend/app.js`, `frontend/pages/login.html` (forgot link), `frontend/js/login.js` (reset notice), `frontend/css/auth.css`, `README.md`, `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: none
+Decisions made (and why): reset link TTL is 1 hour (shorter than verification, the plan gave none); reset also revokes all sessions in the same transaction as the password update; forgot-password never awaits the email so timing does not reveal accounts; a reset does not mark the email verified (kept separate); no auto-login after reset (the user logs in with the new password).
+Leftovers / TODOs for later:
+- Used and expired `EmailToken` rows are still not purged (1.6 cron).
+- An access JWT issued before the reset stays valid until it expires (max 15 min), as for logout.
+- Password change inside settings (1.6) should also revoke the user's other sessions.
+Must not break: forgot-password answers identically for every email; only token hashes are stored; reset always revokes all sessions.
+
+### Session 12: Subphase 1.6, Account settings API (2026-10-12)
+Result: **implemented; awaiting user verification** (sandbox: only `node --check`; no database, `node-cron` or network)
+Files created: `backend/modules/account/account.routes.js`, `account.controller.js`, `account.schema.js`, `backend/jobs/cleanup.js`, `backend/prisma/migrations/20261012160000_add_user_deleted_at/migration.sql`
+Files changed: `backend/prisma/schema.prisma` (`deletedAt`), `config/constants.js` (`ACCOUNT_DELETE_GRACE_DAYS`), `middleware/auth.middleware.js` (async `requireAuth` with DB session check), `middleware/rateLimit.js` (`accountLimiter`), `modules/auth/auth.controller.js` (deleted accounts ignored in login, refresh, me, forgot, resend), `modules/profile/profile.controller.js`, `share/share.controller.js`, `messages/messages.controller.js` (`deletedAt: null`), `backend/app.js`, `backend/server.js` (`startJobs`), `README.md`, `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: none; `npm install node-cron`; `npx prisma migrate dev`; `npx prisma generate`
+Decisions made (and why): "loses access at once" needs a DB check, so `requireAuth` now looks up the session and account on every protected request (one indexed query); this also ends the 15-minute window after logout and password reset, so the earlier "stateless" note is superseded; wrong password is 403 so the client does not treat it as an expired session; email change takes effect immediately and re-verifies (no pending-email table); username change reissues the access cookie; password change keeps the current session and revokes the others; soft-deleted accounts keep their email and username until removal (no restore feature); the cron starts from `server.js` so tests importing `app.js` never schedule it; routes are `POST` (including delete) so every call carries a JSON body and goes through the same origin check.
+Leftovers / TODOs for later:
+- No settings page yet (dashboard, Phase 3). Share links of deleted accounts stop working immediately.
+- `runCleanup` runs in every instance; fine for one instance.
+- Existing sessions issued before 1.6 keep working (they are real `Session` rows).
+Must not break: protected routes check the session in the DB; deleted accounts stay invisible on every public lookup (add `deletedAt: null` to any new public query); account endpoints stay behind `requireAuth` and `accountLimiter`.
+
+### Session 13: Subphase 1.7, Auth tests (2026-10-12)
+Result: **implemented; awaiting user verification** (sandbox: only `node --check`; the tests have never been run, no database or `supertest` here)
+Files created: `backend/tests/setup.js`, `helpers.js`, `auth.test.js`, `email-flows.test.js`, `account.test.js`
+Files changed: `backend/utils/mailer.js` (test outbox), `backend/.env.example` (`DATABASE_URL_TEST`), `README.md`, `docs/HANDOFF.md`
+Files deleted: none
+New env vars / commands: `DATABASE_URL_TEST` (test only, not in `config/env.js`); `npm install -D supertest`; `npm pkg set scripts.test=...`; `DATABASE_URL=<test url> npx prisma migrate deploy`
+Decisions made (and why): a mailer seam (`testOutbox` when `NODE_ENV=test`) because tokens only exist in emails and the tests must never send real mail; tests run one file at a time against one shared test DB and delete their own users by email domain; the safety check refuses to run against the dev database; tokens and cooldowns are manipulated through the DB (`expiresAt`, `createdAt`, `rotatedAt`) instead of waiting; `runCleanup` is tested directly.
+Leftovers / TODOs for later:
+- First run may need small fixes (cookie-jar details, timing of unawaited emails: `waitForMail` polls up to 2 s).
+- No frontend tests; the smoke script is still separate.
+- Phase 0 leftovers: Prettier not applied, CSP `'unsafe-inline'` styles, in-memory rate limits.
+Must not break: tests never touch the dev database; no real email is sent in tests; new auth or account endpoints need a happy path and at least 3 failure paths.
+
+*(Add Session 14 and onward below this line.)*
 
 ---
 

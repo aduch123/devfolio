@@ -2,6 +2,7 @@ import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { showFieldErrors, errorText } from "./forms.js";
 import { logout } from "./authGuard.js";
+import { hasSessionHint } from "./session.js";
 import { skillStyles } from "./skillStyles.js";
 
 const prefersReducedMotion = window.matchMedia(
@@ -238,9 +239,11 @@ function setSectionVisible(id, visible) {
   if (link) link.style.display = visible ? "" : "none";
 }
 
-function setupOwnerControls(viewedUsername) {
-  const storedUser = JSON.parse(localStorage.getItem("user") || "null");
-  if (!storedUser || storedUser.username !== viewedUsername) return;
+async function setupOwnerControls(viewedUsername) {
+  // Anonymous visitors have no session hint, so they never trigger a session call.
+  if (!hasSessionHint()) return;
+  const me = await apiFetch(`${API_PREFIX}/auth/me`, { noRedirect: true });
+  if (!me.ok || me.data.user.username !== viewedUsername) return;
 
   document.getElementById("owner-controls").classList.add("visible");
 

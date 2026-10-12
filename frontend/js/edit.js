@@ -4,7 +4,7 @@ import { apiFetch } from "./api.js";
 import { showFieldErrors, setFieldError, clearFieldError, errorText } from "./forms.js";
 import { skillOptions } from "./skillStyles.js";
 
-const { user } = requireAuth();
+const user = await requireAuth();
 
 document.getElementById("back-to-portfolio").href = `/${user.username}`;
 

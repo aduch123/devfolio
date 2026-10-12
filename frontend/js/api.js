@@ -1,4 +1,5 @@
-import { API_BASE_URL } from "./config.js";
+import { API_BASE_URL, API_PREFIX } from "./config.js";
+import { clearSession } from "./session.js";
 
 const fail = (status, code, message, fields) => ({
   ok: false,
@@ -7,21 +8,43 @@ const fail = (status, code, message, fields) => ({
   error: { code, message, ...(fields ? { fields } : {}) },
 });
 
+const LOGIN_PAGE = "/login";
+
+// One refresh at a time: parallel 401s share the same request.
+let refreshing = null;
+
+function refreshSession() {
+  if (!refreshing) {
+    refreshing = fetch(`${API_BASE_URL}${API_PREFIX}/auth/refresh`, {
+      method: "POST",
+      credentials: "same-origin",
+    })
+      .then((res) => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshing = null;
+      });
+  }
+  return refreshing;
+}
+
 // Always resolves to { ok, status, data, error }.
 // error is { code, message, fields? } (the backend's standard error shape).
-// Options: any fetch option, plus skipAuthRedirect (for login/signup, where a 401 is a normal answer)
-// and anonymous (public pages: never send the stored token, never redirect to login).
+// Options: any fetch option, plus
+//   skipAuthRedirect  login/signup: a 401 is a normal answer (no refresh, no redirect)
+//   noRedirect        try a silent refresh on 401, but never send the visitor to login
+//   anonymous         public pages: never refresh, never redirect
+// On a 401 the client refreshes the session once and retries; only if that fails does it go to login.
 export async function apiFetch(path, options = {}) {
-  const { skipAuthRedirect = false, anonymous = false, ...fetchOptions } = options;
-  const token = anonymous ? null : localStorage.getItem("token");
+  const { skipAuthRedirect = false, noRedirect = false, anonymous = false, _retried = false, ...fetchOptions } = options;
 
   let res;
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
       ...fetchOptions,
+      credentials: "same-origin",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...fetchOptions.headers,
       },
     });
@@ -30,9 +53,13 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (res.status === 401 && !skipAuthRedirect && !anonymous) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/pages/auth.html";
+    if (!_retried && (await refreshSession())) {
+      return apiFetch(path, { ...options, _retried: true });
+    }
+    clearSession();
+    if (!noRedirect) {
+      window.location.href = LOGIN_PAGE;
+    }
     return fail(401, "UNAUTHORIZED", "Please log in");
   }
 

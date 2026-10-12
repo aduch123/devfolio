@@ -22,7 +22,7 @@ export const getPublicPortfolio = async (req, res) => {
   const username = req.params.username.toLowerCase();
 
   const user = await prisma.user.findUnique({
-    where: { username },
+    where: { username, deletedAt: null },
     select: PUBLIC_PORTFOLIO_SELECT,
   });
 

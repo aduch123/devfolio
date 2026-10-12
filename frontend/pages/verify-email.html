@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <title>Verify email | Devfolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="auth-body">
+  <div class="auth-wrapper">
+    <div class="editor-window auth-card">
+      <div class="editor-titlebar">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-amber"></span>
+        <span class="dot dot-green"></span>
+        <span class="editor-filename">verify.js</span>
+      </div>
+      <div class="auth-form">
+        <h1 class="auth-title" id="verify-title">Verifying your email…</h1>
+        <p class="auth-message" id="verify-message"></p>
+        <a href="/login" class="btn" id="verify-login" hidden>Log in</a>
+
+        <form id="resend-form" class="auth-form-inner" novalidate hidden>
+          <div class="field">
+            <label for="resend-email">Email</label>
+            <input type="email" id="resend-email" name="email" autocomplete="email" required>
+          </div>
+          <p class="auth-error" id="resend-error" role="alert"></p>
+          <button type="submit" class="btn">Send a new link</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/js/verifyEmail.js"></script>
+</body>
+</html>

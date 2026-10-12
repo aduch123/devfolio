@@ -27,7 +27,7 @@ export const getSharedPortfolio = async (req, res) => {
   const { token } = req.params;
 
   const user = await prisma.user.findUnique({
-    where: { shareToken: token },
+    where: { shareToken: token, deletedAt: null },
     select: PUBLIC_PORTFOLIO_SELECT,
   });
 

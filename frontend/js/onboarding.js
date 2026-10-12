@@ -4,7 +4,7 @@ import { apiFetch } from "./api.js";
 import { showFieldErrors, errorText } from "./forms.js";
 import { skillOptions } from "./skillStyles.js";
 
-const { user } = requireAuth();
+const user = await requireAuth();
 
 const form = document.getElementById("onboarding-form");
 const rolesList = document.getElementById("roles-list");
@@ -120,9 +120,6 @@ form.addEventListener("submit", async (e) => {
     errorEl.textContent = errorText(result.error, unmatched);
     return;
   }
-
-  const updatedUser = { ...user, onboardingComplete: true };
-  localStorage.setItem("user", JSON.stringify(updatedUser));
 
   window.location.href = `/${user.username}`;
 });
