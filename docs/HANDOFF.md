@@ -65,6 +65,7 @@ The goal is an **intermediate-level** project that is also well structured and s
 | File | Contents | Use it when |
 |---|---|---|
 | `BUILD_PLAN.md` | Full 11-phase plan (0 to 10), data model, API surface, architecture, success criteria per phase, traceability appendices | Starting a **new phase** (paste only that phase's section) |
+| `PHASE_3_PLAN.md` | Phase 3 split into 5 subphases (3.1 to 3.5) with tasks, success criteria and the approved decisions | Starting a **new Phase 3 subphase** (paste only that row) |
 | `PHASE_0_PLAN.md` | Phase 0 split into 8 subphases (0.1 to 0.8) with tasks and success criteria | Starting a **new subphase** (paste only that subphase's section) |
 | `HANDOFF.md` (this file) | Status, context, rules, log | **Every** new chat |
 
@@ -204,7 +205,7 @@ frontend/
 - README lives at the repo root; setup instructions run `npx prisma migrate dev` then `npx prisma generate`.
 
 **Phase 3 decisions (approved in Session 16, adjusted in Session 17)**
-- Branch `phase-3-dashboard`, split 3.1 routing, 3.2 shell and settings, 3.3 wizard backend, 3.4 wizard UI, 3.5 tests; batches 3.1+3.2, 3.3+3.4, 3.5.
+- Plan file: `docs/PHASE_3_PLAN.md` (added Session 17b). Branch `phase-3-dashboard`, split 3.1 routing, 3.2 shell and settings, 3.3 wizard backend, 3.4 wizard UI, 3.5 tests; batches 3.1+3.2, 3.3+3.4, 3.5.
 - Redirects are decided on the server from a live session. Adjustment: the refresh cookie never reaches page routes (path `/api/v1/auth`), so the access cookie now lives 30 days (its JWT still 15 min) and page routes read it ignoring expiry plus a DB session check; this also removes the flash for users whose token just expired.
 - The top bar badge says `Public`, not `Draft` as first proposed: every portfolio is publicly visible until Phase 4 adds draft and publish, so `Draft` would be untrue.
 - Settings is reachable in any onboarding state (a user mid-wizard can still change a password or delete the account).
@@ -591,6 +592,11 @@ New env vars / commands: none
 Decisions made (and why): see "Phase 3 decisions" in section 6. Main points: the refresh cookie is path-limited so page routes could never see it, which would have sent users with an expired access token to `/login` on every page load; fixed by keeping the access cookie 30 days and checking the session in the DB; `?reauth=1` on `/login` breaks loops when the client check fails but the server still sees a live session; `next` is an allowlist regex, not a general URL check; the badge says `Public` (true today); settings is allowed before onboarding finishes.
 Leftovers / TODOs for later: cookies issued before this change expire after 15 minutes as before (users just log in again); a logged-in user whose refresh cookie has expired but whose session row is still live cannot occur (session `expiresAt` is checked); no automated tests for page redirects yet (3.5); no unverified-email banner on the dashboard; the dashboard sections other than Overview are placeholders for Phases 4, 6, 7 and 8; Prettier commit and CSP `'unsafe-inline'` styles still pending.
 Must not break: page redirects always go through `middleware/pages.js` (never trust a cookie's presence alone); `next` stays allowlisted; no `<section>`, `<header>` or `<nav>` in dashboard markup; dashboard scripts use `await requireAuth()` and `mountShell`; stored values are rendered with `textContent` only.
+
+### Session 17b: Phase 3 plan file (2026-10-13)
+Result: completed (docs only, no code changed). The user could not find the Phase 3 plan: it existed only inside the Session 16 brief and HANDOFF. Created `docs/PHASE_3_PLAN.md` (same format as `PHASE_1_PLAN.md`: the 3.1 to 3.5 table, approved decisions, and the Phase 3 success criteria copied from `BUILD_PLAN.md`) and listed it in section 3.
+Files created: `docs/PHASE_3_PLAN.md`. Files changed: `docs/HANDOFF.md`.
+Must not break: the plan file mirrors only approved decisions; the 3.3 + 3.4 brief (tests moved into 3.3) is still awaiting approval and is not recorded there.
 
 *(Add Session 18 and onward below this line.)*
 
