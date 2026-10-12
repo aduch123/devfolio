@@ -10,7 +10,7 @@ import prisma from "./config/prisma.js";
 import { env } from "./config/env.js";
 import { globalLimiter } from "./middleware/rateLimit.js";
 import { originCheck } from "./middleware/origin.js";
-import { requirePage } from "./middleware/auth.middleware.js";
+import { appPage, guestPage, LANDING_PAGE, pageFile } from "./middleware/pages.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import accountRoutes from "./modules/account/account.routes.js";
@@ -68,6 +68,9 @@ app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 app.use(pinoHttp({ logger }));
 
+// The landing page must be decided before static files: a logged-in visitor is redirected, not shown it.
+app.get("/", guestPage(LANDING_PAGE));
+
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 // Uploaded files: random names never change, so they cache well. The headers keep a hostile file inert.
@@ -113,13 +116,9 @@ app.use("/api/v1", onboardingRoutes);
 app.use("/api/v1", shareRoutes);
 app.use("/api/v1", messageRoutes);
 
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/pages/login.html"));
-});
+app.get("/login", guestPage(pageFile("login.html")));
 
-app.get("/signup", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/pages/signup.html"));
-});
+app.get("/signup", guestPage(pageFile("signup.html")));
 
 app.get("/verify-email", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/verify-email.html"));
@@ -133,13 +132,21 @@ app.get("/reset-password", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/reset-password.html"));
 });
 
-app.get("/onboarding", requirePage, (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/pages/onboarding.html"));
-});
+// App pages: logged-out visitors go to /login, and the dashboard needs a finished onboarding.
+const dashboardPage = appPage(pageFile("dashboard.html"), { onboarding: "complete" });
+const DASHBOARD_SECTIONS = new Set(["portfolio", "messages", "analytics", "health"]);
 
-app.get("/edit", requirePage, (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/pages/edit.html"));
-});
+app.get("/dashboard", dashboardPage);
+
+app.get("/dashboard/:section", (req, res, next) =>
+  DASHBOARD_SECTIONS.has(req.params.section) ? dashboardPage(req, res, next) : next(),
+);
+
+app.get("/settings", appPage(pageFile("settings.html")));
+
+app.get("/onboarding", appPage(pageFile("onboarding.html"), { onboarding: "incomplete" }));
+
+app.get("/edit", appPage(pageFile("edit.html")));
 
 app.get("/share/:token", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/portfolio.html"));

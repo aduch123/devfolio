@@ -1,5 +1,5 @@
 import { API_BASE_URL, API_PREFIX } from "./config.js";
-import { clearSession } from "./session.js";
+import { clearSession, loginUrlForPage } from "./session.js";
 
 const fail = (status, code, message, fields) => ({
   ok: false,
@@ -7,8 +7,6 @@ const fail = (status, code, message, fields) => ({
   data: null,
   error: { code, message, ...(fields ? { fields } : {}) },
 });
-
-const LOGIN_PAGE = "/login";
 
 // One refresh at a time: parallel 401s share the same request.
 let refreshing = null;
@@ -64,7 +62,7 @@ export async function apiFetch(path, options = {}) {
     }
     clearSession();
     if (!noRedirect) {
-      window.location.href = LOGIN_PAGE;
+      window.location.href = loginUrlForPage();
     }
     return fail(401, "UNAUTHORIZED", "Please log in");
   }

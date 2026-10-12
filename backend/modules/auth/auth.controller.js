@@ -190,11 +190,9 @@ export const forgotPassword = async (req, res) => {
       latest && Date.now() - latest.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS;
     if (!coolingDown) sendPasswordReset(user); // not awaited, so the answer takes the same time either way
   }
-  res
-    .status(202)
-    .json({
-      message: "If an account exists for that email, we sent a link to reset the password.",
-    });
+  res.status(202).json({
+    message: "If an account exists for that email, we sent a link to reset the password.",
+  });
 };
 
 // POST auth/reset-password { token, password }: consumes the link, sets the password, ends every session.

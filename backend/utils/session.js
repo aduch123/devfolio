@@ -45,11 +45,19 @@ export const signAccessToken = (user, sessionId) =>
 export const verifyAccessToken = (token) =>
   jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"] });
 
+// Page routes only need to know whose (possibly just expired) session this is: the signature must be
+// valid, expiry is ignored, and the caller checks the session in the database.
+export const decodeAccessToken = (token) =>
+  jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"], ignoreExpiration: true });
+
+// The cookie outlives the 15-minute token inside it (an expired token is harmless and API calls still
+// reject it). The refresh cookie only travels to /api/v1/auth, so this is how page routes such as
+// /dashboard can still recognize a user whose access token just expired; the client then refreshes.
 export const setAccessCookie = (res, accessToken) => {
   res.cookie(ACCESS_COOKIE, accessToken, {
     ...baseCookie,
     path: "/",
-    maxAge: ACCESS_TOKEN_TTL_SECONDS * 1000,
+    maxAge: REFRESH_TOKEN_TTL_MS,
   });
 };
 

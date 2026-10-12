@@ -12,7 +12,8 @@
     "lint:fix": "cd .. && eslint -c backend/eslint.config.js --fix backend frontend",
     "format": "cd .. && prettier --config backend/.prettierrc --ignore-path backend/.prettierignore --write backend frontend",
     "format:check": "cd .. && prettier --config backend/.prettierrc --ignore-path backend/.prettierignore --check backend frontend",
-    "smoke": "node scripts/smoke.js"
+    "smoke": "node scripts/smoke.js",
+    "migrate:test": "node scripts/migrate-test.js"
   },
   "keywords": [],
   "author": "",

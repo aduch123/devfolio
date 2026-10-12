@@ -268,6 +268,10 @@ async function setupOwnerControls(viewedUsername) {
 
   document.getElementById("logout-btn").addEventListener("click", logout);
 
+  document.getElementById("dashboard-btn").addEventListener("click", () => {
+    window.location.href = "/dashboard";
+  });
+
   document.getElementById("edit-btn").addEventListener("click", () => {
     window.location.href = "/edit";
   });

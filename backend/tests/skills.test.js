@@ -165,12 +165,12 @@ describe("PATCH and DELETE skills/:id", () => {
   });
 });
 
-describe("POST onboarding with skills", () => {
-  it("stores skill order, preset and custom skills, and rejects case-insensitive duplicates", async () => {
+describe("Wizard onboarding with skills", () => {
+  const put = (agent, n, data) => agent.put(`${API}/onboarding/step/${n}`).send({ data });
+
+  it("rejects case-insensitive duplicates, then stores skill order, preset and custom skills", async () => {
     const dup = await registerAndLogin();
-    const bad = await dup.agent.post(`${API}/onboarding`).send({
-      displayName: "A",
-      aboutText: "B",
+    const bad = await put(dup.agent, 3, {
       skills: [
         { name: "Rust", level: "good" },
         { name: "rust", level: "good" },
@@ -179,18 +179,16 @@ describe("POST onboarding with skills", () => {
     assert.equal(bad.status, 400);
 
     const { agent } = await registerAndLogin();
-    await agent
-      .post(`${API}/onboarding`)
-      .send({
-        displayName: "A",
-        aboutText: "B",
-        skills: [
-          { name: "react", level: "great" },
-          { name: "Figma", level: "good" },
-        ],
-        projects: [{ title: "P1" }, { title: "P2" }],
-      })
-      .expect(200);
+    await put(agent, 1, { displayName: "A" }).expect(200);
+    await put(agent, 3, {
+      skills: [
+        { name: "react", level: "great" },
+        { name: "Figma", level: "good" },
+      ],
+    }).expect(200);
+    await put(agent, 4, { projects: [{ title: "P1" }, { title: "P2" }] }).expect(200);
+    await agent.post(`${API}/onboarding/complete`).expect(200);
+
     const skills = await list(agent);
     assert.deepEqual(
       skills.map((s) => [s.name, s.isCustom, s.sortOrder]),

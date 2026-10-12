@@ -1,7 +1,7 @@
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { showFieldErrors, errorText } from "./forms.js";
-import { markSession } from "./session.js";
+import { markSession, safeNext } from "./session.js";
 import { initPasswordToggles } from "./authUi.js";
 
 const form = document.getElementById("login-form");
@@ -55,5 +55,8 @@ form.addEventListener("submit", async (e) => {
 
   const { user } = result.data;
   markSession();
-  window.location.href = user.onboardingComplete ? `/${user.username}` : "/onboarding";
+  // New users go to the wizard; everyone else returns to the page they came from, or the dashboard.
+  window.location.href = user.onboardingComplete
+    ? safeNext(params.get("next")) || "/dashboard"
+    : "/onboarding";
 });

@@ -24,6 +24,7 @@ model User {
   timelineItems      TimelineItem[]
   sessions           Session[]
   emailTokens        EmailToken[]
+  onboardingDraft    OnboardingDraft?
 
   @@index([deletedAt])
 }
@@ -155,4 +156,18 @@ model EmailToken {
 
   @@index([userId, type])
   @@index([expiresAt])
+}
+
+// Wizard progress (Phase 3): one row per user. `data` holds each saved step under its number ("1" to "5"),
+// `skipped` lists the steps the user skipped, `step` is where to resume (1 to 6, 6 = review).
+// After completing, `data` is emptied and `skipped` is kept so the dashboard can list what is missing.
+model OnboardingDraft {
+  id        String   @id @default(uuid())
+  step      Int      @default(1)
+  data      Json     @default("{}")
+  skipped   Int[]
+  updatedAt DateTime @updatedAt
+
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

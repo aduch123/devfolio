@@ -105,6 +105,10 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 
 Public portfolio responses contain only public fields (no account email, ids, hashes or share token).
 
+## Pages and redirects
+
+Page routes decide by session on the server (no flash of the wrong page): `/`, `/login` and `/signup` redirect a logged-in visitor to `/dashboard` (or `/onboarding` if onboarding is unfinished); `/dashboard`, `/dashboard/<portfolio|messages|analytics|health>`, `/settings`, `/onboarding` and `/edit` redirect a logged-out visitor to `/login` (dashboard and settings add `?next=` so login returns there). `/dashboard` sends unfinished users to `/onboarding`; `/onboarding` sends finished users to `/dashboard`. The check reads the access cookie ignoring token expiry and confirms the session in the database, so a user whose 15-minute token just expired still gets the page and the browser refreshes silently. `/login?reauth=1` skips the redirect (the client sets it when its own session check fails, which prevents loops). The settings page uses the account endpoints above.
+
 ## Usernames
 
 3 to 30 characters: letters, numbers and dashes, with no dash at the start or end. Usernames and emails are stored in lowercase. These names are reserved (they would collide with routes): `api`, `edit`, `dashboard`, `login`, `logout`, `signup`, `register`, `settings`, `account`, `onboarding`, `share`, `pages`, `css`, `js`, `uploads`, `static`, `assets`, `admin`, `help`, `support`, `health`, `healthz`, `auth`, `portfolio`, `profile`, `skills`, `projects`, `messages`, `about`, `terms`, `privacy`, `www`, `root`, `null`, `undefined` (list: `backend/config/constants.js`).
