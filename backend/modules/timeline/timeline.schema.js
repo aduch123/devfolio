@@ -3,7 +3,11 @@ import { timelineFields, TIMELINE_TYPES, LIMITS } from "../../utils/validators.j
 
 const endAfterStart = (data, ctx) => {
   if (data.startDate && data.endDate && data.endDate < data.startDate) {
-    ctx.addIssue({ code: "custom", path: ["endDate"], message: "End date can't be before the start date" });
+    ctx.addIssue({
+      code: "custom",
+      path: ["endDate"],
+      message: "End date can't be before the start date",
+    });
   }
 };
 

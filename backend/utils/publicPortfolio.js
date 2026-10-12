@@ -25,8 +25,13 @@ export const PUBLIC_PORTFOLIO_SELECT = {
   },
   projects: {
     select: {
-      title: true, description: true, repoUrl: true, liveUrl: true, tags: true,
-      coverImageUrl: true, featured: true,
+      title: true,
+      description: true,
+      repoUrl: true,
+      liveUrl: true,
+      tags: true,
+      coverImageUrl: true,
+      featured: true,
     },
     orderBy: [{ sortOrder: "asc" }, ...stableOrder],
   },
@@ -35,7 +40,14 @@ export const PUBLIC_PORTFOLIO_SELECT = {
     orderBy: [{ sortOrder: "asc" }, ...stableOrder],
   },
   timelineItems: {
-    select: { type: true, title: true, organization: true, startDate: true, endDate: true, description: true },
+    select: {
+      type: true,
+      title: true,
+      organization: true,
+      startDate: true,
+      endDate: true,
+      description: true,
+    },
     orderBy: [{ type: "asc" }, { sortOrder: "asc" }, ...stableOrder],
   },
 };

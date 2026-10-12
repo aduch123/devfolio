@@ -12,7 +12,10 @@ const findOwned = async (req) => {
 };
 
 export const getSocialLinks = async (req, res) => {
-  const links = await prisma.socialLink.findMany({ where: { userId: req.user.id }, orderBy: SOCIAL_ORDER });
+  const links = await prisma.socialLink.findMany({
+    where: { userId: req.user.id },
+    orderBy: SOCIAL_ORDER,
+  });
   res.status(200).json({ links });
 };
 
@@ -22,7 +25,11 @@ export const createSocialLink = async (req, res) => {
     throw conflict(`You can have at most ${LIMITS.maxSocial} links`, "SOCIAL_LIMIT");
   }
   const link = await prisma.socialLink.create({
-    data: { ...req.body, sortOrder: await nextSortOrder("socialLink", req.user.id), userId: req.user.id },
+    data: {
+      ...req.body,
+      sortOrder: await nextSortOrder("socialLink", req.user.id),
+      userId: req.user.id,
+    },
   });
   res.status(201).json({ link });
 };

@@ -43,7 +43,10 @@ export const uploadAvatar = async (req, res) => {
   const buffer = await processImage(req.file.buffer, "avatar");
   const current = await profileOf(req.user.id);
   const profile = await replaceFile({
-    kind: "avatars", ext: ".webp", buffer, currentUrl: current?.avatarUrl,
+    kind: "avatars",
+    ext: ".webp",
+    buffer,
+    currentUrl: current?.avatarUrl,
     write: (url) => setProfile(req.user.id, { avatarUrl: url }),
   });
   res.status(200).json({ profile: presentProfile(profile) });
@@ -60,7 +63,10 @@ export const uploadResume = async (req, res) => {
   if (!isPdf(req.file.buffer)) throw invalid("Upload a PDF file");
   const current = await profileOf(req.user.id);
   const profile = await replaceFile({
-    kind: "resumes", ext: ".pdf", buffer: req.file.buffer, currentUrl: current?.resumeUrl,
+    kind: "resumes",
+    ext: ".pdf",
+    buffer: req.file.buffer,
+    currentUrl: current?.resumeUrl,
     write: (url) => setProfile(req.user.id, { resumeUrl: url }),
   });
   res.status(200).json({ profile: presentProfile(profile) });
@@ -75,7 +81,8 @@ export const deleteResume = async (req, res) => {
 
 const ownedProject = async (req) => {
   const project = await prisma.project.findUnique({ where: { id: req.params.id } });
-  if (!project || project.userId !== req.user.id) throw notFound("Project not found", "PROJECT_NOT_FOUND");
+  if (!project || project.userId !== req.user.id)
+    throw notFound("Project not found", "PROJECT_NOT_FOUND");
   return project;
 };
 
@@ -83,8 +90,12 @@ export const uploadCover = async (req, res) => {
   const project = await ownedProject(req);
   const buffer = await processImage(req.file.buffer, "cover");
   const updated = await replaceFile({
-    kind: "covers", ext: ".webp", buffer, currentUrl: project.coverImageUrl,
-    write: (url) => prisma.project.update({ where: { id: project.id }, data: { coverImageUrl: url } }),
+    kind: "covers",
+    ext: ".webp",
+    buffer,
+    currentUrl: project.coverImageUrl,
+    write: (url) =>
+      prisma.project.update({ where: { id: project.id }, data: { coverImageUrl: url } }),
   });
   res.status(200).json({ project: updated });
 };

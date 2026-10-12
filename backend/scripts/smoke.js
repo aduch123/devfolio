@@ -14,7 +14,9 @@ const PRIVATE_KEYS = ["id", "email", "passwordHash", "shareToken", "userId"];
 let failed = 0;
 
 const isErrorShape = (body) =>
-  Boolean(body?.error) && typeof body.error.code === "string" && typeof body.error.message === "string";
+  Boolean(body?.error) &&
+  typeof body.error.code === "string" &&
+  typeof body.error.message === "string";
 
 const hasPrivateKey = (value) => {
   if (Array.isArray(value)) return value.some(hasPrivateKey);
@@ -50,7 +52,8 @@ console.log(`Smoke test against ${base}\n`);
 
 await check("GET /healthz returns { status: 'ok' }", async () => {
   const { res, body } = await call("/healthz");
-  if (res.status !== 200 || body?.status !== "ok") return `got ${res.status} ${JSON.stringify(body)}`;
+  if (res.status !== 200 || body?.status !== "ok")
+    return `got ${res.status} ${JSON.stringify(body)}`;
 });
 
 await check("GET /auth/me without a session returns 401 in the standard shape", async () => {
@@ -60,12 +63,17 @@ await check("GET /auth/me without a session returns 401 in the standard shape", 
 
 await check("POST /auth/refresh without a refresh cookie returns 401", async () => {
   const { res, body } = await call("/api/v1/auth/refresh", { method: "POST" });
-  if (res.status !== 401 || body?.error?.code !== "NO_REFRESH_TOKEN") return `got ${res.status} ${JSON.stringify(body)}`;
+  if (res.status !== 401 || body?.error?.code !== "NO_REFRESH_TOKEN")
+    return `got ${res.status} ${JSON.stringify(body)}`;
 });
 
 await check("POST from a foreign Origin is refused (BAD_ORIGIN)", async () => {
-  const { res, body } = await call("/api/v1/auth/logout", { method: "POST", headers: { Origin: "https://evil.example" } });
-  if (res.status !== 403 || body?.error?.code !== "BAD_ORIGIN") return `got ${res.status} ${JSON.stringify(body)}`;
+  const { res, body } = await call("/api/v1/auth/logout", {
+    method: "POST",
+    headers: { Origin: "https://evil.example" },
+  });
+  if (res.status !== 403 || body?.error?.code !== "BAD_ORIGIN")
+    return `got ${res.status} ${JSON.stringify(body)}`;
 });
 
 if (username) {
@@ -73,8 +81,10 @@ if (username) {
     const { res, body } = await call(`/api/v1/portfolio/${encodeURIComponent(username)}`);
     if (res.status !== 200) return `got ${res.status}`;
     if (body.username !== username.toLowerCase()) return "username missing";
-    if (!Array.isArray(body.skills) || !Array.isArray(body.projects)) return "skills or projects missing";
-    if (hasPrivateKey(body)) return "response contains a private field (id, email, passwordHash, shareToken)";
+    if (!Array.isArray(body.skills) || !Array.isArray(body.projects))
+      return "skills or projects missing";
+    if (hasPrivateKey(body))
+      return "response contains a private field (id, email, passwordHash, shareToken)";
   });
 } else {
   console.log("SKIP  public portfolio check (set SMOKE_USERNAME to an existing user)");

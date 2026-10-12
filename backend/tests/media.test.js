@@ -14,11 +14,15 @@ after(async () => {
   fs.rmSync(storage.root, { recursive: true, force: true });
 });
 
-const png = () => sharp({ create: { width: 40, height: 30, channels: 3, background: "#cc3300" } }).png().toBuffer();
+const png = () =>
+  sharp({ create: { width: 40, height: 30, channels: 3, background: "#cc3300" } })
+    .png()
+    .toBuffer();
 const pdf = () => Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n");
 const onDisk = (url) => path.join(storage.root, url.slice("/uploads/".length));
 const exists = (url) => fs.existsSync(onDisk(url));
-const filesIn = (kind) => (fs.existsSync(path.join(storage.root, kind)) ? fs.readdirSync(path.join(storage.root, kind)) : []);
+const filesIn = (kind) =>
+  fs.existsSync(path.join(storage.root, kind)) ? fs.readdirSync(path.join(storage.root, kind)) : [];
 
 const sendFile = (agent, route, buffer, filename, contentType) =>
   agent.post(`${API}${route}`).attach("file", buffer, { filename, contentType });
@@ -46,8 +50,12 @@ describe("avatar", () => {
 
   it("removes the old file when a new avatar replaces it, and on delete", async () => {
     const { agent } = await registerAndLogin();
-    const first = (await sendFile(agent, "/profile/avatar", await png(), "a.png", "image/png").expect(200)).body.profile.avatarUrl;
-    const second = (await sendFile(agent, "/profile/avatar", await png(), "b.png", "image/png").expect(200)).body.profile.avatarUrl;
+    const first = (
+      await sendFile(agent, "/profile/avatar", await png(), "a.png", "image/png").expect(200)
+    ).body.profile.avatarUrl;
+    const second = (
+      await sendFile(agent, "/profile/avatar", await png(), "b.png", "image/png").expect(200)
+    ).body.profile.avatarUrl;
     assert.notEqual(first, second);
     assert.equal(exists(first), false);
     assert.equal(exists(second), true);
@@ -60,9 +68,16 @@ describe("avatar", () => {
     const { agent } = await registerAndLogin();
     const before = filesIn("avatars").length;
     const exe = Buffer.concat([Buffer.from("MZ\x90\x00\x03\x00\x00\x00"), Buffer.alloc(200, 1)]);
-    const corrupt = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(100, 7)]);
+    const corrupt = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(100, 7),
+    ]);
     for (const buf of [exe, pdf(), corrupt]) {
-      errorOf(await sendFile(agent, "/profile/avatar", buf, "evil.png", "image/png"), 400, "INVALID_FILE");
+      errorOf(
+        await sendFile(agent, "/profile/avatar", buf, "evil.png", "image/png"),
+        400,
+        "INVALID_FILE",
+      );
     }
     assert.equal(filesIn("avatars").length, before);
   });
@@ -70,22 +85,34 @@ describe("avatar", () => {
   it("rejects files over 2 MB with 413, and a request without a file with 400", async () => {
     const { agent } = await registerAndLogin();
     const big = Buffer.alloc(2 * 1024 * 1024 + 10, 1);
-    errorOf(await sendFile(agent, "/profile/avatar", big, "big.png", "image/png"), 413, "FILE_TOO_LARGE");
+    errorOf(
+      await sendFile(agent, "/profile/avatar", big, "big.png", "image/png"),
+      413,
+      "FILE_TOO_LARGE",
+    );
     errorOf(await agent.post(`${API}/profile/avatar`).send({}), 400, "NO_FILE");
   });
 
   it("needs a login", async () => {
-    errorOf(await sendFile(request(app), "/profile/avatar", await png(), "a.png", "image/png"), 401, "UNAUTHORIZED");
+    errorOf(
+      await sendFile(request(app), "/profile/avatar", await png(), "a.png", "image/png"),
+      401,
+      "UNAUTHORIZED",
+    );
   });
 });
 
 describe("resume", () => {
   it("accepts a PDF, serves it as application/pdf, replaces and deletes it", async () => {
     const { agent } = await registerAndLogin();
-    const first = (await sendFile(agent, "/profile/resume", pdf(), "cv.pdf", "application/pdf").expect(200)).body.profile.resumeUrl;
+    const first = (
+      await sendFile(agent, "/profile/resume", pdf(), "cv.pdf", "application/pdf").expect(200)
+    ).body.profile.resumeUrl;
     assert.match(first, /^\/uploads\/resumes\/[0-9a-f]{32}\.pdf$/);
     assert.equal((await request(app).get(first)).headers["content-type"], "application/pdf");
-    const second = (await sendFile(agent, "/profile/resume", pdf(), "cv2.pdf", "application/pdf").expect(200)).body.profile.resumeUrl;
+    const second = (
+      await sendFile(agent, "/profile/resume", pdf(), "cv2.pdf", "application/pdf").expect(200)
+    ).body.profile.resumeUrl;
     assert.equal(exists(first), false);
     await agent.delete(`${API}/profile/resume`).expect(204);
     assert.equal(exists(second), false);
@@ -93,9 +120,17 @@ describe("resume", () => {
 
   it("rejects a PNG renamed to .pdf and files over 5 MB", async () => {
     const { agent } = await registerAndLogin();
-    errorOf(await sendFile(agent, "/profile/resume", await png(), "cv.pdf", "application/pdf"), 400, "INVALID_FILE");
+    errorOf(
+      await sendFile(agent, "/profile/resume", await png(), "cv.pdf", "application/pdf"),
+      400,
+      "INVALID_FILE",
+    );
     const big = Buffer.concat([Buffer.from("%PDF-"), Buffer.alloc(5 * 1024 * 1024 + 10, 1)]);
-    errorOf(await sendFile(agent, "/profile/resume", big, "cv.pdf", "application/pdf"), 413, "FILE_TOO_LARGE");
+    errorOf(
+      await sendFile(agent, "/profile/resume", big, "cv.pdf", "application/pdf"),
+      413,
+      "FILE_TOO_LARGE",
+    );
   });
 });
 
@@ -120,7 +155,11 @@ describe("project cover", () => {
     const two = await registerAndLogin();
     const id = await makeProject(one.agent);
     const before = filesIn("covers").length;
-    errorOf(await sendFile(two.agent, `/projects/${id}/cover`, await png(), "c.png", "image/png"), 404, "PROJECT_NOT_FOUND");
+    errorOf(
+      await sendFile(two.agent, `/projects/${id}/cover`, await png(), "c.png", "image/png"),
+      404,
+      "PROJECT_NOT_FOUND",
+    );
     errorOf(await two.agent.delete(`${API}/projects/${id}/cover`), 404, "PROJECT_NOT_FOUND");
     assert.equal(filesIn("covers").length, before);
   });
@@ -128,7 +167,11 @@ describe("project cover", () => {
   it("rejects a non-image cover", async () => {
     const { agent } = await registerAndLogin();
     const id = await makeProject(agent);
-    errorOf(await sendFile(agent, `/projects/${id}/cover`, pdf(), "c.png", "image/png"), 400, "INVALID_FILE");
+    errorOf(
+      await sendFile(agent, `/projects/${id}/cover`, pdf(), "c.png", "image/png"),
+      400,
+      "INVALID_FILE",
+    );
   });
 });
 
@@ -144,8 +187,13 @@ describe("storage and cleanup", () => {
 
   it("the cleanup job deletes the files of accounts past the grace window", async () => {
     const { agent, ident } = await registerAndLogin();
-    const url = (await sendFile(agent, "/profile/avatar", await png(), "a.png", "image/png").expect(200)).body.profile.avatarUrl;
-    await prisma.user.update({ where: { email: ident.email }, data: { deletedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) } });
+    const url = (
+      await sendFile(agent, "/profile/avatar", await png(), "a.png", "image/png").expect(200)
+    ).body.profile.avatarUrl;
+    await prisma.user.update({
+      where: { email: ident.email },
+      data: { deletedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) },
+    });
     await runCleanup();
     assert.equal(exists(url), false);
   });

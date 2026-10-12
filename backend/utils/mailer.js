@@ -6,7 +6,11 @@ import { AppError } from "./AppError.js";
 const resend = new Resend(env.RESEND_API_KEY);
 
 const sendFailed = () =>
-  new AppError(502, "EMAIL_SEND_FAILED", "We couldn't send your message right now. Please try again later.");
+  new AppError(
+    502,
+    "EMAIL_SEND_FAILED",
+    "We couldn't send your message right now. Please try again later.",
+  );
 
 // In tests nothing is sent: messages are collected here so tests can read the links in them.
 export const testOutbox = [];

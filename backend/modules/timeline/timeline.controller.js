@@ -3,7 +3,12 @@ import { conflict, notFound, validationError } from "../../utils/AppError.js";
 import { reorderOwned, nextSortOrder } from "../../utils/reorder.js";
 import { LIMITS } from "../../utils/validators.js";
 
-export const TIMELINE_ORDER = [{ type: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }];
+export const TIMELINE_ORDER = [
+  { type: "asc" },
+  { sortOrder: "asc" },
+  { createdAt: "asc" },
+  { id: "asc" },
+];
 
 export const getTimeline = async (req, res) => {
   const type = req.validatedQuery?.type;

@@ -19,14 +19,17 @@ const envSchema = z.object({
     .default("Devfolio <onboarding@resend.dev>")
     .refine(
       (v) => /^(?:[^<>@]+ <[^<>@\s]+@[^<>@\s]+>|[^<>@\s]+@[^<>@\s]+)$/.test(v),
-      'must look like "Devfolio <noreply@example.com>" or "noreply@example.com"'
+      'must look like "Devfolio <noreply@example.com>" or "noreply@example.com"',
     ),
   // Public address of the site, used for links in emails. Default: http://localhost:<PORT>.
   APP_URL: z
     .string()
     .trim()
     .optional()
-    .refine((v) => !v || /^https?:\/\/[^/\s]+$/.test(v), "must be an origin like https://devfolio.example (no trailing slash or path)"),
+    .refine(
+      (v) => !v || /^https?:\/\/[^/\s]+$/.test(v),
+      "must be an origin like https://devfolio.example (no trailing slash or path)",
+    ),
   // How many reverse proxies sit in front of the app (0 or "false" = none). Needed for correct client IPs.
   TRUST_PROXY: z
     .string()
@@ -42,8 +45,16 @@ const envSchema = z.object({
   CORS_ORIGINS: z
     .string()
     .default("")
-    .transform((v) => v.split(",").map((o) => o.trim()).filter(Boolean))
-    .refine((list) => list.every((o) => /^https?:\/\/[^/\s]+$/.test(o)), "must be origins like https://example.com, comma-separated"),
+    .transform((v) =>
+      v
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean),
+    )
+    .refine(
+      (list) => list.every((o) => /^https?:\/\/[^/\s]+$/.test(o)),
+      "must be origins like https://example.com, comma-separated",
+    ),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -18,7 +18,8 @@ describe("sectionConfig", () => {
     const own = (await agent.get(`${API}/profile`).expect(200)).body.profile.sectionConfig;
     assert.deepEqual(orderOf(own), SECTIONS);
     assert.ok(SECTIONS.every((s) => own[s].visible === true));
-    const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body.profile.sectionConfig;
+    const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body
+      .profile.sectionConfig;
     assert.deepEqual(pub, own);
   });
 
@@ -27,16 +28,27 @@ describe("sectionConfig", () => {
     const res = await patch(agent, { education: { visible: false } }).expect(200);
     assert.equal(res.body.profile.sectionConfig.education.visible, false);
     assert.equal(res.body.profile.sectionConfig.about.visible, true);
-    const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body.profile.sectionConfig;
+    const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body
+      .profile.sectionConfig;
     assert.equal(pub.education.visible, false);
   });
 
   it("saves a new order (a full permutation) and returns it after reload", async () => {
     const { agent } = await registerAndLogin();
     const order = { projects: 0, skills: 1, about: 2, experience: 3, education: 4, contact: 5 };
-    await patch(agent, Object.fromEntries(Object.entries(order).map(([k, v]) => [k, { order: v }]))).expect(200);
+    await patch(
+      agent,
+      Object.fromEntries(Object.entries(order).map(([k, v]) => [k, { order: v }])),
+    ).expect(200);
     const saved = (await agent.get(`${API}/profile`).expect(200)).body.profile.sectionConfig;
-    assert.deepEqual(orderOf(saved), ["projects", "skills", "about", "experience", "education", "contact"]);
+    assert.deepEqual(orderOf(saved), [
+      "projects",
+      "skills",
+      "about",
+      "experience",
+      "education",
+      "contact",
+    ]);
   });
 
   it("rejects unknown sections, wrong types, out-of-range positions and shared positions", async () => {
@@ -56,7 +68,10 @@ describe("sectionConfig", () => {
     const clash = await patch(agent, { about: { order: 1 } });
     errorOf(clash, 400, "VALIDATION_ERROR");
     assert.ok(clash.body.error.fields.sectionConfig);
-    assert.deepEqual(orderOf((await agent.get(`${API}/profile`).expect(200)).body.profile.sectionConfig), SECTIONS);
+    assert.deepEqual(
+      orderOf((await agent.get(`${API}/profile`).expect(200)).body.profile.sectionConfig),
+      SECTIONS,
+    );
   });
 
   it("null resets to the defaults, and the endpoint needs a login", async () => {
@@ -64,7 +79,11 @@ describe("sectionConfig", () => {
     await patch(agent, { contact: { visible: false } }).expect(200);
     const reset = await patch(agent, null).expect(200);
     assert.equal(reset.body.profile.sectionConfig.contact.visible, true);
-    errorOf(await request(app).patch(`${API}/profile`).send({ sectionConfig: null }), 401, "UNAUTHORIZED");
+    errorOf(
+      await request(app).patch(`${API}/profile`).send({ sectionConfig: null }),
+      401,
+      "UNAUTHORIZED",
+    );
   });
 
   it("an update of other profile fields leaves the saved config alone", async () => {

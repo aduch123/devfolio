@@ -8,7 +8,8 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-const create = async (agent, path, body) => (await agent.post(`${API}/${path}`).send(body).expect(201)).body;
+const create = async (agent, path, body) =>
+  (await agent.post(`${API}/${path}`).send(body).expect(201)).body;
 const ids = (items) => items.map((i) => i.id);
 
 describe("projects", () => {
@@ -19,25 +20,53 @@ describe("projects", () => {
     const a = (await create(agent, "projects", project("A"))).project.id;
     const b = (await create(agent, "projects", project("B"))).project.id;
     const c = (await create(agent, "projects", project("C"))).project.id;
-    assert.deepEqual(ids((await agent.get(`${API}/projects`).expect(200)).body.projects), [a, b, c]);
+    assert.deepEqual(ids((await agent.get(`${API}/projects`).expect(200)).body.projects), [
+      a,
+      b,
+      c,
+    ]);
 
-    await agent.put(`${API}/projects/order`).send({ ids: [c, a, b] }).expect(204);
-    assert.deepEqual(ids((await agent.get(`${API}/projects`).expect(200)).body.projects), [c, a, b]);
+    await agent
+      .put(`${API}/projects/order`)
+      .send({ ids: [c, a, b] })
+      .expect(204);
+    assert.deepEqual(ids((await agent.get(`${API}/projects`).expect(200)).body.projects), [
+      c,
+      a,
+      b,
+    ]);
 
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
-    assert.deepEqual(pub.body.projects.map((p) => p.title), ["C", "A", "B"]);
+    assert.deepEqual(
+      pub.body.projects.map((p) => p.title),
+      ["C", "A", "B"],
+    );
 
     const d = (await create(agent, "projects", project("D"))).project.id;
-    assert.deepEqual(ids((await agent.get(`${API}/projects`).expect(200)).body.projects), [c, a, b, d]);
+    assert.deepEqual(ids((await agent.get(`${API}/projects`).expect(200)).body.projects), [
+      c,
+      a,
+      b,
+      d,
+    ]);
   });
 
   it("limits featured projects (default 3) and frees a slot when one is unfeatured", async () => {
     const { agent } = await registerAndLogin();
     const made = [];
-    for (const t of ["A", "B", "C"]) made.push((await create(agent, "projects", project(t, { featured: true }))).project.id);
-    errorOf(await agent.post(`${API}/projects`).send(project("D", { featured: true })), 409, "FEATURED_LIMIT");
+    for (const t of ["A", "B", "C"])
+      made.push((await create(agent, "projects", project(t, { featured: true }))).project.id);
+    errorOf(
+      await agent.post(`${API}/projects`).send(project("D", { featured: true })),
+      409,
+      "FEATURED_LIMIT",
+    );
     const d = (await create(agent, "projects", project("D"))).project.id;
-    errorOf(await agent.patch(`${API}/projects/${d}`).send({ featured: true }), 409, "FEATURED_LIMIT");
+    errorOf(
+      await agent.patch(`${API}/projects/${d}`).send({ featured: true }),
+      409,
+      "FEATURED_LIMIT",
+    );
     await agent.patch(`${API}/projects/${made[0]}`).send({ featured: false }).expect(200);
     await agent.patch(`${API}/projects/${d}`).send({ featured: true }).expect(200);
   });
@@ -47,10 +76,21 @@ describe("projects", () => {
     const two = await registerAndLogin();
     const mine = (await create(one.agent, "projects", project("Mine"))).project.id;
     const theirs = (await create(two.agent, "projects", project("Theirs"))).project.id;
-    errorOf(await two.agent.patch(`${API}/projects/${mine}`).send({ title: "x" }), 404, "PROJECT_NOT_FOUND");
+    errorOf(
+      await two.agent.patch(`${API}/projects/${mine}`).send({ title: "x" }),
+      404,
+      "PROJECT_NOT_FOUND",
+    );
     errorOf(await two.agent.delete(`${API}/projects/${mine}`), 404, "PROJECT_NOT_FOUND");
-    errorOf(await one.agent.put(`${API}/projects/order`).send({ ids: [mine, theirs] }), 404, "PROJECT_NOT_FOUND");
-    assert.equal((await one.agent.get(`${API}/projects`).expect(200)).body.projects[0].title, "Mine");
+    errorOf(
+      await one.agent.put(`${API}/projects/order`).send({ ids: [mine, theirs] }),
+      404,
+      "PROJECT_NOT_FOUND",
+    );
+    assert.equal(
+      (await one.agent.get(`${API}/projects`).expect(200)).body.projects[0].title,
+      "Mine",
+    );
   });
 
   it("rejects an incomplete order and a missing body; needs a login", async () => {
@@ -66,10 +106,16 @@ describe("projects", () => {
 describe("social links", () => {
   it("creates, updates, reorders and deletes; the public page lists them in order", async () => {
     const { agent, ident } = await registerAndLogin();
-    const a = (await create(agent, "social", { platform: "github", url: "https://github.com/a" })).link.id;
-    const b = (await create(agent, "social", { platform: "linkedin", url: "https://linkedin.com/in/a" })).link.id;
+    const a = (await create(agent, "social", { platform: "github", url: "https://github.com/a" }))
+      .link.id;
+    const b = (
+      await create(agent, "social", { platform: "linkedin", url: "https://linkedin.com/in/a" })
+    ).link.id;
     await agent.patch(`${API}/social/${a}`).send({ url: "https://github.com/new" }).expect(200);
-    await agent.put(`${API}/social/order`).send({ ids: [b, a] }).expect(204);
+    await agent
+      .put(`${API}/social/order`)
+      .send({ ids: [b, a] })
+      .expect(204);
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     assert.deepEqual(pub.body.socialLinks, [
       { platform: "linkedin", url: "https://linkedin.com/in/a" },
@@ -90,24 +136,43 @@ describe("social links", () => {
       assert.equal(res.status, 400, JSON.stringify(body));
       assert.equal(res.body.error.code, "VALIDATION_ERROR");
     }
-    for (let i = 0; i < 12; i++) await create(agent, "social", { platform: "website", url: `https://e${i}.dev` });
-    errorOf(await agent.post(`${API}/social`).send({ platform: "website", url: "https://more.dev" }), 409, "SOCIAL_LIMIT");
+    for (let i = 0; i < 12; i++)
+      await create(agent, "social", { platform: "website", url: `https://e${i}.dev` });
+    errorOf(
+      await agent.post(`${API}/social`).send({ platform: "website", url: "https://more.dev" }),
+      409,
+      "SOCIAL_LIMIT",
+    );
   });
 
   it("answers 404 for another user's link and needs a login", async () => {
     const one = await registerAndLogin();
     const two = await registerAndLogin();
-    const id = (await create(one.agent, "social", { platform: "github", url: "https://github.com/a" })).link.id;
-    errorOf(await two.agent.patch(`${API}/social/${id}`).send({ url: "https://x.dev" }), 404, "SOCIAL_NOT_FOUND");
+    const id = (
+      await create(one.agent, "social", { platform: "github", url: "https://github.com/a" })
+    ).link.id;
+    errorOf(
+      await two.agent.patch(`${API}/social/${id}`).send({ url: "https://x.dev" }),
+      404,
+      "SOCIAL_NOT_FOUND",
+    );
     errorOf(await two.agent.delete(`${API}/social/${id}`), 404, "SOCIAL_NOT_FOUND");
-    errorOf(await two.agent.put(`${API}/social/order`).send({ ids: [id] }), 404, "SOCIAL_NOT_FOUND");
+    errorOf(
+      await two.agent.put(`${API}/social/order`).send({ ids: [id] }),
+      404,
+      "SOCIAL_NOT_FOUND",
+    );
     errorOf(await request(app).get(`${API}/social`), 401, "UNAUTHORIZED");
   });
 });
 
 describe("timeline", () => {
   const job = (title, extra = {}) => ({
-    type: "EXPERIENCE", title, organization: "Acme", startDate: "2022-01-01", ...extra,
+    type: "EXPERIENCE",
+    title,
+    organization: "Acme",
+    startDate: "2022-01-01",
+    ...extra,
   });
 
   it("creates experience and education, filters by type and orders per type", async () => {
@@ -119,10 +184,16 @@ describe("timeline", () => {
     assert.deepEqual(ids(onlyJobs), [a, b]);
     assert.equal(onlyJobs[1].endDate.slice(0, 10), "2023-05-31");
 
-    await agent.put(`${API}/timeline/order`).send({ type: "EXPERIENCE", ids: [b, a] }).expect(204);
+    await agent
+      .put(`${API}/timeline/order`)
+      .send({ type: "EXPERIENCE", ids: [b, a] })
+      .expect(204);
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     // Grouped by type (EXPERIENCE before EDUCATION), each group in its saved order.
-    assert.deepEqual(pub.body.timelineItems.map((t) => t.title), ["B", "A", "BSc"]);
+    assert.deepEqual(
+      pub.body.timelineItems.map((t) => t.title),
+      ["B", "A", "BSc"],
+    );
     assert.ok(e);
   });
 
@@ -140,7 +211,11 @@ describe("timeline", () => {
       assert.equal(res.body.error.code, "VALIDATION_ERROR");
     }
     const a = (await create(agent, "timeline", job("A"))).item.id;
-    errorOf(await agent.put(`${API}/timeline/order`).send({ type: "EDUCATION", ids: [a] }), 404, "TIMELINE_NOT_FOUND");
+    errorOf(
+      await agent.put(`${API}/timeline/order`).send({ type: "EDUCATION", ids: [a] }),
+      404,
+      "TIMELINE_NOT_FOUND",
+    );
   });
 
   it("re-checks dates on update, and can clear the end date", async () => {
@@ -157,7 +232,11 @@ describe("timeline", () => {
     const one = await registerAndLogin();
     const two = await registerAndLogin();
     const id = (await create(one.agent, "timeline", job("A"))).item.id;
-    errorOf(await two.agent.patch(`${API}/timeline/${id}`).send({ title: "x" }), 404, "TIMELINE_NOT_FOUND");
+    errorOf(
+      await two.agent.patch(`${API}/timeline/${id}`).send({ title: "x" }),
+      404,
+      "TIMELINE_NOT_FOUND",
+    );
     errorOf(await two.agent.delete(`${API}/timeline/${id}`), 404, "TIMELINE_NOT_FOUND");
     errorOf(await request(app).get(`${API}/timeline`), 401, "UNAUTHORIZED");
   });
@@ -166,11 +245,17 @@ describe("timeline", () => {
 describe("profile headline and location", () => {
   it("saves, clears and exposes them publicly", async () => {
     const { agent, ident } = await registerAndLogin();
-    await agent.patch(`${API}/profile`).send({ headline: "Full-stack dev", location: "Addis Ababa" }).expect(200);
+    await agent
+      .patch(`${API}/profile`)
+      .send({ headline: "Full-stack dev", location: "Addis Ababa" })
+      .expect(200);
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     assert.equal(pub.body.profile.headline, "Full-stack dev");
     const res = await agent.patch(`${API}/profile`).send({ headline: "" }).expect(200);
     assert.equal(res.body.profile.headline, null);
-    assert.equal((await agent.patch(`${API}/profile`).send({ headline: "x".repeat(121) })).status, 400);
+    assert.equal(
+      (await agent.patch(`${API}/profile`).send({ headline: "x".repeat(121) })).status,
+      400,
+    );
   });
 });

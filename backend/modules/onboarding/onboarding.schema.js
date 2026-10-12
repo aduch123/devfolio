@@ -30,5 +30,8 @@ export const onboardingSchema = z.object({
       });
     })
     .optional(),
-  projects: z.array(z.object(projectFields)).max(LIMITS.maxProjects, `At most ${LIMITS.maxProjects} projects`).optional(),
+  projects: z
+    .array(z.object(projectFields))
+    .max(LIMITS.maxProjects, `At most ${LIMITS.maxProjects} projects`)
+    .optional(),
 });

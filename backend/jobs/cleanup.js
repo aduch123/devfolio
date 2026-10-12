@@ -13,13 +13,22 @@ export async function runCleanup(now = new Date()) {
   // Collect the uploaded files first: the rows (and their urls) vanish with the cascade.
   const owners = await prisma.user.findMany({
     where: expired,
-    select: { profile: { select: { avatarUrl: true, resumeUrl: true } }, projects: { select: { coverImageUrl: true } } },
+    select: {
+      profile: { select: { avatarUrl: true, resumeUrl: true } },
+      projects: { select: { coverImageUrl: true } },
+    },
   });
   const accounts = await prisma.user.deleteMany({ where: expired });
-  const files = owners.flatMap((u) => [u.profile?.avatarUrl, u.profile?.resumeUrl, ...u.projects.map((p) => p.coverImageUrl)]);
+  const files = owners.flatMap((u) => [
+    u.profile?.avatarUrl,
+    u.profile?.resumeUrl,
+    ...u.projects.map((p) => p.coverImageUrl),
+  ]);
   await Promise.all(files.filter(Boolean).map((url) => storage.remove(url)));
   const sessions = await prisma.session.deleteMany({
-    where: { OR: [{ expiresAt: { lt: now } }, { revokedAt: { lt: new Date(now.getTime() - 7 * DAY) } }] },
+    where: {
+      OR: [{ expiresAt: { lt: now } }, { revokedAt: { lt: new Date(now.getTime() - 7 * DAY) } }],
+    },
   });
   const tokens = await prisma.emailToken.deleteMany({
     where: { OR: [{ expiresAt: { lt: now } }, { usedAt: { lt: new Date(now.getTime() - DAY) } }] },

@@ -85,7 +85,9 @@ export const contactLimiter = build({
   limit: 5,
   message: "You have sent too many messages. Please try again in an hour.",
   keyGenerator: (req) => {
-    const target = req.params.username ? `u:${req.params.username.toLowerCase()}` : `t:${req.params.token}`;
+    const target = req.params.username
+      ? `u:${req.params.username.toLowerCase()}`
+      : `t:${req.params.token}`;
     return `${ipKeyGenerator(req.ip)}|${target}`;
   },
 });

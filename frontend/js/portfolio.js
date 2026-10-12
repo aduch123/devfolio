@@ -5,9 +5,7 @@ import { logout } from "./authGuard.js";
 import { hasSessionHint } from "./session.js";
 import { skillStyles } from "./skillStyles.js";
 
-const prefersReducedMotion = window.matchMedia(
-  "(prefers-reduced-motion: reduce)"
-).matches;
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pathParts = window.location.pathname.split("/").filter(Boolean);
 const isShareMode = pathParts[0] === "share";
@@ -73,7 +71,10 @@ function render(data) {
 function renderAbout(aboutText) {
   const el = document.getElementById("about-content");
   el.replaceChildren();
-  const paragraphs = (aboutText || "").split("\n\n").map((p) => p.trim()).filter(Boolean);
+  const paragraphs = (aboutText || "")
+    .split("\n\n")
+    .map((p) => p.trim())
+    .filter(Boolean);
   setSectionVisible("about", paragraphs.length > 0);
 
   paragraphs.forEach((para) => el.appendChild(make("p", "", para)));
@@ -124,7 +125,9 @@ function renderSkills(skills) {
   setSectionVisible("skills", skills.length > 0);
 
   skills.forEach((skill) => {
-    const style = Object.hasOwn(skillStyles, skill.name) ? skillStyles[skill.name] : skillStyles.other;
+    const style = Object.hasOwn(skillStyles, skill.name)
+      ? skillStyles[skill.name]
+      : skillStyles.other;
 
     const card = make("div", "skill-card");
     const ico = makeIcon(style.icon);
@@ -136,10 +139,21 @@ function renderSkills(skills) {
 
 function skillLabel(value) {
   const map = {
-    html: "HTML", css: "CSS", javascript: "JavaScript", python: "Python",
-    react: "React", nodejs: "Node.js", express: "Express", java: "Java",
-    typescript: "TypeScript", nextjs: "Next.js", postgresql: "PostgreSQL",
-    mongodb: "MongoDB", prisma: "Prisma", git: "Git", docker: "Docker",
+    html: "HTML",
+    css: "CSS",
+    javascript: "JavaScript",
+    python: "Python",
+    react: "React",
+    nodejs: "Node.js",
+    express: "Express",
+    java: "Java",
+    typescript: "TypeScript",
+    nextjs: "Next.js",
+    postgresql: "PostgreSQL",
+    mongodb: "MongoDB",
+    prisma: "Prisma",
+    git: "Git",
+    docker: "Docker",
     other: "Other",
   };
   return map[value] || value;
@@ -185,7 +199,12 @@ function renderContact(profile) {
     ? makeLink(`mailto:${profile.contactEmail}`, "fa-solid fa-envelope", "Email", false)
     : null;
   const phone = profile.contactPhone
-    ? makeLink(`tel:${profile.contactPhone.replace(/\s+/g, "")}`, "fa-solid fa-phone", "Phone", false)
+    ? makeLink(
+        `tel:${profile.contactPhone.replace(/\s+/g, "")}`,
+        "fa-solid fa-phone",
+        "Phone",
+        false,
+      )
     : null;
 
   [github, email, phone].forEach((a) => a && list.appendChild(a));
@@ -329,7 +348,9 @@ function setupShareButton() {
       navigator.clipboard.writeText(input.value);
       const btn = document.getElementById("copy-share-link");
       btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
-      setTimeout(() => { btn.innerHTML = `<i class="fa-regular fa-copy"></i>`; }, 1500);
+      setTimeout(() => {
+        btn.innerHTML = `<i class="fa-regular fa-copy"></i>`;
+      }, 1500);
     });
   }
 }
@@ -374,9 +395,10 @@ function setupContactForm() {
     status.textContent = `Thanks ${name}! Your message has been sent.`;
     form.reset();
 
-    setTimeout(() => { status.textContent = ""; }, 5000);
+    setTimeout(() => {
+      status.textContent = "";
+    }, 5000);
   });
 }
-
 
 init();

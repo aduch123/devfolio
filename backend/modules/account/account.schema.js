@@ -2,7 +2,10 @@ import { z } from "zod";
 import { identityEmail } from "../../utils/validators.js";
 import { usernameSchema } from "../auth/auth.schema.js";
 
-const currentPassword = z.string().min(1, "Enter your current password").max(128, "Password must be at most 128 characters");
+const currentPassword = z
+  .string()
+  .min(1, "Enter your current password")
+  .max(128, "Password must be at most 128 characters");
 
 export const changePasswordSchema = z.object({
   currentPassword,

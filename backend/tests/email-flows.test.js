@@ -1,9 +1,23 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import {
-  API, app, prisma, request, testOutbox, PASSWORD,
-  cleanupUsers, clearMail, emailTokenRow, errorOf, expectNoMail, loginWith, newIdentity, registerAndLogin,
-  signup, tokenFromMail, waitForMail,
+  API,
+  app,
+  prisma,
+  request,
+  testOutbox,
+  PASSWORD,
+  cleanupUsers,
+  clearMail,
+  emailTokenRow,
+  errorOf,
+  expectNoMail,
+  loginWith,
+  newIdentity,
+  registerAndLogin,
+  signup,
+  tokenFromMail,
+  waitForMail,
 } from "./helpers.js";
 
 before(cleanupUsers);
@@ -15,9 +29,15 @@ after(async () => {
 const post = (path, body) => request(app).post(`${API}/auth/${path}`).send(body);
 const randomToken = () => "x".repeat(10) + Date.now().toString(36) + "y".repeat(30);
 const expire = (email, type) =>
-  prisma.emailToken.updateMany({ where: { type, user: { email } }, data: { expiresAt: new Date(Date.now() - 1000) } });
+  prisma.emailToken.updateMany({
+    where: { type, user: { email } },
+    data: { expiresAt: new Date(Date.now() - 1000) },
+  });
 const backdate = (email, type) =>
-  prisma.emailToken.updateMany({ where: { type, user: { email } }, data: { createdAt: new Date(Date.now() - 5 * 60 * 1000) } });
+  prisma.emailToken.updateMany({
+    where: { type, user: { email } },
+    data: { createdAt: new Date(Date.now() - 5 * 60 * 1000) },
+  });
 
 async function signedUp() {
   const ident = newIdentity();
@@ -132,7 +152,10 @@ describe("POST auth/forgot-password", () => {
     await waitForMail(ident.email, "Reset");
     await post("forgot-password", { email: ident.email }).expect(202);
     await new Promise((r) => setTimeout(r, 400));
-    assert.equal(testOutbox.filter((m) => m.to === ident.email && m.subject.includes("Reset")).length, 1);
+    assert.equal(
+      testOutbox.filter((m) => m.to === ident.email && m.subject.includes("Reset")).length,
+      1,
+    );
   });
 
   it("rejects an invalid email", async () => {
@@ -175,8 +198,16 @@ describe("POST auth/reset-password", () => {
     const token = await requestReset(ident);
     await expire(ident.email, "PASSWORD_RESET");
     errorOf(await post("reset-password", { token, password: PASSWORD }), 400, "TOKEN_EXPIRED");
-    errorOf(await post("reset-password", { token: randomToken(), password: PASSWORD }), 400, "TOKEN_INVALID");
-    errorOf(await post("reset-password", { token: verifyToken, password: PASSWORD }), 400, "TOKEN_INVALID");
+    errorOf(
+      await post("reset-password", { token: randomToken(), password: PASSWORD }),
+      400,
+      "TOKEN_INVALID",
+    );
+    errorOf(
+      await post("reset-password", { token: verifyToken, password: PASSWORD }),
+      400,
+      "TOKEN_INVALID",
+    );
   });
 
   it("rejects a weak password and keeps the link usable", async () => {

@@ -1,24 +1,59 @@
 import { z } from "zod";
 
 export const SKILL_VALUES = [
-  "html", "css", "javascript", "python", "react", "nodejs",
-  "express", "java", "typescript", "nextjs", "postgresql",
-  "mongodb", "prisma", "git", "docker", "other",
+  "html",
+  "css",
+  "javascript",
+  "python",
+  "react",
+  "nodejs",
+  "express",
+  "java",
+  "typescript",
+  "nextjs",
+  "postgresql",
+  "mongodb",
+  "prisma",
+  "git",
+  "docker",
+  "other",
 ];
 export const SKILL_LEVELS = ["great", "good", "learning"];
 export const SKILL_CATEGORIES = ["frontend", "backend", "database", "tools", "other"];
 // Presets are suggestions, not a hard list. Their category is the default when none is sent.
 export const PRESET_CATEGORY = {
-  html: "frontend", css: "frontend", javascript: "frontend", react: "frontend",
-  typescript: "frontend", nextjs: "frontend",
-  python: "backend", nodejs: "backend", express: "backend", java: "backend",
-  postgresql: "database", mongodb: "database", prisma: "database",
-  git: "tools", docker: "tools", other: "other",
+  html: "frontend",
+  css: "frontend",
+  javascript: "frontend",
+  react: "frontend",
+  typescript: "frontend",
+  nextjs: "frontend",
+  python: "backend",
+  nodejs: "backend",
+  express: "backend",
+  java: "backend",
+  postgresql: "database",
+  mongodb: "database",
+  prisma: "database",
+  git: "tools",
+  docker: "tools",
+  other: "other",
 };
 
 export const SOCIAL_PLATFORMS = [
-  "github", "linkedin", "x", "website", "youtube", "instagram", "dribbble",
-  "behance", "medium", "devto", "stackoverflow", "codepen", "other",
+  "github",
+  "linkedin",
+  "x",
+  "website",
+  "youtube",
+  "instagram",
+  "dribbble",
+  "behance",
+  "medium",
+  "devto",
+  "stackoverflow",
+  "codepen",
+  "other",
 ];
 export const TIMELINE_TYPES = ["EXPERIENCE", "EDUCATION"];
 
@@ -61,12 +96,10 @@ const isHttpUrl = (value) => {
 };
 
 // "" and whitespace-only strings become null; undefined stays undefined (field not sent).
-const emptyToNull = (value) =>
-  typeof value === "string" && value.trim() === "" ? null : value;
+const emptyToNull = (value) => (typeof value === "string" && value.trim() === "" ? null : value);
 
 // Wraps a schema so the field accepts a value, "" or null, and normalizes "" to null.
-const clearable = (schema) =>
-  z.preprocess(emptyToNull, schema.nullable().optional());
+const clearable = (schema) => z.preprocess(emptyToNull, schema.nullable().optional());
 
 // ---- Required pieces ----
 export const requiredText = (label, max) =>
@@ -85,7 +118,7 @@ export const phone = z
   .trim()
   .regex(
     new RegExp(`^\\+?[0-9\\s\\-()]{${LIMITS.phoneMin},${LIMITS.phoneMax}}$`),
-    `Enter a valid phone number (${LIMITS.phoneMin} to ${LIMITS.phoneMax} characters: digits, spaces, + - ( ))`
+    `Enter a valid phone number (${LIMITS.phoneMin} to ${LIMITS.phoneMax} characters: digits, spaces, + - ( ))`,
   );
 
 const email = z
@@ -105,14 +138,16 @@ export const requiredEmail = email;
 export const identityEmail = email.toLowerCase();
 
 export const tagsList = z
-  .array(
-    z.string().trim().min(1, "Tags can't be empty").max(LIMITS.tag, tooLong(LIMITS.tag))
-  )
+  .array(z.string().trim().min(1, "Tags can't be empty").max(LIMITS.tag, tooLong(LIMITS.tag)))
   .max(LIMITS.maxTags, `At most ${LIMITS.maxTags} tags`);
 
 export const heroRoleTexts = z
   .array(
-    z.string().trim().min(1, "Role phrases can't be empty").max(LIMITS.roleText, tooLong(LIMITS.roleText))
+    z
+      .string()
+      .trim()
+      .min(1, "Role phrases can't be empty")
+      .max(LIMITS.roleText, tooLong(LIMITS.roleText)),
   )
   .max(LIMITS.maxRoles, `At most ${LIMITS.maxRoles} role phrases`);
 

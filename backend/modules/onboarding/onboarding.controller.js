@@ -18,7 +18,12 @@ export const submitOnboarding = async (req, res) => {
 
     await tx.profile.update({ where: { userId }, data: profileData });
     await tx.skill.createMany({
-      data: skills.map((s, i) => ({ ...s, ...skillDerived(s.name, s.category), sortOrder: i, userId })),
+      data: skills.map((s, i) => ({
+        ...s,
+        ...skillDerived(s.name, s.category),
+        sortOrder: i,
+        userId,
+      })),
     });
     await tx.project.createMany({ data: projects.map((p, i) => ({ ...p, sortOrder: i, userId })) });
   });

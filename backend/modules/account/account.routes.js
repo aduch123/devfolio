@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { changePassword, changeEmail, changeUsername, deleteAccount } from "./account.controller.js";
+import {
+  changePassword,
+  changeEmail,
+  changeUsername,
+  deleteAccount,
+} from "./account.controller.js";
 import {
   changePasswordSchema,
   changeEmailSchema,

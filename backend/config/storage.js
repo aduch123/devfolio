@@ -7,7 +7,9 @@ import logger from "./logger.js";
 
 // Storage interface (D6): save(kind, buffer, ext) -> public url, remove(url). Callers never see file paths,
 // so an S3-compatible implementation can replace this object without touching the controllers.
-const root = path.resolve(env.UPLOAD_DIR ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "../uploads"));
+const root = path.resolve(
+  env.UPLOAD_DIR ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "../uploads"),
+);
 const PUBLIC_PREFIX = "/uploads";
 
 export const storage = {

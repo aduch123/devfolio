@@ -7,10 +7,14 @@ import path from "node:path";
 
 const testUrl = process.env.DATABASE_URL_TEST;
 if (!testUrl) {
-  throw new Error("DATABASE_URL_TEST is not set. Add it to backend/.env (a separate database, see .env.example).");
+  throw new Error(
+    "DATABASE_URL_TEST is not set. Add it to backend/.env (a separate database, see .env.example).",
+  );
 }
 if (testUrl === process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL_TEST must not be the same as DATABASE_URL: tests write to the database.");
+  throw new Error(
+    "DATABASE_URL_TEST must not be the same as DATABASE_URL: tests write to the database.",
+  );
 }
 
 process.env.NODE_ENV = "test";

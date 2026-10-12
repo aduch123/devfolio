@@ -13,16 +13,23 @@ export async function reorderOwned(model, userId, ids, { where = {}, notFoundCod
   }
   if (ids.some((id) => !owned.has(id))) throw notFound(`${label} not found`, notFoundCode);
   if (ids.length !== owned.size) {
-    throw badRequest(`Send every one of your ${label.toLowerCase()}s, in the order you want`, undefined, "INVALID_ORDER");
+    throw badRequest(
+      `Send every one of your ${label.toLowerCase()}s, in the order you want`,
+      undefined,
+      "INVALID_ORDER",
+    );
   }
 
   await prisma.$transaction(
-    ids.map((id, index) => prisma[model].update({ where: { id }, data: { sortOrder: index } }))
+    ids.map((id, index) => prisma[model].update({ where: { id }, data: { sortOrder: index } })),
   );
 }
 
 // Next free sortOrder for a user's list (new items go last).
 export async function nextSortOrder(model, userId, where = {}) {
-  const last = await prisma[model].aggregate({ where: { userId, ...where }, _max: { sortOrder: true } });
+  const last = await prisma[model].aggregate({
+    where: { userId, ...where },
+    _max: { sortOrder: true },
+  });
   return (last._max.sortOrder ?? -1) + 1;
 }

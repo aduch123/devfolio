@@ -1,8 +1,19 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import {
-  API, app, prisma, request, PASSWORD,
-  cleanupUsers, clearMail, errorOf, expectNoMail, loginWith, newIdentity, registerAndLogin, waitForMail,
+  API,
+  app,
+  prisma,
+  request,
+  PASSWORD,
+  cleanupUsers,
+  clearMail,
+  errorOf,
+  expectNoMail,
+  loginWith,
+  newIdentity,
+  registerAndLogin,
+  waitForMail,
 } from "./helpers.js";
 import { runCleanup } from "../jobs/cleanup.js";
 
@@ -20,7 +31,10 @@ describe("POST account/password", () => {
     const { agent, ident } = await registerAndLogin();
     const other = request.agent(app);
     await loginWith(ident, other).expect(200);
-    const res = await acct(agent, "password", { currentPassword: PASSWORD, newPassword: NEW_PASSWORD });
+    const res = await acct(agent, "password", {
+      currentPassword: PASSWORD,
+      newPassword: NEW_PASSWORD,
+    });
     assert.equal(res.status, 204);
     await agent.get(`${API}/auth/me`).expect(200);
     errorOf(await other.get(`${API}/auth/me`), 401, "SESSION_ENDED");
@@ -29,18 +43,31 @@ describe("POST account/password", () => {
   });
 
   it("needs a login", async () => {
-    const res = await request(app).post(`${API}/account/password`).send({ currentPassword: PASSWORD, newPassword: NEW_PASSWORD });
+    const res = await request(app)
+      .post(`${API}/account/password`)
+      .send({ currentPassword: PASSWORD, newPassword: NEW_PASSWORD });
     errorOf(res, 401, "UNAUTHORIZED");
   });
 
   it("refuses a wrong current password with 403", async () => {
     const { agent } = await registerAndLogin();
-    errorOf(await acct(agent, "password", { currentPassword: "Wrong-password-9", newPassword: NEW_PASSWORD }), 403, "WRONG_PASSWORD");
+    errorOf(
+      await acct(agent, "password", {
+        currentPassword: "Wrong-password-9",
+        newPassword: NEW_PASSWORD,
+      }),
+      403,
+      "WRONG_PASSWORD",
+    );
   });
 
   it("refuses an unchanged or too short new password", async () => {
     const { agent } = await registerAndLogin();
-    errorOf(await acct(agent, "password", { currentPassword: PASSWORD, newPassword: PASSWORD }), 400, "SAME_PASSWORD");
+    errorOf(
+      await acct(agent, "password", { currentPassword: PASSWORD, newPassword: PASSWORD }),
+      400,
+      "SAME_PASSWORD",
+    );
     const res = await acct(agent, "password", { currentPassword: PASSWORD, newPassword: "short" });
     errorOf(res, 400, "VALIDATION_ERROR");
     assert.ok(res.body.error.fields.newPassword);
@@ -64,18 +91,40 @@ describe("POST account/email", () => {
   it("refuses an email that is taken", async () => {
     const { agent } = await registerAndLogin();
     const { ident: other } = await registerAndLogin();
-    errorOf(await acct(agent, "email", { password: PASSWORD, email: other.email }), 409, "EMAIL_EXISTS");
+    errorOf(
+      await acct(agent, "email", { password: PASSWORD, email: other.email }),
+      409,
+      "EMAIL_EXISTS",
+    );
   });
 
   it("refuses a wrong password, the same email and an invalid email", async () => {
     const { agent, ident } = await registerAndLogin();
-    errorOf(await acct(agent, "email", { password: "Wrong-password-9", email: newIdentity().email }), 403, "WRONG_PASSWORD");
-    errorOf(await acct(agent, "email", { password: PASSWORD, email: ident.email }), 400, "SAME_EMAIL");
-    errorOf(await acct(agent, "email", { password: PASSWORD, email: "nope" }), 400, "VALIDATION_ERROR");
+    errorOf(
+      await acct(agent, "email", { password: "Wrong-password-9", email: newIdentity().email }),
+      403,
+      "WRONG_PASSWORD",
+    );
+    errorOf(
+      await acct(agent, "email", { password: PASSWORD, email: ident.email }),
+      400,
+      "SAME_EMAIL",
+    );
+    errorOf(
+      await acct(agent, "email", { password: PASSWORD, email: "nope" }),
+      400,
+      "VALIDATION_ERROR",
+    );
   });
 
   it("needs a login", async () => {
-    errorOf(await request(app).post(`${API}/account/email`).send({ password: PASSWORD, email: newIdentity().email }), 401, "UNAUTHORIZED");
+    errorOf(
+      await request(app)
+        .post(`${API}/account/email`)
+        .send({ password: PASSWORD, email: newIdentity().email }),
+      401,
+      "UNAUTHORIZED",
+    );
   });
 });
 
@@ -103,7 +152,11 @@ describe("POST account/username", () => {
   });
 
   it("needs a login", async () => {
-    errorOf(await request(app).post(`${API}/account/username`).send({ username: "someone-else" }), 401, "UNAUTHORIZED");
+    errorOf(
+      await request(app).post(`${API}/account/username`).send({ username: "someone-else" }),
+      401,
+      "UNAUTHORIZED",
+    );
   });
 });
 
@@ -129,7 +182,11 @@ describe("POST account/delete", () => {
     const { agent, ident } = await registerAndLogin();
     errorOf(await acct(agent, "delete", { password: "Wrong-password-9" }), 403, "WRONG_PASSWORD");
     errorOf(await acct(agent, "delete", {}), 400, "VALIDATION_ERROR");
-    errorOf(await request(app).post(`${API}/account/delete`).send({ password: PASSWORD }), 401, "UNAUTHORIZED");
+    errorOf(
+      await request(app).post(`${API}/account/delete`).send({ password: PASSWORD }),
+      401,
+      "UNAUTHORIZED",
+    );
     await loginWith(ident).expect(200);
   });
 });
@@ -142,15 +199,30 @@ describe("cleanup job", () => {
     const day = 24 * 60 * 60 * 1000;
     await acct(old.agent, "delete", { password: PASSWORD }).expect(204);
     await acct(recent.agent, "delete", { password: PASSWORD }).expect(204);
-    await prisma.user.update({ where: { email: old.ident.email }, data: { deletedAt: new Date(Date.now() - 15 * day) } });
-    await prisma.user.update({ where: { email: recent.ident.email }, data: { deletedAt: new Date(Date.now() - 13 * day) } });
+    await prisma.user.update({
+      where: { email: old.ident.email },
+      data: { deletedAt: new Date(Date.now() - 15 * day) },
+    });
+    await prisma.user.update({
+      where: { email: recent.ident.email },
+      data: { deletedAt: new Date(Date.now() - 13 * day) },
+    });
 
     const liveUser = await prisma.user.findUnique({ where: { email: live.ident.email } });
     const expired = await prisma.session.create({
-      data: { userId: liveUser.id, refreshHash: "e".repeat(64), expiresAt: new Date(Date.now() - 1000) },
+      data: {
+        userId: liveUser.id,
+        refreshHash: "e".repeat(64),
+        expiresAt: new Date(Date.now() - 1000),
+      },
     });
     const staleToken = await prisma.emailToken.create({
-      data: { userId: liveUser.id, type: "PASSWORD_RESET", tokenHash: "f".repeat(64), expiresAt: new Date(Date.now() - 1000) },
+      data: {
+        userId: liveUser.id,
+        type: "PASSWORD_RESET",
+        tokenHash: "f".repeat(64),
+        expiresAt: new Date(Date.now() - 1000),
+      },
     });
 
     const result = await runCleanup();

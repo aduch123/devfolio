@@ -6,7 +6,7 @@ import { validationError } from "./AppError.js";
 export const SECTIONS = ["about", "skills", "projects", "experience", "education", "contact"];
 
 export const DEFAULT_SECTION_CONFIG = Object.fromEntries(
-  SECTIONS.map((name, order) => [name, { visible: true, order }])
+  SECTIONS.map((name, order) => [name, { visible: true, order }]),
 );
 
 const sectionPatch = z.strictObject({
@@ -31,7 +31,11 @@ export function resolveSectionConfig(stored, patch) {
   if (patch === null) return structuredClone(DEFAULT_SECTION_CONFIG);
   const out = {};
   for (const name of SECTIONS) {
-    out[name] = { ...DEFAULT_SECTION_CONFIG[name], ...(stored?.[name] ?? {}), ...(patch?.[name] ?? {}) };
+    out[name] = {
+      ...DEFAULT_SECTION_CONFIG[name],
+      ...(stored?.[name] ?? {}),
+      ...(patch?.[name] ?? {}),
+    };
   }
   return out;
 }
@@ -43,7 +47,9 @@ export function mergeSectionConfig(stored, patch) {
   for (const name of SECTIONS) {
     const { order } = merged[name];
     if (seen.has(order)) {
-      throw validationError({ sectionConfig: `"${seen.get(order)}" and "${name}" cannot share position ${order}` });
+      throw validationError({
+        sectionConfig: `"${seen.get(order)}" and "${name}" cannot share position ${order}`,
+      });
     }
     seen.set(order, name);
   }

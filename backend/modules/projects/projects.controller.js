@@ -11,7 +11,10 @@ const assertFeaturedRoom = async (userId, exceptId) => {
     where: { userId, featured: true, ...(exceptId ? { id: { not: exceptId } } : {}) },
   });
   if (featured >= env.MAX_FEATURED_PROJECTS) {
-    throw conflict(`You can feature at most ${env.MAX_FEATURED_PROJECTS} projects`, "FEATURED_LIMIT");
+    throw conflict(
+      `You can feature at most ${env.MAX_FEATURED_PROJECTS} projects`,
+      "FEATURED_LIMIT",
+    );
   }
 };
 

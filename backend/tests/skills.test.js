@@ -55,7 +55,11 @@ describe("POST skills", () => {
   });
 
   it("needs a login", async () => {
-    errorOf(await request(app).post(`${API}/skills`).send({ name: "Rust", level: "good" }), 401, "UNAUTHORIZED");
+    errorOf(
+      await request(app).post(`${API}/skills`).send({ name: "Rust", level: "good" }),
+      401,
+      "UNAUTHORIZED",
+    );
   });
 });
 
@@ -71,32 +75,55 @@ describe("PUT skills/order", () => {
   it("new skills go last, and a saved order persists for the owner and the public page", async () => {
     const { agent, ident } = await registerAndLogin();
     const [a, b, c] = await seed(agent);
-    assert.deepEqual((await list(agent)).map((s) => s.id), [a, b, c]);
+    assert.deepEqual(
+      (await list(agent)).map((s) => s.id),
+      [a, b, c],
+    );
 
     const res = await agent.put(`${API}/skills/order`).send({ ids: [c, a, b] });
     assert.equal(res.status, 204);
-    assert.deepEqual((await list(agent)).map((s) => s.id), [c, a, b]);
+    assert.deepEqual(
+      (await list(agent)).map((s) => s.id),
+      [c, a, b],
+    );
 
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
-    assert.deepEqual(pub.body.skills.map((s) => s.name), ["Figma", "Rust", "Go"]);
+    assert.deepEqual(
+      pub.body.skills.map((s) => s.name),
+      ["Figma", "Rust", "Go"],
+    );
     assert.equal(pub.body.skills[0].isCustom, true);
   });
 
   it("a skill added after reordering is placed last", async () => {
     const { agent } = await registerAndLogin();
     const [a, b, c] = await seed(agent);
-    await agent.put(`${API}/skills/order`).send({ ids: [c, b, a] }).expect(204);
+    await agent
+      .put(`${API}/skills/order`)
+      .send({ ids: [c, b, a] })
+      .expect(204);
     const d = (await add(agent, { name: "Sketch", level: "good" }).expect(201)).body.skill.id;
-    assert.deepEqual((await list(agent)).map((s) => s.id), [c, b, a, d]);
+    assert.deepEqual(
+      (await list(agent)).map((s) => s.id),
+      [c, b, a, d],
+    );
   });
 
   it("answers 404 for another user's skill id and changes nothing", async () => {
     const one = await registerAndLogin();
     const two = await registerAndLogin();
     const mine = await seed(one.agent);
-    const theirs = (await add(two.agent, { name: "Rust", level: "good" }).expect(201)).body.skill.id;
-    errorOf(await one.agent.put(`${API}/skills/order`).send({ ids: [mine[2], mine[1], theirs] }), 404, "SKILL_NOT_FOUND");
-    assert.deepEqual((await list(one.agent)).map((s) => s.id), mine);
+    const theirs = (await add(two.agent, { name: "Rust", level: "good" }).expect(201)).body.skill
+      .id;
+    errorOf(
+      await one.agent.put(`${API}/skills/order`).send({ ids: [mine[2], mine[1], theirs] }),
+      404,
+      "SKILL_NOT_FOUND",
+    );
+    assert.deepEqual(
+      (await list(one.agent)).map((s) => s.id),
+      mine,
+    );
   });
 
   it("rejects a duplicated id and an incomplete list with 400", async () => {
@@ -118,7 +145,11 @@ describe("PATCH and DELETE skills/:id", () => {
     const one = await registerAndLogin();
     const two = await registerAndLogin();
     const id = (await add(one.agent, { name: "Rust", level: "good" }).expect(201)).body.skill.id;
-    errorOf(await two.agent.patch(`${API}/skills/${id}`).send({ level: "great" }), 404, "SKILL_NOT_FOUND");
+    errorOf(
+      await two.agent.patch(`${API}/skills/${id}`).send({ level: "great" }),
+      404,
+      "SKILL_NOT_FOUND",
+    );
     errorOf(await two.agent.delete(`${API}/skills/${id}`), 404, "SKILL_NOT_FOUND");
     assert.equal((await list(one.agent))[0].level, "good");
   });
@@ -138,20 +169,46 @@ describe("POST onboarding with skills", () => {
   it("stores skill order, preset and custom skills, and rejects case-insensitive duplicates", async () => {
     const dup = await registerAndLogin();
     const bad = await dup.agent.post(`${API}/onboarding`).send({
-      displayName: "A", aboutText: "B",
-      skills: [{ name: "Rust", level: "good" }, { name: "rust", level: "good" }],
+      displayName: "A",
+      aboutText: "B",
+      skills: [
+        { name: "Rust", level: "good" },
+        { name: "rust", level: "good" },
+      ],
     });
     assert.equal(bad.status, 400);
 
     const { agent } = await registerAndLogin();
-    await agent.post(`${API}/onboarding`).send({
-      displayName: "A", aboutText: "B",
-      skills: [{ name: "react", level: "great" }, { name: "Figma", level: "good" }],
-      projects: [{ title: "P1" }, { title: "P2" }],
-    }).expect(200);
+    await agent
+      .post(`${API}/onboarding`)
+      .send({
+        displayName: "A",
+        aboutText: "B",
+        skills: [
+          { name: "react", level: "great" },
+          { name: "Figma", level: "good" },
+        ],
+        projects: [{ title: "P1" }, { title: "P2" }],
+      })
+      .expect(200);
     const skills = await list(agent);
-    assert.deepEqual(skills.map((s) => [s.name, s.isCustom, s.sortOrder]), [["react", false, 0], ["Figma", true, 1]]);
-    const projects = await prisma.project.findMany({ where: { user: { id: skills[0].userId } }, orderBy: { sortOrder: "asc" } });
-    assert.deepEqual(projects.map((p) => [p.title, p.sortOrder]), [["P1", 0], ["P2", 1]]);
+    assert.deepEqual(
+      skills.map((s) => [s.name, s.isCustom, s.sortOrder]),
+      [
+        ["react", false, 0],
+        ["Figma", true, 1],
+      ],
+    );
+    const projects = await prisma.project.findMany({
+      where: { user: { id: skills[0].userId } },
+      orderBy: { sortOrder: "asc" },
+    });
+    assert.deepEqual(
+      projects.map((p) => [p.title, p.sortOrder]),
+      [
+        ["P1", 0],
+        ["P2", 1],
+      ],
+    );
   });
 });

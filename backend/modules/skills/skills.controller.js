@@ -68,7 +68,8 @@ export const updateSkill = async (req, res) => {
       // Renaming can turn a custom skill into a preset or back; the category follows only if none was sent.
       const derived = skillDerived(data.name, data.category);
       data.isCustom = derived.isCustom;
-      if (data.category === undefined && skill.category === "other") data.category = derived.category;
+      if (data.category === undefined && skill.category === "other")
+        data.category = derived.category;
     }
     const updated = await prisma.skill.update({ where: { id }, data });
     res.status(200).json({ skill: updated });

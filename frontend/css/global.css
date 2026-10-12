@@ -51,7 +51,9 @@ body {
   line-height: 1.65;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
 }
@@ -121,7 +123,9 @@ nav {
   color: var(--ink-soft);
   font-family: var(--font-mono);
   font-size: 13px;
-  transition: color var(--transition), background-color var(--transition);
+  transition:
+    color var(--transition),
+    background-color var(--transition);
 }
 
 .nav-links a:hover {
@@ -156,7 +160,10 @@ nav {
   justify-content: center;
   cursor: pointer;
   font-size: 13px;
-  transition: border-color var(--transition), color var(--transition), background-color var(--transition);
+  transition:
+    border-color var(--transition),
+    color var(--transition),
+    background-color var(--transition);
 }
 
 #edit-btn:hover {
@@ -174,7 +181,9 @@ nav {
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 6px;
-  transition: color var(--transition), background-color var(--transition);
+  transition:
+    color var(--transition),
+    background-color var(--transition);
 }
 
 #logout-btn:hover {
@@ -198,7 +207,10 @@ nav {
   justify-content: center;
   cursor: pointer;
   font-size: 13px;
-  transition: border-color var(--transition), color var(--transition), background-color var(--transition);
+  transition:
+    border-color var(--transition),
+    color var(--transition),
+    background-color var(--transition);
 }
 
 #share-btn:hover,
@@ -286,8 +298,14 @@ nav {
 }
 
 @keyframes shareDropIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 #menu-btn {
@@ -388,9 +406,15 @@ nav {
   border-radius: 50%;
 }
 
-.dot-red { background-color: #ff5f56; }
-.dot-amber { background-color: #ffbd2e; }
-.dot-green { background-color: #27c93f; }
+.dot-red {
+  background-color: #ff5f56;
+}
+.dot-amber {
+  background-color: #ffbd2e;
+}
+.dot-green {
+  background-color: #27c93f;
+}
 
 .editor-filename {
   margin-left: 8px;
@@ -420,10 +444,18 @@ nav {
   margin-bottom: 20px;
 }
 
-.code-keyword { color: #c792ea; }
-.code-fn { color: #82aaff; }
-.code-op { color: var(--dark-text); }
-.code-string { color: #a3e2a3; }
+.code-keyword {
+  color: #c792ea;
+}
+.code-fn {
+  color: #82aaff;
+}
+.code-op {
+  color: var(--dark-text);
+}
+.code-string {
+  color: #a3e2a3;
+}
 
 .hero-role {
   font-size: 15px;
@@ -442,7 +474,9 @@ nav {
 }
 
 @keyframes blink {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
 .hero-buttons {
@@ -461,7 +495,9 @@ nav {
   color: #ffffff;
   background-color: var(--accent);
   cursor: pointer;
-  transition: background-color var(--transition), transform var(--transition);
+  transition:
+    background-color var(--transition),
+    transform var(--transition);
   display: inline-block;
 }
 
@@ -511,7 +547,9 @@ section h2 {
 .reveal {
   opacity: 0;
   transform: translateY(50px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
 }
 
 .reveal.in-view {
@@ -541,7 +579,10 @@ section h2 {
   font-weight: 600;
   border: 1px solid var(--line);
   background-color: var(--panel);
-  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .skill-card i {
@@ -567,16 +608,36 @@ section h2 {
   box-shadow: 0 10px 24px -14px rgba(76, 95, 255, 0.4);
 }
 
-.skill-html i { color: #e34c26; }
-.skill-css i { color: #2965f1; }
-.skill-js i { color: #d7b807; }
-.skill-python i { color: #3776ab; }
-.skill-react i { color: #61dafb; }
-.skill-node i { color: #3c873a; }
-.skill-express i { color: var(--ink-soft); }
-.skill-java i { color: #ea2d2e; }
-.skill-solving i { color: var(--warm); }
-.skill-vitest i { color: #729b1b; }
+.skill-html i {
+  color: #e34c26;
+}
+.skill-css i {
+  color: #2965f1;
+}
+.skill-js i {
+  color: #d7b807;
+}
+.skill-python i {
+  color: #3776ab;
+}
+.skill-react i {
+  color: #61dafb;
+}
+.skill-node i {
+  color: #3c873a;
+}
+.skill-express i {
+  color: var(--ink-soft);
+}
+.skill-java i {
+  color: #ea2d2e;
+}
+.skill-solving i {
+  color: var(--warm);
+}
+.skill-vitest i {
+  color: #729b1b;
+}
 
 /* ---- Projects ---- */
 .projects-grid {
@@ -590,7 +651,9 @@ section h2 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 22px;
-  transition: transform var(--transition), box-shadow var(--transition);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition);
 }
 
 .project-card:hover {
@@ -720,7 +783,9 @@ section h2 {
   font-size: 14px;
   font-weight: 600;
   border-bottom: 1px solid transparent;
-  transition: border-color var(--transition), color var(--transition);
+  transition:
+    border-color var(--transition),
+    color var(--transition);
 }
 
 .socials a:hover {
@@ -736,7 +801,6 @@ footer {
   color: var(--ink-soft);
   font-size: 13px;
 }
-
 
 .field-error {
   color: #ff6b6b;
