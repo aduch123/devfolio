@@ -17,6 +17,8 @@ import accountRoutes from "./modules/account/account.routes.js"
 import profileRoutes from "./modules/profile/profile.routes.js"
 import skillRoutes from "./modules/skills/skills.routes.js"
 import projectRoutes from "./modules/projects/projects.routes.js"
+import socialRoutes from "./modules/social/social.routes.js"
+import timelineRoutes from "./modules/timeline/timeline.routes.js"
 import onboardingRoutes from "./modules/onboarding/onboarding.routes.js"
 import shareRoutes from "./modules/share/share.routes.js"
 import messageRoutes from "./modules/messages/messages.routes.js"
@@ -83,6 +85,8 @@ app.use("/api/v1/account", accountRoutes);
 app.use("/api/v1", profileRoutes);
 app.use("/api/v1", skillRoutes);
 app.use("/api/v1", projectRoutes);
+app.use("/api/v1", socialRoutes);
+app.use("/api/v1", timelineRoutes);
 app.use("/api/v1", onboardingRoutes);
 app.use("/api/v1", shareRoutes);
 app.use("/api/v1", messageRoutes);

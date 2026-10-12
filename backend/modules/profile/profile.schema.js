@@ -5,6 +5,7 @@ import {
   optionalEmail,
   optionalPhone,
   optionalUrl,
+  optionalText,
   heroRoleTexts,
 } from "../../utils/validators.js";
 
@@ -15,4 +16,6 @@ export const profileUpdateSchema = z.object({
   contactEmail: optionalEmail,
   contactPhone: optionalPhone,
   githubUrl: optionalUrl,
+  headline: optionalText(LIMITS.headline),
+  location: optionalText(LIMITS.location),
 });

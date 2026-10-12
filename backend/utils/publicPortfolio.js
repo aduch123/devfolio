@@ -12,6 +12,10 @@ export const PUBLIC_PORTFOLIO_SELECT = {
       contactEmail: true,
       contactPhone: true,
       githubUrl: true,
+      headline: true,
+      location: true,
+      avatarUrl: true,
+      resumeUrl: true,
     },
   },
   skills: {
@@ -19,7 +23,18 @@ export const PUBLIC_PORTFOLIO_SELECT = {
     orderBy: [{ sortOrder: "asc" }, ...stableOrder],
   },
   projects: {
-    select: { title: true, description: true, repoUrl: true, liveUrl: true, tags: true },
-    orderBy: stableOrder,
+    select: {
+      title: true, description: true, repoUrl: true, liveUrl: true, tags: true,
+      coverImageUrl: true, featured: true,
+    },
+    orderBy: [{ sortOrder: "asc" }, ...stableOrder],
+  },
+  socialLinks: {
+    select: { platform: true, url: true },
+    orderBy: [{ sortOrder: "asc" }, ...stableOrder],
+  },
+  timelineItems: {
+    select: { type: true, title: true, organization: true, startDate: true, endDate: true, description: true },
+    orderBy: [{ type: "asc" }, { sortOrder: "asc" }, ...stableOrder],
   },
 };

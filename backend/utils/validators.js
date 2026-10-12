@@ -16,6 +16,12 @@ export const PRESET_CATEGORY = {
   git: "tools", docker: "tools", other: "other",
 };
 
+export const SOCIAL_PLATFORMS = [
+  "github", "linkedin", "x", "website", "youtube", "instagram", "dribbble",
+  "behance", "medium", "devto", "stackoverflow", "codepen", "other",
+];
+export const TIMELINE_TYPES = ["EXPERIENCE", "EDUCATION"];
+
 export const LIMITS = {
   displayName: 80,
   aboutText: 2000,
@@ -31,6 +37,13 @@ export const LIMITS = {
   maxTags: 10,
   skillName: 40,
   maxSkills: 50,
+  headline: 120,
+  location: 80,
+  maxSocial: 12,
+  maxTimeline: 30,
+  timelineTitle: 100,
+  timelineOrg: 100,
+  timelineDescription: 1000,
   maxProjects: 20,
   message: 2000,
   personName: 100,
@@ -129,4 +142,33 @@ export const projectFields = {
   repoUrl: optionalUrl,
   liveUrl: optionalUrl,
   tags: tagsList.optional(),
+};
+
+// ---- Social links and timeline (2.3) ----
+export const socialFields = {
+  platform: z.enum(SOCIAL_PLATFORMS, { error: "Choose a platform from the list" }),
+  url: safeUrl(),
+};
+
+// "YYYY-MM-DD", checked as a real calendar date, stored as midnight UTC.
+const isoDate = z
+  .string({ error: "Enter a date" })
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the format YYYY-MM-DD")
+  .transform((v, ctx) => {
+    const d = new Date(`${v}T00:00:00.000Z`);
+    if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) {
+      ctx.addIssue({ code: "custom", message: "Enter a real date" });
+      return z.NEVER;
+    }
+    return d;
+  });
+
+export const timelineFields = {
+  type: z.enum(TIMELINE_TYPES, { error: "Choose experience or education" }),
+  title: requiredText("Title", LIMITS.timelineTitle),
+  organization: requiredText("Organization", LIMITS.timelineOrg),
+  startDate: isoDate,
+  endDate: clearable(isoDate),
+  description: optionalText(LIMITS.timelineDescription),
 };
