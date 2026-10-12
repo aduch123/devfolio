@@ -21,10 +21,13 @@ function addRemovableRow(container, innerHTML) {
 }
 
 document.getElementById("add-role").addEventListener("click", () => {
-  addRemovableRow(rolesList, `
+  addRemovableRow(
+    rolesList,
+    `
     <input type="text" placeholder="e.g. clean UIs" class="role-text" required>
     <button type="button" class="remove-row">&times;</button>
-  `);
+  `,
+  );
 });
 
 document.getElementById("add-skill").addEventListener("click", () => {
@@ -32,7 +35,9 @@ document.getElementById("add-skill").addEventListener("click", () => {
     .map((s) => `<option value="${s.value}">${s.label}</option>`)
     .join("");
 
-  addRemovableRow(skillsList, `
+  addRemovableRow(
+    skillsList,
+    `
     <select class="skill-name">${optionsHtml}</select>
     <select class="skill-level">
       <option value="great">great</option>
@@ -40,18 +45,22 @@ document.getElementById("add-skill").addEventListener("click", () => {
       <option value="learning">learning</option>
     </select>
     <button type="button" class="remove-row">&times;</button>
-  `);
+  `,
+  );
 });
 
 document.getElementById("add-project").addEventListener("click", () => {
-  addRemovableRow(projectsList, `
+  addRemovableRow(
+    projectsList,
+    `
     <input type="text" placeholder="Project title" class="project-title" required>
     <input type="text" placeholder="Description" class="project-desc">
     <input type="url" placeholder="Repo URL" class="project-repo">
     <input type="url" placeholder="Live URL" class="project-live">
     <input type="text" placeholder="Tags (comma separated)" class="project-tags">
     <button type="button" class="remove-row">&times;</button>
-  `);
+  `,
+  );
 });
 
 const NESTED_CLASSES = {
@@ -95,7 +104,11 @@ form.addEventListener("submit", async (e) => {
     repoUrl: row.querySelector(".project-repo").value || null,
     liveUrl: row.querySelector(".project-live").value || null,
     tags: row.querySelector(".project-tags").value
-      ? row.querySelector(".project-tags").value.split(",").map((t) => t.trim()).filter(Boolean)
+      ? row
+          .querySelector(".project-tags")
+          .value.split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
       : [],
   }));
 

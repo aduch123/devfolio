@@ -1,5 +1,6 @@
 import prisma from "../../config/prisma.js";
 import { conflict } from "../../utils/AppError.js";
+import { skillDerived } from "../../utils/validators.js";
 
 export const submitOnboarding = async (req, res) => {
   const { skills = [], projects = [], ...profileData } = req.body;
@@ -16,8 +17,15 @@ export const submitOnboarding = async (req, res) => {
     }
 
     await tx.profile.update({ where: { userId }, data: profileData });
-    await tx.skill.createMany({ data: skills.map((s) => ({ ...s, userId })) });
-    await tx.project.createMany({ data: projects.map((p) => ({ ...p, userId })) });
+    await tx.skill.createMany({
+      data: skills.map((s, i) => ({
+        ...s,
+        ...skillDerived(s.name, s.category),
+        sortOrder: i,
+        userId,
+      })),
+    });
+    await tx.project.createMany({ data: projects.map((p, i) => ({ ...p, sortOrder: i, userId })) });
   });
 
   res.status(200).json({ success: true });

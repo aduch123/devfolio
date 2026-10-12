@@ -19,14 +19,17 @@ const envSchema = z.object({
     .default("Devfolio <onboarding@resend.dev>")
     .refine(
       (v) => /^(?:[^<>@]+ <[^<>@\s]+@[^<>@\s]+>|[^<>@\s]+@[^<>@\s]+)$/.test(v),
-      'must look like "Devfolio <noreply@example.com>" or "noreply@example.com"'
+      'must look like "Devfolio <noreply@example.com>" or "noreply@example.com"',
     ),
   // Public address of the site, used for links in emails. Default: http://localhost:<PORT>.
   APP_URL: z
     .string()
     .trim()
     .optional()
-    .refine((v) => !v || /^https?:\/\/[^/\s]+$/.test(v), "must be an origin like https://devfolio.example (no trailing slash or path)"),
+    .refine(
+      (v) => !v || /^https?:\/\/[^/\s]+$/.test(v),
+      "must be an origin like https://devfolio.example (no trailing slash or path)",
+    ),
   // How many reverse proxies sit in front of the app (0 or "false" = none). Needed for correct client IPs.
   TRUST_PROXY: z
     .string()
@@ -34,12 +37,24 @@ const envSchema = z.object({
     .default("false")
     .refine((v) => v !== "true", "use the number of proxy hops (for example 1), not true")
     .transform((v) => (v === "false" ? false : /^\d+$/.test(v) ? Number(v) : v)),
+  // Where uploaded images and resumes are stored (optional, default backend/uploads).
+  UPLOAD_DIR: z.string().trim().min(1).optional(),
+  // Most projects a user may mark as featured.
+  MAX_FEATURED_PROJECTS: z.coerce.number().int().min(0).max(20).default(3),
   // Comma-separated browser origins allowed to call the API cross-origin. Empty = same-origin only.
   CORS_ORIGINS: z
     .string()
     .default("")
-    .transform((v) => v.split(",").map((o) => o.trim()).filter(Boolean))
-    .refine((list) => list.every((o) => /^https?:\/\/[^/\s]+$/.test(o)), "must be origins like https://example.com, comma-separated"),
+    .transform((v) =>
+      v
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean),
+    )
+    .refine(
+      (list) => list.every((o) => /^https?:\/\/[^/\s]+$/.test(o)),
+      "must be origins like https://example.com, comma-separated",
+    ),
 });
 
 const parsed = envSchema.safeParse(process.env);

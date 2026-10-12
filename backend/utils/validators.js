@@ -1,11 +1,61 @@
 import { z } from "zod";
 
 export const SKILL_VALUES = [
-  "html", "css", "javascript", "python", "react", "nodejs",
-  "express", "java", "typescript", "nextjs", "postgresql",
-  "mongodb", "prisma", "git", "docker", "other",
+  "html",
+  "css",
+  "javascript",
+  "python",
+  "react",
+  "nodejs",
+  "express",
+  "java",
+  "typescript",
+  "nextjs",
+  "postgresql",
+  "mongodb",
+  "prisma",
+  "git",
+  "docker",
+  "other",
 ];
 export const SKILL_LEVELS = ["great", "good", "learning"];
+export const SKILL_CATEGORIES = ["frontend", "backend", "database", "tools", "other"];
+// Presets are suggestions, not a hard list. Their category is the default when none is sent.
+export const PRESET_CATEGORY = {
+  html: "frontend",
+  css: "frontend",
+  javascript: "frontend",
+  react: "frontend",
+  typescript: "frontend",
+  nextjs: "frontend",
+  python: "backend",
+  nodejs: "backend",
+  express: "backend",
+  java: "backend",
+  postgresql: "database",
+  mongodb: "database",
+  prisma: "database",
+  git: "tools",
+  docker: "tools",
+  other: "other",
+};
+
+export const SOCIAL_PLATFORMS = [
+  "github",
+  "linkedin",
+  "x",
+  "website",
+  "youtube",
+  "instagram",
+  "dribbble",
+  "behance",
+  "medium",
+  "devto",
+  "stackoverflow",
+  "codepen",
+  "other",
+];
+export const TIMELINE_TYPES = ["EXPERIENCE", "EDUCATION"];
 
 export const LIMITS = {
   displayName: 80,
@@ -20,7 +70,15 @@ export const LIMITS = {
   projectDescription: 1000,
   tag: 30,
   maxTags: 10,
-  maxSkills: SKILL_VALUES.length,
+  skillName: 40,
+  maxSkills: 50,
+  headline: 120,
+  location: 80,
+  maxSocial: 12,
+  maxTimeline: 30,
+  timelineTitle: 100,
+  timelineOrg: 100,
+  timelineDescription: 1000,
   maxProjects: 20,
   message: 2000,
   personName: 100,
@@ -38,12 +96,10 @@ const isHttpUrl = (value) => {
 };
 
 // "" and whitespace-only strings become null; undefined stays undefined (field not sent).
-const emptyToNull = (value) =>
-  typeof value === "string" && value.trim() === "" ? null : value;
+const emptyToNull = (value) => (typeof value === "string" && value.trim() === "" ? null : value);
 
 // Wraps a schema so the field accepts a value, "" or null, and normalizes "" to null.
-const clearable = (schema) =>
-  z.preprocess(emptyToNull, schema.nullable().optional());
+const clearable = (schema) => z.preprocess(emptyToNull, schema.nullable().optional());
 
 // ---- Required pieces ----
 export const requiredText = (label, max) =>
@@ -62,7 +118,7 @@ export const phone = z
   .trim()
   .regex(
     new RegExp(`^\\+?[0-9\\s\\-()]{${LIMITS.phoneMin},${LIMITS.phoneMax}}$`),
-    `Enter a valid phone number (${LIMITS.phoneMin} to ${LIMITS.phoneMax} characters: digits, spaces, + - ( ))`
+    `Enter a valid phone number (${LIMITS.phoneMin} to ${LIMITS.phoneMax} characters: digits, spaces, + - ( ))`,
   );
 
 const email = z
@@ -82,21 +138,38 @@ export const requiredEmail = email;
 export const identityEmail = email.toLowerCase();
 
 export const tagsList = z
-  .array(
-    z.string().trim().min(1, "Tags can't be empty").max(LIMITS.tag, tooLong(LIMITS.tag))
-  )
+  .array(z.string().trim().min(1, "Tags can't be empty").max(LIMITS.tag, tooLong(LIMITS.tag)))
   .max(LIMITS.maxTags, `At most ${LIMITS.maxTags} tags`);
 
 export const heroRoleTexts = z
   .array(
-    z.string().trim().min(1, "Role phrases can't be empty").max(LIMITS.roleText, tooLong(LIMITS.roleText))
+    z
+      .string()
+      .trim()
+      .min(1, "Role phrases can't be empty")
+      .max(LIMITS.roleText, tooLong(LIMITS.roleText)),
   )
   .max(LIMITS.maxRoles, `At most ${LIMITS.maxRoles} role phrases`);
 
+// A preset name (any casing) is stored as its lowercase preset value; anything else is a custom skill.
+export const skillName = z
+  .string({ error: "Enter a skill name" })
+  .trim()
+  .min(1, "Enter a skill name")
+  .max(LIMITS.skillName, tooLong(LIMITS.skillName))
+  .transform((v) => (SKILL_VALUES.includes(v.toLowerCase()) ? v.toLowerCase() : v));
+
 export const skillFields = {
-  name: z.enum(SKILL_VALUES, { error: "Choose a skill from the list" }),
+  name: skillName,
   level: z.enum(SKILL_LEVELS, { error: "Choose a level: great, good or learning" }),
+  category: z.enum(SKILL_CATEGORIES, { error: "Choose a category" }).optional(),
 };
+
+// Extra columns derived on the server for a skill name (never trusted from the client).
+export const skillDerived = (name, category) => ({
+  isCustom: !SKILL_VALUES.includes(name),
+  category: category ?? PRESET_CATEGORY[name] ?? "other",
+});
 
 export const projectFields = {
   title: requiredText("Title", LIMITS.projectTitle),
@@ -104,4 +177,33 @@ export const projectFields = {
   repoUrl: optionalUrl,
   liveUrl: optionalUrl,
   tags: tagsList.optional(),
+};
+
+// ---- Social links and timeline (2.3) ----
+export const socialFields = {
+  platform: z.enum(SOCIAL_PLATFORMS, { error: "Choose a platform from the list" }),
+  url: safeUrl(),
+};
+
+// "YYYY-MM-DD", checked as a real calendar date, stored as midnight UTC.
+const isoDate = z
+  .string({ error: "Enter a date" })
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the format YYYY-MM-DD")
+  .transform((v, ctx) => {
+    const d = new Date(`${v}T00:00:00.000Z`);
+    if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) {
+      ctx.addIssue({ code: "custom", message: "Enter a real date" });
+      return z.NEVER;
+    }
+    return d;
+  });
+
+export const timelineFields = {
+  type: z.enum(TIMELINE_TYPES, { error: "Choose experience or education" }),
+  title: requiredText("Title", LIMITS.timelineTitle),
+  organization: requiredText("Organization", LIMITS.timelineOrg),
+  startDate: isoDate,
+  endDate: clearable(isoDate),
+  description: optionalText(LIMITS.timelineDescription),
 };

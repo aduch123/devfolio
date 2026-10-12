@@ -1,52 +1,93 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign up | Devfolio</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/global.css">
-  <link rel="stylesheet" href="/css/auth.css">
-</head>
-<body class="auth-body">
-  <div class="auth-wrapper">
-    <div class="editor-window auth-card">
-      <div class="editor-titlebar">
-        <span class="dot dot-red"></span>
-        <span class="dot dot-amber"></span>
-        <span class="dot dot-green"></span>
-        <span class="editor-filename">signup.js</span>
-      </div>
-      <form id="signup-form" class="auth-form" novalidate>
-        <h1 class="auth-title">Create account</h1>
-        <div class="field">
-          <label for="signup-email">Email</label>
-          <input type="email" id="signup-email" name="email" autocomplete="email" required>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign up | Devfolio</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/global.css" />
+    <link rel="stylesheet" href="/css/auth.css" />
+  </head>
+  <body class="auth-body">
+    <div class="auth-wrapper">
+      <div class="editor-window auth-card">
+        <div class="editor-titlebar">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-amber"></span>
+          <span class="dot dot-green"></span>
+          <span class="editor-filename">signup.js</span>
         </div>
-        <div class="field">
-          <label for="signup-username">Username</label>
-          <input type="text" id="signup-username" name="username" required maxlength="30" autocapitalize="none" autocomplete="username" spellcheck="false">
-          <small class="field-hint" id="username-status" aria-live="polite">3 to 30 letters, numbers or dashes. No dash at the start or end. Saved in lowercase.</small>
-        </div>
-        <div class="field">
-          <label for="signup-password">Password</label>
-          <div class="password-wrap">
-            <input type="password" id="signup-password" name="password" autocomplete="new-password" required maxlength="128">
-            <button type="button" class="pw-toggle" data-toggle="signup-password" aria-label="Show password" aria-pressed="false">Show</button>
+        <form id="signup-form" class="auth-form" novalidate>
+          <h1 class="auth-title">Create account</h1>
+          <div class="field">
+            <label for="signup-email">Email</label>
+            <input type="email" id="signup-email" name="email" autocomplete="email" required />
           </div>
-          <div class="strength" aria-hidden="true"><span class="strength-bar" id="strength-bar"></span></div>
-          <small class="field-hint" id="strength-text" aria-live="polite">At least 8 characters.</small>
-        </div>
-        <div class="field">
-          <label for="signup-confirm">Confirm password</label>
-          <input type="password" id="signup-confirm" name="confirm" autocomplete="new-password" required maxlength="128">
-        </div>
-        <p class="auth-error" id="signup-error" role="alert"></p>
-        <button type="submit" class="btn">Sign up</button>
-        <p class="auth-switch">Have an account? <a href="/login">Log in</a></p>
-      </form>
+          <div class="field">
+            <label for="signup-username">Username</label>
+            <input
+              type="text"
+              id="signup-username"
+              name="username"
+              required
+              maxlength="30"
+              autocapitalize="none"
+              autocomplete="username"
+              spellcheck="false"
+            />
+            <small class="field-hint" id="username-status" aria-live="polite"
+              >3 to 30 letters, numbers or dashes. No dash at the start or end. Saved in
+              lowercase.</small
+            >
+          </div>
+          <div class="field">
+            <label for="signup-password">Password</label>
+            <div class="password-wrap">
+              <input
+                type="password"
+                id="signup-password"
+                name="password"
+                autocomplete="new-password"
+                required
+                maxlength="128"
+              />
+              <button
+                type="button"
+                class="pw-toggle"
+                data-toggle="signup-password"
+                aria-label="Show password"
+                aria-pressed="false"
+              >
+                Show
+              </button>
+            </div>
+            <div class="strength" aria-hidden="true">
+              <span class="strength-bar" id="strength-bar"></span>
+            </div>
+            <small class="field-hint" id="strength-text" aria-live="polite"
+              >At least 8 characters.</small
+            >
+          </div>
+          <div class="field">
+            <label for="signup-confirm">Confirm password</label>
+            <input
+              type="password"
+              id="signup-confirm"
+              name="confirm"
+              autocomplete="new-password"
+              required
+              maxlength="128"
+            />
+          </div>
+          <p class="auth-error" id="signup-error" role="alert"></p>
+          <button type="submit" class="btn">Sign up</button>
+          <p class="auth-switch">Have an account? <a href="/login">Log in</a></p>
+        </form>
+      </div>
     </div>
-  </div>
-  <script type="module" src="/js/signup.js"></script>
-</body>
+    <script type="module" src="/js/signup.js"></script>
+  </body>
 </html>

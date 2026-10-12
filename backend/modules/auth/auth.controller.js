@@ -129,15 +129,22 @@ export const login = async (req, res) => {
 
 // GET auth/username-available?username=abc -> { available, reason? } (reason: invalid, reserved, taken).
 export const usernameAvailable = async (req, res) => {
-  const parsed = usernameSchema.safeParse(typeof req.query.username === "string" ? req.query.username : "");
+  const parsed = usernameSchema.safeParse(
+    typeof req.query.username === "string" ? req.query.username : "",
+  );
   if (!parsed.success) {
     const message = parsed.error.issues[0].message;
     const reason = message.includes("reserved") ? "reserved" : "invalid";
     return res.status(200).json({ available: false, reason, message });
   }
-  const existing = await prisma.user.findUnique({ where: { username: parsed.data }, select: { id: true } });
+  const existing = await prisma.user.findUnique({
+    where: { username: parsed.data },
+    select: { id: true },
+  });
   if (existing) {
-    return res.status(200).json({ available: false, reason: "taken", message: "This username is already taken" });
+    return res
+      .status(200)
+      .json({ available: false, reason: "taken", message: "This username is already taken" });
   }
   res.status(200).json({ available: true });
 };
@@ -145,7 +152,10 @@ export const usernameAvailable = async (req, res) => {
 // POST auth/verify-email { token }: the page posts the token from the link (a plain GET never consumes it).
 export const verifyEmail = async (req, res) => {
   const { userId } = await consumeEmailToken(req.body.token, "VERIFY_EMAIL");
-  await prisma.user.updateMany({ where: { id: userId, emailVerifiedAt: null }, data: { emailVerifiedAt: new Date() } });
+  await prisma.user.updateMany({
+    where: { id: userId, emailVerifiedAt: null },
+    data: { emailVerifiedAt: new Date() },
+  });
   res.status(200).json({ verified: true });
 };
 
@@ -158,10 +168,13 @@ export const resendVerification = async (req, res) => {
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     });
-    const coolingDown = latest && Date.now() - latest.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS;
+    const coolingDown =
+      latest && Date.now() - latest.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS;
     if (!coolingDown) sendVerification(user);
   }
-  res.status(202).json({ message: "If that account exists and is not verified yet, we sent a new link." });
+  res
+    .status(202)
+    .json({ message: "If that account exists and is not verified yet, we sent a new link." });
 };
 
 // POST auth/forgot-password { email }: identical 202 for every email, nothing is revealed.
@@ -173,10 +186,15 @@ export const forgotPassword = async (req, res) => {
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     });
-    const coolingDown = latest && Date.now() - latest.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS;
+    const coolingDown =
+      latest && Date.now() - latest.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS;
     if (!coolingDown) sendPasswordReset(user); // not awaited, so the answer takes the same time either way
   }
-  res.status(202).json({ message: "If an account exists for that email, we sent a link to reset the password." });
+  res
+    .status(202)
+    .json({
+      message: "If an account exists for that email, we sent a link to reset the password.",
+    });
 };
 
 // POST auth/reset-password { token, password }: consumes the link, sets the password, ends every session.
@@ -185,7 +203,10 @@ export const resetPassword = async (req, res) => {
   const passwordHash = await bcrypt.hash(req.body.password, 10);
   await prisma.$transaction([
     prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
-    prisma.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+    prisma.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
   ]);
   clearAuthCookies(res);
   res.status(200).json({ reset: true });
@@ -240,7 +261,10 @@ export const refresh = async (req, res) => {
   }
 
   if (session.prevRefreshHash && safeEqual(hash, session.prevRefreshHash)) {
-    if (session.rotatedAt && now.getTime() - session.rotatedAt.getTime() <= REFRESH_REUSE_GRACE_MS) {
+    if (
+      session.rotatedAt &&
+      now.getTime() - session.rotatedAt.getTime() <= REFRESH_REUSE_GRACE_MS
+    ) {
       // Another tab refreshed a moment ago and its cookie is already in the browser: only renew access.
       setAccessCookie(res, signAccessToken(session.user, session.id));
       return res.status(204).end();
@@ -250,7 +274,10 @@ export const refresh = async (req, res) => {
       where: { id: session.id, revokedAt: null },
       data: { revokedAt: now },
     });
-    logger.warn({ sessionId: session.id, userId: session.userId }, "refresh token reuse detected; session revoked");
+    logger.warn(
+      { sessionId: session.id, userId: session.userId },
+      "refresh token reuse detected; session revoked",
+    );
     reject("REFRESH_TOKEN_REUSED", "Your session has ended. Please log in again");
   }
 

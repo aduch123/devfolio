@@ -23,12 +23,15 @@ export const onboardingSchema = z.object({
     .superRefine((list, ctx) => {
       const seen = new Set();
       list.forEach((s, i) => {
-        if (seen.has(s.name)) {
+        if (seen.has(s.name.toLowerCase())) {
           ctx.addIssue({ code: "custom", path: [i, "name"], message: "Duplicate skill" });
         }
-        seen.add(s.name);
+        seen.add(s.name.toLowerCase());
       });
     })
     .optional(),
-  projects: z.array(z.object(projectFields)).max(LIMITS.maxProjects, `At most ${LIMITS.maxProjects} projects`).optional(),
+  projects: z
+    .array(z.object(projectFields))
+    .max(LIMITS.maxProjects, `At most ${LIMITS.maxProjects} projects`)
+    .optional(),
 });

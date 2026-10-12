@@ -1,138 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title id="page-title">Portfolio</title>
-  <meta name="description" content="Developer portfolio" id="page-description">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="page-title">Portfolio</title>
+    <meta name="description" content="Developer portfolio" id="page-description" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="../css/global.css">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../css/global.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
 
-  <a class="skip-link" href="#main">Skip to content</a>
-
-  <header>
-    <nav aria-label="Primary">
-      <span class="logo"><span class="logo-bracket">&lt;</span><span id="nav-username">User</span><span class="logo-bracket">/&gt;</span></span>
-      <button id="menu-btn" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
-        <span class="menu-icon"></span>
-      </button>
-      <div class="nav-links" id="nav-links">
-        <a href="#about" data-tab="about">about</a>
-        <a href="#skills" data-tab="skills">skills</a>
-        <a href="#projects" data-tab="projects">projects</a>
-        <a href="#contact" data-tab="contact">contact</a>
-      </div>
-      <div id="owner-controls">
-        <div class="share-wrap">
-          <button id="share-btn" aria-label="Share portfolio"><i class="fa-solid fa-share-nodes"></i></button>
-          <div id="share-dropdown"></div>
+    <header>
+      <nav aria-label="Primary">
+        <span class="logo"
+          ><span class="logo-bracket">&lt;</span><span id="nav-username">User</span
+          ><span class="logo-bracket">/&gt;</span></span
+        >
+        <button
+          id="menu-btn"
+          aria-label="Toggle menu"
+          aria-expanded="false"
+          aria-controls="nav-links"
+        >
+          <span class="menu-icon"></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+          <a href="#about" data-tab="about">about</a>
+          <a href="#skills" data-tab="skills">skills</a>
+          <a href="#projects" data-tab="projects">projects</a>
+          <a href="#contact" data-tab="contact">contact</a>
         </div>
-        <button id="edit-btn" aria-label="Edit portfolio"><i class="fa-solid fa-pen"></i></button>
-        <button id="logout-btn">Log out</button>
-      </div>
-    </nav>
-  </header>
-
-  <main id="main">
-
-    <div id="portfolio-loading" style="text-align:center; padding:80px 20px;">
-      <p>Loading portfolio...</p>
-    </div>
-
-    <div id="portfolio-error" style="display:none; text-align:center; padding:80px 20px;">
-      <p>This user doesn't exist or has no portfolio yet.</p>
-    </div>
-
-    <div id="portfolio-content" style="display:none;">
-
-      <section class="hero">
-        <div class="editor-window">
-          <div class="editor-titlebar">
-            <span class="dot dot-red" aria-hidden="true"></span>
-            <span class="dot dot-amber" aria-hidden="true"></span>
-            <span class="dot dot-green" aria-hidden="true"></span>
-            <span class="editor-filename">hero.dev</span>
+        <div id="owner-controls">
+          <div class="share-wrap">
+            <button id="share-btn" aria-label="Share portfolio">
+              <i class="fa-solid fa-share-nodes"></i>
+            </button>
+            <div id="share-dropdown"></div>
           </div>
-          <div class="editor-body">
-            <p class="code-line code-comment">// software developer</p>
-            <h1 class="code-line">
-              <span class="code-keyword">const</span> developer
-              <span class="code-op">=</span>
-              <span class="code-string" id="hero-name">""</span><span class="code-op">;</span>
-            </h1>
-            <p class="code-line hero-role">
-              <span class="code-keyword">developer</span><span class="code-op">.</span><span class="code-fn">builds</span><span class="code-op">(</span><span class="code-string" id="role-text"></span><span class="code-op">);</span>
-              <span class="cursor" aria-hidden="true"></span>
-            </p>
-            <div class="hero-buttons">
-              <a href="#projects" class="btn">View work</a>
-              <a href="#contact" class="btn btn-outline">Contact me</a>
+          <button id="edit-btn" aria-label="Edit portfolio"><i class="fa-solid fa-pen"></i></button>
+          <button id="logout-btn">Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main">
+      <div id="portfolio-loading" style="text-align: center; padding: 80px 20px">
+        <p>Loading portfolio...</p>
+      </div>
+
+      <div id="portfolio-error" style="display: none; text-align: center; padding: 80px 20px">
+        <p>This user doesn't exist or has no portfolio yet.</p>
+      </div>
+
+      <div id="portfolio-content" style="display: none">
+        <section class="hero">
+          <div class="editor-window">
+            <div class="editor-titlebar">
+              <span class="dot dot-red" aria-hidden="true"></span>
+              <span class="dot dot-amber" aria-hidden="true"></span>
+              <span class="dot dot-green" aria-hidden="true"></span>
+              <span class="editor-filename">hero.dev</span>
+            </div>
+            <div class="editor-body">
+              <p class="code-line code-comment">// software developer</p>
+              <h1 class="code-line">
+                <span class="code-keyword">const</span> developer
+                <span class="code-op">=</span>
+                <span class="code-string" id="hero-name">""</span><span class="code-op">;</span>
+              </h1>
+              <p class="code-line hero-role">
+                <span class="code-keyword">developer</span><span class="code-op">.</span
+                ><span class="code-fn">builds</span><span class="code-op">(</span
+                ><span class="code-string" id="role-text"></span><span class="code-op">);</span>
+                <span class="cursor" aria-hidden="true"></span>
+              </p>
+              <div class="hero-buttons">
+                <a href="#projects" class="btn">View work</a>
+                <a href="#contact" class="btn btn-outline">Contact me</a>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="about" class="about">
-        <p class="eyebrow">// about</p>
-        <h2>A bit about me</h2>
-        <div id="about-content"></div>
-      </section>
+        <section id="about" class="about">
+          <p class="eyebrow">// about</p>
+          <h2>A bit about me</h2>
+          <div id="about-content"></div>
+        </section>
 
-      <section id="skills" class="skills">
-        <p class="eyebrow">// skills</p>
-        <h2>What I work with</h2>
-        <div class="skills-grid" id="skills-grid"></div>
-      </section>
+        <section id="skills" class="skills">
+          <p class="eyebrow">// skills</p>
+          <h2>What I work with</h2>
+          <div class="skills-grid" id="skills-grid"></div>
+        </section>
 
-      <section id="projects" class="projects">
-        <p class="eyebrow">// projects</p>
-        <h2>Things I've built</h2>
-        <div class="projects-grid" id="projects-grid"></div>
-      </section>
+        <section id="projects" class="projects">
+          <p class="eyebrow">// projects</p>
+          <h2>Things I've built</h2>
+          <div class="projects-grid" id="projects-grid"></div>
+        </section>
 
-      <section id="contact" class="contact">
-        <p class="eyebrow">// contact</p>
-        <h2>Let's work together</h2>
-        <p>Feel free to reach out! I'd love to hear from you.</p>
+        <section id="contact" class="contact">
+          <p class="eyebrow">// contact</p>
+          <h2>Let's work together</h2>
+          <p>Feel free to reach out! I'd love to hear from you.</p>
 
-        <form id="contact-form">
-          <div class="field">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" placeholder="Your name" required>
+          <form id="contact-form">
+            <div class="field">
+              <label for="name">Name</label>
+              <input type="text" id="name" name="name" placeholder="Your name" required />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" placeholder="Your email" required />
+            </div>
+            <div class="field">
+              <label for="message">Message</label>
+              <textarea
+                id="message"
+                name="message"
+                placeholder="Your message"
+                rows="5"
+                required
+              ></textarea>
+            </div>
+            <button type="submit" class="btn" id="submit-btn">Send message</button>
+            <p id="form-status" role="status" aria-live="polite"></p>
+          </form>
+
+          <div class="socials" id="socials-list">
+            <!-- populated dynamically: github, email, phone -->
           </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="Your email" required>
-          </div>
-          <div class="field">
-            <label for="message">Message</label>
-            <textarea id="message" name="message" placeholder="Your message" rows="5" required></textarea>
-          </div>
-          <button type="submit" class="btn" id="submit-btn">Send message</button>
-          <p id="form-status" role="status" aria-live="polite"></p>
-        </form>
+        </section>
+      </div>
+    </main>
 
-        <div class="socials" id="socials-list">
-          <!-- populated dynamically: github, email, phone -->
-        </div>
-      </section>
+    <footer>
+      <p>&copy; <span id="year"></span> <span id="footer-name"></span>. All rights reserved.</p>
+    </footer>
 
-    </div>
-
-  </main>
-
-  <footer>
-    <p>&copy; <span id="year"></span> <span id="footer-name"></span>. All rights reserved.</p>
-  </footer>
-
-  <script src="../js/script.js"></script>
-  <script type="module" src="../js/portfolio.js"></script>
-</body>
+    <script src="../js/script.js"></script>
+    <script type="module" src="../js/portfolio.js"></script>
+  </body>
 </html>

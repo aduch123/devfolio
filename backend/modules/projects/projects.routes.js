@@ -6,13 +6,15 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  reorderProjects,
 } from "./projects.controller.js";
-import { projectSchema, projectUpdateSchema } from "./projects.schema.js";
+import { projectSchema, projectUpdateSchema, projectOrderSchema } from "./projects.schema.js";
 
 const router = Router();
 
 router.get("/projects", requireAuth, getProjects);
 router.post("/projects", requireAuth, validate(projectSchema), createProject);
+router.put("/projects/order", requireAuth, validate(projectOrderSchema), reorderProjects);
 router.patch("/projects/:id", requireAuth, validate(projectUpdateSchema), updateProject);
 router.delete("/projects/:id", requireAuth, deleteProject);
 

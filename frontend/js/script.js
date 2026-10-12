@@ -3,9 +3,7 @@ const yearSpan = document.getElementById("year");
 if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 
 // ---- Respect reduced motion ----
-const prefersReducedMotion = window.matchMedia(
-  "(prefers-reduced-motion: reduce)"
-).matches;
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---- Mobile menu ----
 const menuBtn = document.getElementById("menu-btn");
@@ -47,7 +45,7 @@ if (sections.length && navAnchors.length) {
         }
       });
     },
-    { rootMargin: "-40% 0px -50% 0px" }
+    { rootMargin: "-40% 0px -50% 0px" },
   );
 
   sections.forEach((section) => navObserver.observe(section));
@@ -56,7 +54,7 @@ if (sections.length && navAnchors.length) {
 // ---- Scroll reveal ----
 function setupScrollReveal(container = document) {
   const revealTargets = container.querySelectorAll(
-    ".about, .skills, .projects, .contact, .skill-card, .project-card"
+    ".about, .skills, .projects, .contact, .skill-card, .project-card",
   );
 
   revealTargets.forEach((el) => el.classList.add("reveal"));
@@ -75,7 +73,7 @@ function setupScrollReveal(container = document) {
         }
       });
     },
-    { threshold: 0.3 }
+    { threshold: 0.3 },
   );
 
   revealTargets.forEach((el) => revealObserver.observe(el));

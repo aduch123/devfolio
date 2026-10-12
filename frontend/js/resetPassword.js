@@ -7,7 +7,8 @@ import { initPasswordToggles } from "./authUi.js";
 const form = document.getElementById("reset-form");
 const errorEl = document.getElementById("reset-error");
 const message = document.getElementById("reset-message");
-const pwField = (key) => (key === "password" ? form.elements.password.closest(".password-wrap") : null);
+const pwField = (key) =>
+  key === "password" ? form.elements.password.closest(".password-wrap") : null;
 
 initPasswordToggles();
 

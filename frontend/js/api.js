@@ -36,7 +36,13 @@ function refreshSession() {
 //   anonymous         public pages: never refresh, never redirect
 // On a 401 the client refreshes the session once and retries; only if that fails does it go to login.
 export async function apiFetch(path, options = {}) {
-  const { skipAuthRedirect = false, noRedirect = false, anonymous = false, _retried = false, ...fetchOptions } = options;
+  const {
+    skipAuthRedirect = false,
+    noRedirect = false,
+    anonymous = false,
+    _retried = false,
+    ...fetchOptions
+  } = options;
 
   let res;
   try {
@@ -78,7 +84,12 @@ export async function apiFetch(path, options = {}) {
     return { ok: true, status: res.status, data: body, error: null };
   }
 
-  if (body && typeof body.error === "object" && body.error && typeof body.error.message === "string") {
+  if (
+    body &&
+    typeof body.error === "object" &&
+    body.error &&
+    typeof body.error.message === "string"
+  ) {
     return { ok: false, status: res.status, data: null, error: body.error };
   }
   if (res.status === 429) {

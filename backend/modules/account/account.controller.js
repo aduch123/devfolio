@@ -31,7 +31,11 @@ export const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const user = await loadWithPassword(req, currentPassword);
   if (currentPassword === newPassword) {
-    throw badRequest("Choose a password different from the current one", undefined, "SAME_PASSWORD");
+    throw badRequest(
+      "Choose a password different from the current one",
+      undefined,
+      "SAME_PASSWORD",
+    );
   }
   const passwordHash = await bcrypt.hash(newPassword, 10);
   // Every other session ends; this one stays logged in.
@@ -70,7 +74,7 @@ export const changeEmail = async (req, res) => {
         to: updated.email,
         username: updated.username,
         link: `${appUrl()}/verify-email?token=${encodeURIComponent(token)}`,
-      })
+      }),
     )
     .catch((err) => logger.error({ err, userId: updated.id }, "could not send verification email"));
 
@@ -96,7 +100,10 @@ export const deleteAccount = async (req, res) => {
   const now = new Date();
   await prisma.$transaction([
     prisma.user.update({ where: { id: user.id }, data: { deletedAt: now } }),
-    prisma.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: now } }),
+    prisma.session.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: now },
+    }),
   ]);
   clearAuthCookies(res);
   res.status(204).end();

@@ -34,17 +34,27 @@ usernameInput.addEventListener("input", () => {
 
   if (!value) return setStatus(USERNAME_HELP, "");
   if (value.length < 3) return setStatus("At least 3 characters.", "bad");
-  if (!USERNAME_RE.test(value)) return setStatus("Use only letters, numbers and dashes, with no dash at the start or end.", "bad");
+  if (!USERNAME_RE.test(value))
+    return setStatus(
+      "Use only letters, numbers and dashes, with no dash at the start or end.",
+      "bad",
+    );
 
   setStatus("Checking…", "");
   const mine = checkId;
   timer = setTimeout(async () => {
-    const result = await apiFetch(`${API_PREFIX}/auth/username-available?username=${encodeURIComponent(value)}`, {
-      anonymous: true,
-    });
+    const result = await apiFetch(
+      `${API_PREFIX}/auth/username-available?username=${encodeURIComponent(value)}`,
+      {
+        anonymous: true,
+      },
+    );
     if (mine !== checkId) return;
     if (!result.ok) return setStatus("Couldn't check right now. You can still submit.", "");
-    setStatus(result.data.available ? `${value} is available` : result.data.message, result.data.available ? "ok" : "bad");
+    setStatus(
+      result.data.available ? `${value} is available` : result.data.message,
+      result.data.available ? "ok" : "bad",
+    );
   }, 400);
 });
 
@@ -70,12 +80,15 @@ form.addEventListener("submit", async (e) => {
   const fields = {};
   if (!email) fields.email = "Enter your email";
   if (!username) fields.username = "Choose a username";
-  else if (!USERNAME_RE.test(username.toLowerCase()) || username.length < 3) fields.username = "Use 3 to 30 letters, numbers or dashes, with no dash at the start or end";
+  else if (!USERNAME_RE.test(username.toLowerCase()) || username.length < 3)
+    fields.username = "Use 3 to 30 letters, numbers or dashes, with no dash at the start or end";
   else if (status.dataset.state === "bad") fields.username = status.textContent;
   if (password.length < 8) fields.password = "Password must be at least 8 characters";
   if (confirm !== password) fields.confirm = "Passwords do not match";
   if (Object.keys(fields).length) {
-    showFieldErrors(form, fields, (key) => (key === "password" ? passwordInput.closest(".password-wrap") : null));
+    showFieldErrors(form, fields, (key) =>
+      key === "password" ? passwordInput.closest(".password-wrap") : null,
+    );
     return;
   }
 

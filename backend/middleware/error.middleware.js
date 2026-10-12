@@ -20,7 +20,13 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   if (err instanceof ZodError) {
-    return send(res, 400, "VALIDATION_ERROR", "Please check the highlighted fields", zodFields(err));
+    return send(
+      res,
+      400,
+      "VALIDATION_ERROR",
+      "Please check the highlighted fields",
+      zodFields(err),
+    );
   }
 
   // body-parser errors (malformed JSON, payload too large)

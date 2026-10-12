@@ -25,7 +25,13 @@ export const requireAuth = async (req, res, next) => {
       : unauthorized("Please log in");
   }
   const live = await prisma.session.findFirst({
-    where: { id: user.sid, userId: user.id, revokedAt: null, expiresAt: { gt: new Date() }, user: { deletedAt: null } },
+    where: {
+      id: user.sid,
+      userId: user.id,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+      user: { deletedAt: null },
+    },
     select: { id: true },
   });
   if (!live) throw unauthorized("Your session has ended. Please log in again", "SESSION_ENDED");

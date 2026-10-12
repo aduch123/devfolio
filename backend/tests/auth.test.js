@@ -1,8 +1,22 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import {
-  API, app, prisma, request, ACCESS_COOKIE, REFRESH_COOKIE, PASSWORD,
-  cleanupUsers, cookieHeader, cookiePair, errorOf, loginWith, newIdentity, registerAndLogin, signup, waitForMail,
+  API,
+  app,
+  prisma,
+  request,
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  PASSWORD,
+  cleanupUsers,
+  cookieHeader,
+  cookiePair,
+  errorOf,
+  loginWith,
+  newIdentity,
+  registerAndLogin,
+  signup,
+  waitForMail,
 } from "./helpers.js";
 
 before(cleanupUsers);
@@ -14,7 +28,11 @@ after(async () => {
 describe("POST auth/signup", () => {
   it("creates the account, lowercases identity, hides the hash, sends a verification email", async () => {
     const ident = newIdentity();
-    const res = await signup({ email: ident.email.toUpperCase(), username: ident.username.toUpperCase(), password: PASSWORD });
+    const res = await signup({
+      email: ident.email.toUpperCase(),
+      username: ident.username.toUpperCase(),
+      password: PASSWORD,
+    });
     assert.equal(res.status, 201);
     assert.equal(res.body.user.email, ident.email);
     assert.equal(res.body.user.username, ident.username);
@@ -80,7 +98,10 @@ describe("POST auth/login", () => {
 
   it("rejects a foreign Origin with 403", async () => {
     const ident = newIdentity();
-    const res = await request(app).post(`${API}/auth/login`).set("Origin", "https://evil.example").send(ident);
+    const res = await request(app)
+      .post(`${API}/auth/login`)
+      .set("Origin", "https://evil.example")
+      .send(ident);
     errorOf(res, 403, "BAD_ORIGIN");
   });
 });
@@ -88,7 +109,8 @@ describe("POST auth/login", () => {
 describe("GET auth/username-available", () => {
   it("reports available, taken, reserved and invalid names", async () => {
     const { ident } = await registerAndLogin();
-    const check = (name) => request(app).get(`${API}/auth/username-available`).query({ username: name });
+    const check = (name) =>
+      request(app).get(`${API}/auth/username-available`).query({ username: name });
     const free = await check(`free-${Date.now().toString(36)}`);
     assert.deepEqual(free.body, { available: true });
     assert.equal((await check(ident.username)).body.reason, "taken");
@@ -112,7 +134,9 @@ describe("GET auth/me", () => {
   });
 
   it("rejects a garbage access cookie with 401", async () => {
-    const res = await request(app).get(`${API}/auth/me`).set("Cookie", `${ACCESS_COOKIE}=not.a.jwt`);
+    const res = await request(app)
+      .get(`${API}/auth/me`)
+      .set("Cookie", `${ACCESS_COOKIE}=not.a.jwt`);
     errorOf(res, 401, "INVALID_TOKEN");
   });
 
@@ -143,7 +167,9 @@ describe("POST auth/refresh", () => {
   });
 
   it("rejects a made-up token with 401", async () => {
-    const res = await request(app).post(`${API}/auth/refresh`).set("Cookie", `${REFRESH_COOKIE}=abc.def`);
+    const res = await request(app)
+      .post(`${API}/auth/refresh`)
+      .set("Cookie", `${REFRESH_COOKIE}=abc.def`);
     errorOf(res, 401, "INVALID_REFRESH_TOKEN");
   });
 
@@ -166,8 +192,16 @@ describe("POST auth/refresh", () => {
       where: { user: { email: ident.email } },
       data: { rotatedAt: new Date(Date.now() - 60 * 1000) },
     });
-    errorOf(await request(app).post(`${API}/auth/refresh`).set("Cookie", first), 401, "REFRESH_TOKEN_REUSED");
-    errorOf(await request(app).post(`${API}/auth/refresh`).set("Cookie", second), 401, "INVALID_REFRESH_TOKEN");
+    errorOf(
+      await request(app).post(`${API}/auth/refresh`).set("Cookie", first),
+      401,
+      "REFRESH_TOKEN_REUSED",
+    );
+    errorOf(
+      await request(app).post(`${API}/auth/refresh`).set("Cookie", second),
+      401,
+      "INVALID_REFRESH_TOKEN",
+    );
   });
 });
 
@@ -178,19 +212,32 @@ describe("POST auth/logout", () => {
     const res = await request(app).post(`${API}/auth/logout`).set("Cookie", refreshPair);
     assert.equal(res.status, 204);
     assert.match(res.headers["set-cookie"].join(";"), new RegExp(`${REFRESH_COOKIE}=;`));
-    errorOf(await request(app).post(`${API}/auth/refresh`).set("Cookie", refreshPair), 401, "INVALID_REFRESH_TOKEN");
+    errorOf(
+      await request(app).post(`${API}/auth/refresh`).set("Cookie", refreshPair),
+      401,
+      "INVALID_REFRESH_TOKEN",
+    );
   });
 
   it("is harmless without a cookie or with a garbage one", async () => {
     await request(app).post(`${API}/auth/logout`).expect(204);
-    await request(app).post(`${API}/auth/logout`).set("Cookie", `${REFRESH_COOKIE}=junk.value`).expect(204);
+    await request(app)
+      .post(`${API}/auth/logout`)
+      .set("Cookie", `${REFRESH_COOKIE}=junk.value`)
+      .expect(204);
   });
 
   it("only ends its own session", async () => {
     const { ident, loginRes } = await registerAndLogin();
     const other = await loginWith(ident).expect(200);
-    await request(app).post(`${API}/auth/logout`).set("Cookie", cookiePair(loginRes, REFRESH_COOKIE)).expect(204);
-    await request(app).post(`${API}/auth/refresh`).set("Cookie", cookiePair(other, REFRESH_COOKIE)).expect(204);
+    await request(app)
+      .post(`${API}/auth/logout`)
+      .set("Cookie", cookiePair(loginRes, REFRESH_COOKIE))
+      .expect(204);
+    await request(app)
+      .post(`${API}/auth/refresh`)
+      .set("Cookie", cookiePair(other, REFRESH_COOKIE))
+      .expect(204);
   });
 
   it("refuses a foreign Origin with 403", async () => {

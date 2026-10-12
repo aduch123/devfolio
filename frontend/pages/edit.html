@@ -1,39 +1,45 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit your portfolio</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/auth.css">
-  <link rel="stylesheet" href="../css/onboarding.css">
-  <link rel="stylesheet" href="../css/edit.css">
-</head>
-<body class="auth-body">
-  <div class="auth-wrapper" style="max-width:640px;">
-    <div class="editor-window auth-card">
-      <div class="editor-titlebar">
-        <span class="dot dot-red"></span>
-        <span class="dot dot-amber"></span>
-        <span class="dot dot-green"></span>
-        <span class="editor-filename">edit.js</span>
-      </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit your portfolio</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/auth.css" />
+    <link rel="stylesheet" href="../css/onboarding.css" />
+    <link rel="stylesheet" href="../css/edit.css" />
+  </head>
+  <body class="auth-body">
+    <div class="auth-wrapper" style="max-width: 640px">
+      <div class="editor-window auth-card">
+        <div class="editor-titlebar">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-amber"></span>
+          <span class="dot dot-green"></span>
+          <span class="editor-filename">edit.js</span>
+        </div>
 
-      <div class="edit-tabs">
-        <button class="edit-tab active" data-tab="profile">Profile</button>
-        <button class="edit-tab" data-tab="skills">Skills</button>
-        <button class="edit-tab" data-tab="projects">Projects</button>
-        <a href="/" id="back-to-portfolio" class="edit-tab" style="margin-left:auto;">Back</a>
-      </div>
+        <div class="edit-tabs">
+          <button class="edit-tab active" data-tab="profile">Profile</button>
+          <button class="edit-tab" data-tab="skills">Skills</button>
+          <button class="edit-tab" data-tab="projects">Projects</button>
+          <a href="/" id="back-to-portfolio" class="edit-tab" style="margin-left: auto">Back</a>
+        </div>
 
-      <div class="edit-panel active" id="panel-profile"></div>
-      <div class="edit-panel" id="panel-skills"></div>
-      <div class="edit-panel" id="panel-projects"></div>
+        <div class="edit-panel active" id="panel-profile"></div>
+        <div class="edit-panel" id="panel-skills"></div>
+        <div class="edit-panel" id="panel-projects"></div>
+      </div>
     </div>
-  </div>
 
-  <script type="module" src="../js/edit.js"></script>
-</body>
+    <script type="module" src="../js/edit.js"></script>
+  </body>
 </html>

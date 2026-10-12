@@ -25,7 +25,11 @@ export const cleanupUsers = async () => {
 };
 
 export const errorOf = (res, status, code) => {
-  assert.equal(res.status, status, `expected ${status}, got ${res.status}: ${JSON.stringify(res.body)}`);
+  assert.equal(
+    res.status,
+    status,
+    `expected ${status}, got ${res.status}: ${JSON.stringify(res.body)}`,
+  );
   assert.equal(res.body.error?.code, code);
 };
 
@@ -40,7 +44,8 @@ export const cookiePair = (res, name) => {
   return raw ? raw.split(";")[0] : undefined;
 };
 
-export const cookieHeader = (res) => [cookiePair(res, ACCESS_COOKIE), cookiePair(res, REFRESH_COOKIE)].filter(Boolean).join("; ");
+export const cookieHeader = (res) =>
+  [cookiePair(res, ACCESS_COOKIE), cookiePair(res, REFRESH_COOKIE)].filter(Boolean).join("; ");
 
 // New user, logged in. Returns the agent (keeps cookies), the identity and the login response.
 export async function registerAndLogin() {
@@ -56,7 +61,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Emails are sent without being awaited, so poll the outbox for the newest matching message.
 export async function waitForMail(to, subjectPart) {
   for (let i = 0; i < 40; i++) {
-    const found = [...testOutbox].reverse().find((m) => m.to === to && m.subject.includes(subjectPart));
+    const found = [...testOutbox]
+      .reverse()
+      .find((m) => m.to === to && m.subject.includes(subjectPart));
     if (found) return found;
     await sleep(50);
   }
@@ -68,7 +75,8 @@ export async function expectNoMail(to, subjectPart) {
   assert.equal(testOutbox.filter((m) => m.to === to && m.subject.includes(subjectPart)).length, 0);
 }
 
-export const tokenFromMail = (mail) => new URL(mail.text.match(/https?:\/\/\S+/)[0]).searchParams.get("token");
+export const tokenFromMail = (mail) =>
+  new URL(mail.text.match(/https?:\/\/\S+/)[0]).searchParams.get("token");
 
 export const clearMail = () => {
   testOutbox.length = 0;

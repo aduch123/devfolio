@@ -106,7 +106,7 @@ async function loadProfileTab() {
   });
 }
 
-// ---- Skills tab ---- 
+// ---- Skills tab ----
 const skillsPanel = document.getElementById("panel-skills");
 
 const skillLabelMap = Object.fromEntries(skillOptions.map((s) => [s.value, s.label]));
@@ -256,7 +256,11 @@ async function loadProjectsTab() {
       repoUrl: document.getElementById("new-project-repo").value || null,
       liveUrl: document.getElementById("new-project-live").value || null,
       tags: document.getElementById("new-project-tags").value
-        ? document.getElementById("new-project-tags").value.split(",").map((t) => t.trim()).filter(Boolean)
+        ? document
+            .getElementById("new-project-tags")
+            .value.split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
         : [],
     };
 
@@ -320,12 +324,25 @@ function renderExistingProjects(projects) {
       }
     };
 
-    wrapper.querySelector(".proj-title").addEventListener("blur", (e) => saveField(e.target, "title", e.target.value));
-    wrapper.querySelector(".proj-desc").addEventListener("blur", (e) => saveField(e.target, "description", e.target.value || null));
-    wrapper.querySelector(".proj-repo").addEventListener("blur", (e) => saveField(e.target, "repoUrl", e.target.value || null));
-    wrapper.querySelector(".proj-live").addEventListener("blur", (e) => saveField(e.target, "liveUrl", e.target.value || null));
+    wrapper
+      .querySelector(".proj-title")
+      .addEventListener("blur", (e) => saveField(e.target, "title", e.target.value));
+    wrapper
+      .querySelector(".proj-desc")
+      .addEventListener("blur", (e) => saveField(e.target, "description", e.target.value || null));
+    wrapper
+      .querySelector(".proj-repo")
+      .addEventListener("blur", (e) => saveField(e.target, "repoUrl", e.target.value || null));
+    wrapper
+      .querySelector(".proj-live")
+      .addEventListener("blur", (e) => saveField(e.target, "liveUrl", e.target.value || null));
     wrapper.querySelector(".proj-tags").addEventListener("blur", (e) => {
-      const tags = e.target.value ? e.target.value.split(",").map((t) => t.trim()).filter(Boolean) : [];
+      const tags = e.target.value
+        ? e.target.value
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [];
       saveField(e.target, "tags", tags);
     });
 

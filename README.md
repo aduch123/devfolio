@@ -36,6 +36,8 @@ Open <http://localhost:5000> (or the `PORT` you set). The Express server serves 
 | `RESEND_API_KEY` | yes | Resend API key for contact-form emails |
 | `RESEND_FROM` | no | Email sender, default `Devfolio <onboarding@resend.dev>`. Resend's test sender only delivers to your own Resend account email until you verify a domain (planned for Phase 6) |
 | `APP_URL` | no | Public address used in email links, e.g. `https://devfolio.example` (default `http://localhost:PORT`) |
+| `MAX_FEATURED_PROJECTS` | no | Most projects a user may feature (default `3`) |
+| `UPLOAD_DIR` | no | Folder for uploaded images and resumes (default `backend/uploads`, git-ignored; use a persistent disk in production) |
 | `TRUST_PROXY` | no | Number of reverse proxies in front of the app (default `false`). Set `1` behind one proxy so rate limits see real client IPs |
 | `CORS_ORIGINS` | no | Comma-separated origins allowed to call the API cross-origin (default: none, same-origin only) |
 | `PORT` | no | Server port (default `5000`) |
@@ -65,7 +67,7 @@ backend/
   server.js       # starts the HTTP server
   config/         # env validation, constants, prisma client, logger
   modules/        # one folder per feature: <name>.routes.js + .controller.js + .schema.js
-    auth/ profile/ skills/ projects/ onboarding/ share/ messages/
+    auth/ account/ profile/ skills/ projects/ social/ timeline/ media/ onboarding/ share/ messages/
   middleware/     # auth (cookie session, page guard), origin check, validate(schema), rateLimit, error handling
   utils/          # AppError, validators, publicPortfolio (public fields), prismaErrors, session (cookies, tokens), mailer
   scripts/        # smoke.js (npm run smoke)
@@ -86,9 +88,11 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 | Auth | `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/forgot-password`, `POST auth/reset-password`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
 | Session | `GET auth/me` | yes |
 | Onboarding | `POST onboarding` (409 `ALREADY_ONBOARDED` if repeated) | yes |
-| Profile | `GET`, `PATCH profile` | yes |
-| Skills | `GET`, `POST skills`; `PATCH`, `DELETE skills/:id` | yes |
-| Projects | `GET`, `POST projects`; `PATCH`, `DELETE projects/:id` | yes |
+| Profile | `GET`, `PATCH profile` (incl. `headline`, `location`, `sectionConfig`); `POST`, `DELETE profile/avatar` and `profile/resume` (multipart field `file`) | yes |
+| Skills | `GET`, `POST skills`; `PATCH`, `DELETE skills/:id`; `PUT skills/order` (`{ ids }`, 204) | yes |
+| Projects | `GET`, `POST projects`; `PATCH`, `DELETE projects/:id`; `PUT projects/order` (`{ ids }`); `POST`, `DELETE projects/:id/cover` (multipart `file`) | yes |
+| Social links | `GET`, `POST social`; `PATCH`, `DELETE social/:id`; `PUT social/order` (`{ ids }`) | yes |
+| Timeline | `GET timeline?type=`, `POST timeline`; `PATCH`, `DELETE timeline/:id`; `PUT timeline/order` (`{ type, ids }`) | yes |
 | Share link | `POST`, `GET`, `DELETE share` | yes |
 | Public portfolio | `GET portfolio/:username`, `GET portfolio/share/:token` | no |
 | Contact form | `POST portfolio/:username/message`, `POST portfolio/share/:token/message` | no |
@@ -107,7 +111,7 @@ Public portfolio responses contain only public fields (no account email, ids, ha
 
 ## Errors
 
-Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "fieldName": "message" } } }` (`fields` only for validation errors). Common codes: `VALIDATION_ERROR` (400), `INVALID_CREDENTIALS`, `UNAUTHORIZED`, `INVALID_TOKEN`, `NO_REFRESH_TOKEN`, `INVALID_REFRESH_TOKEN` and `REFRESH_TOKEN_REUSED` (401), `BAD_ORIGIN` (403), `*_NOT_FOUND` and `ROUTE_NOT_FOUND` (404), `USER_EXISTS`, `SKILL_EXISTS` and `ALREADY_ONBOARDED` (409), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `EMAIL_SEND_FAILED` (502), `INTERNAL_ERROR` (500).
+Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "fieldName": "message" } } }` (`fields` only for validation errors). Common codes: `VALIDATION_ERROR` (400), `INVALID_CREDENTIALS`, `UNAUTHORIZED`, `INVALID_TOKEN`, `NO_REFRESH_TOKEN`, `INVALID_REFRESH_TOKEN` and `REFRESH_TOKEN_REUSED` (401), `BAD_ORIGIN` (403), `*_NOT_FOUND` and `ROUTE_NOT_FOUND` (404), `USER_EXISTS`, `SKILL_EXISTS`, `SKILL_LIMIT`, `SOCIAL_LIMIT`, `TIMELINE_LIMIT`, `FEATURED_LIMIT` and `ALREADY_ONBOARDED` (409), `INVALID_ORDER`, `INVALID_FILE`, `NO_FILE` and `BAD_UPLOAD` (400), `FILE_TOO_LARGE` (413), `PAYLOAD_TOO_LARGE` (413), `RATE_LIMITED` (429), `EMAIL_SEND_FAILED` (502), `INTERNAL_ERROR` (500).
 
 ## Notes
 
@@ -124,3 +128,7 @@ Changing the password ends all other sessions; changing the email marks it unver
 ## Tests
 
 `npm test` (in `backend/`) runs `node:test` with Supertest against a **separate** database. One-time setup: create an empty database (for example `devfolio_test`), put its URL in `backend/.env` as `DATABASE_URL_TEST`, then apply the migrations to it with `DATABASE_URL=<that url> npx prisma migrate deploy`. The tests refuse to run if `DATABASE_URL_TEST` is missing or equal to `DATABASE_URL`. They create users with the email domain `@devfolio-test.dev` and delete them afterwards; no email is sent (messages are collected in memory) and rate limits are off. Install once with `npm install -D supertest` and `npm pkg set scripts.test="node --test --test-concurrency=1 \"tests/**/*.test.js\""`.
+
+**Content and uploads (Phase 2):** skills (preset or custom, with a category), projects (cover image, featured), social links and a timeline (experience and education) all have create, update, delete and a `PUT .../order` endpoint that takes the full list of ids in the new order; another user's id gives 404. Public reads return everything in the saved order. Uploads: avatar and cover images (JPEG, PNG or WebP, 2 MB) are checked by their content, resized and re-encoded as WebP; resumes (PDF, 5 MB) are checked by signature. Files get random names under `UPLOAD_DIR`, are served from `/uploads` with `nosniff` and a locked-down CSP, and the old file is deleted when replaced. Run `npm install multer sharp` after pulling.
+
+**Section config:** `profile.sectionConfig` says which sections the portfolio shows and in what order: `about`, `skills`, `projects`, `experience`, `education`, `contact`, each `{ visible, order }` (order 0 to 5, unique). `PATCH /profile` takes any subset and merges it into the saved config (two sections cannot share a position, so move several in one request); `null` resets to the defaults. `GET /profile` and the public portfolio always return all six sections.
