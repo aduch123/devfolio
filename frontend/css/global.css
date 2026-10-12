@@ -172,6 +172,7 @@ nav {
   background-color: var(--accent-soft);
 }
 
+#dashboard-btn,
 #logout-btn {
   background: none;
   border: none;
@@ -189,6 +190,11 @@ nav {
 #logout-btn:hover {
   color: var(--warm);
   background-color: rgba(255, 107, 74, 0.08);
+}
+
+#dashboard-btn:hover {
+  color: var(--accent);
+  background-color: var(--accent-soft);
 }
 
 .share-wrap {

@@ -4,7 +4,7 @@ import { apiFetch } from "./api.js";
 import { showFieldErrors, errorText } from "./forms.js";
 import { skillOptions } from "./skillStyles.js";
 
-const user = await requireAuth();
+await requireAuth();
 
 const form = document.getElementById("onboarding-form");
 const rolesList = document.getElementById("roles-list");
@@ -134,5 +134,5 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  window.location.href = `/${user.username}`;
+  window.location.href = "/dashboard";
 });
