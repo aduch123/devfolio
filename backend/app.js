@@ -51,7 +51,7 @@ app.use(
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
-        frameAncestors: ["'none'"],
+        frameAncestors: ["'self'"],
         // Upgrading to https would break plain-http local development.
         upgradeInsecureRequests: env.NODE_ENV === "production" ? [] : null,
       },
@@ -145,6 +145,8 @@ app.get("/dashboard/:section", (req, res, next) =>
 app.get("/settings", appPage(pageFile("settings.html")));
 
 app.get("/onboarding", appPage(pageFile("onboarding.html"), { onboarding: "incomplete" }));
+
+app.get("/preview", appPage(pageFile("portfolio.html")));
 
 app.get("/edit", appPage(pageFile("edit.html")));
 

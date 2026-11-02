@@ -172,6 +172,34 @@ if (active === "overview") {
     }),
   );
   main.append(grid);
+} else if (active === "portfolio") {
+  const toolbar = make("div", "card-links");
+  toolbar.setAttribute("role", "group");
+  toolbar.setAttribute("aria-label", "Preview viewport");
+  const viewport = make("div", "preview-viewport");
+  const frame = make("iframe", "portfolio-preview");
+  frame.title = "Your portfolio preview";
+  frame.src = "/preview";
+  for (const [label, width] of [
+    ["Desktop", "100%"],
+    ["Tablet", "768px"],
+    ["Mobile", "375px"],
+  ]) {
+    const button = make("button", "dash-btn dash-btn-ghost", label);
+    button.type = "button";
+    button.setAttribute("aria-pressed", String(label === "Desktop"));
+    button.addEventListener("click", () => {
+      frame.style.width = width;
+      toolbar
+        .querySelectorAll("button")
+        .forEach((el) =>
+          el.setAttribute("aria-pressed", String(el === button)),
+        );
+    });
+    toolbar.append(button);
+  }
+  viewport.append(frame);
+  main.append(toolbar, viewport);
 } else if (PLACEHOLDERS[active]) {
   main.append(emptyState(PLACEHOLDERS[active]));
 }

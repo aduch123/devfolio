@@ -36,6 +36,10 @@ describe("projects", () => {
       b,
     ]);
 
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     assert.deepEqual(
       pub.body.projects.map((p) => p.title),
@@ -116,6 +120,10 @@ describe("social links", () => {
       .put(`${API}/social/order`)
       .send({ ids: [b, a] })
       .expect(204);
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     assert.deepEqual(pub.body.socialLinks, [
       { platform: "linkedin", url: "https://linkedin.com/in/a" },
@@ -188,6 +196,10 @@ describe("timeline", () => {
       .put(`${API}/timeline/order`)
       .send({ type: "EXPERIENCE", ids: [b, a] })
       .expect(204);
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     // Grouped by type (EXPERIENCE before EDUCATION), each group in its saved order.
     assert.deepEqual(
@@ -249,6 +261,10 @@ describe("profile headline and location", () => {
       .patch(`${API}/profile`)
       .send({ headline: "Full-stack dev", location: "Addis Ababa" })
       .expect(200);
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     assert.equal(pub.body.profile.headline, "Full-stack dev");
     const res = await agent.patch(`${API}/profile`).send({ headline: "" }).expect(200);

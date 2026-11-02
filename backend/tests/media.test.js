@@ -44,6 +44,10 @@ describe("avatar", () => {
     assert.equal(served.headers["content-type"], "image/webp");
     assert.equal(served.headers["x-content-type-options"], "nosniff");
 
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     assert.equal(pub.body.profile.avatarUrl, url);
   });

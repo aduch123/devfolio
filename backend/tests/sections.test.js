@@ -18,6 +18,10 @@ describe("sectionConfig", () => {
     const own = (await agent.get(`${API}/profile`).expect(200)).body.profile.sectionConfig;
     assert.deepEqual(orderOf(own), SECTIONS);
     assert.ok(SECTIONS.every((s) => own[s].visible === true));
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body
       .profile.sectionConfig;
     assert.deepEqual(pub, own);
@@ -28,6 +32,10 @@ describe("sectionConfig", () => {
     const res = await patch(agent, { education: { visible: false } }).expect(200);
     assert.equal(res.body.profile.sectionConfig.education.visible, false);
     assert.equal(res.body.profile.sectionConfig.about.visible, true);
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body
       .profile.sectionConfig;
     assert.equal(pub.education.visible, false);
