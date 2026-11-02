@@ -27,6 +27,9 @@ model User {
   likes              Like[]
   clicks             ClickEvent[]
   dailyMetrics       DailyMetric[]
+  linkChecks         LinkCheck[]
+  healthSnapshots    HealthSnapshot[]
+  healthDismissals   HealthDismissal[]
   messages           Message[]
   shareLinks         ShareLink[]
   onboardingDraft    OnboardingDraft?
@@ -258,4 +261,35 @@ model DailyMetric {
   sources Json
   devices Json
   @@id([userId, day])
+}
+
+model LinkCheck {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url String
+  sourceType String
+  sourceId String
+  label String
+  fix String
+  status String
+  httpStatus Int?
+  reason String?
+  checkedAt DateTime @default(now())
+  @@unique([userId, sourceType, sourceId])
+}
+model HealthSnapshot {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score Int
+  categories Json
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
+model HealthDismissal {
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key String
+  @@id([userId,key])
 }

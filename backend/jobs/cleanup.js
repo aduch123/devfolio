@@ -1,3 +1,4 @@
+import { startHealthJobs } from "./health.js";
 import { rollupViews } from "./analyticsRetention.js";
 import cron from "node-cron";
 import prisma from "../config/prisma.js";
@@ -41,6 +42,7 @@ export async function runCleanup(now = new Date()) {
 
 // Daily at 03:30 server time, and once shortly after start-up.
 export function startJobs() {
+  startHealthJobs();
   const run = () =>
     Promise.all([runCleanup(), rollupViews()]).catch((err) =>
       logger.error({ err }, "maintenance job failed"),

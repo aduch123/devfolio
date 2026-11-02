@@ -30,6 +30,7 @@ import {
   sitemap,
   robots,
 } from "./modules/portfolio/portfolio.pages.js";
+import healthRoutes from "./modules/health/health.routes.js";
 import analyticsRoutes from "./modules/analytics/analytics.routes.js";
 import messageRoutes from "./modules/messages/messages.routes.js";
 
@@ -124,6 +125,7 @@ app.use("/api/v1", onboardingRoutes);
 app.use("/api/v1", shareRoutes);
 app.use("/api/v1", messageRoutes);
 app.use("/api/v1", analyticsRoutes);
+app.use("/api/v1", healthRoutes);
 
 app.get("/login", guestPage(pageFile("login.html")));
 

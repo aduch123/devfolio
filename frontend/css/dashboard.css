@@ -720,3 +720,20 @@
   margin: 0.5rem;
   padding: 0.4rem;
 }
+
+.health-score {
+  --health-progress: 0%;
+  display: grid;
+  place-items: center;
+  width: 8rem;
+  height: 8rem;
+  border-radius: 50%;
+  background: conic-gradient(#68b88e var(--health-progress), #d9dfe5 0);
+  color: #111;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-block: 1rem;
+}
+.health-panel {
+  overflow-x: auto;
+}

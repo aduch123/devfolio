@@ -88,6 +88,8 @@ const specs = [
 ];
 
 export async function mountContentEditor(root, { canChange, refreshPreview }) {
+  const requestedFocus = new URLSearchParams(window.location.search).get("focus")?.split(":");
+  let focusHandled = false;
   const host = make("div", "content-editor");
   root.append(host);
   async function mutate(path, options) {
@@ -120,6 +122,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
     const wrap = make("div", "editor-upload");
     const field = make("input");
     field.type = "file";
+    field.dataset.media = path;
     field.accept = accept;
     field.setAttribute("aria-label", label);
     const preview = make("img", "editor-image-preview");
@@ -350,8 +353,24 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
       });
       formHost.replaceChildren(form);
       form.querySelector("input,select,textarea")?.focus();
+      return controls;
     }
     await load();
+    if (!focusHandled && requestedFocus?.[0] === spec.path) {
+      const target = spec.singleton
+        ? items[0]
+        : items.find((item) => item.id === requestedFocus[1]);
+      if (target || requestedFocus[1] === "new") {
+        panel.open = true;
+        const controls = edit(target || {});
+        controls?.get(requestedFocus[2])?.focus();
+        focusHandled = true;
+      }
+    }
+  }
+  if (requestedFocus?.[0] === "media" && ["avatar", "resume"].includes(requestedFocus[2])) {
+    media.open = true;
+    host.querySelector(`[data-media="profile/${requestedFocus[2]}"]`)?.focus();
   }
   const sectionPanel = make("details", "card");
   sectionPanel.append(make("summary", "", "Section visibility and order"));
