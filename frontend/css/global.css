@@ -832,3 +832,28 @@ footer {
   max-height: 240px;
   object-fit: cover;
 }
+
+.inline-editable {
+  cursor: text;
+  outline-offset: 4px;
+}
+.inline-editable:hover,
+.inline-editable:focus {
+  outline: 2px dashed currentColor;
+}
+.inline-input {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  resize: vertical;
+}
+.inline-status {
+  display: inline-block;
+  font: 14px sans-serif;
+  margin: 0.5rem;
+}

@@ -3,7 +3,7 @@ const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
 
-export function render(data) {
+export function render(data, { preview = false } = {}) {
   const { username: uname, profile = {}, skills = [], projects = [] } = data;
 
   document.getElementById("nav-username").textContent =
@@ -16,7 +16,11 @@ export function render(data) {
     profile.displayName || uname;
 
   renderAbout(profile.aboutText);
-  renderRoleTyping(profile.heroRoleTexts || []);
+  if (preview)
+    document.getElementById("role-text").textContent = (
+      profile.heroRoleTexts || []
+    ).join(", ");
+  else renderRoleTyping(profile.heroRoleTexts || []);
   renderSkills(skills);
   renderProjects(projects);
   renderContact(profile);
@@ -149,8 +153,9 @@ function renderProjects(projects) {
   const viewWork = document.querySelector('.hero-buttons a[href="#projects"]');
   if (viewWork) viewWork.style.display = projects.length > 0 ? "" : "none";
 
-  projects.forEach((project) => {
+  projects.forEach((project, index) => {
     const article = make("article", "project-card");
+    article.dataset.projectIndex = index;
 
     const head = make("div", "project-card-head");
     head.append(
@@ -160,7 +165,9 @@ function renderProjects(projects) {
     article.appendChild(head);
 
     if (project.description)
-      article.appendChild(make("p", "", project.description));
+      article.appendChild(
+        make("p", "project-description", project.description),
+      );
 
     const tags = make("div", "project-tags");
     (project.tags || []).forEach((t) =>
@@ -271,7 +278,11 @@ function renderExtras({
   const hero = document.querySelector(".editor-body");
   hero.querySelectorAll(".profile-extra").forEach((el) => el.remove());
   for (const field of ["headline", "location"]) {
-    if (profile[field]) hero.append(make("p", "profile-extra", profile[field]));
+    if (profile[field]) {
+      const text = make("p", "profile-extra", profile[field]);
+      text.dataset.profileField = field;
+      hero.append(text);
+    }
   }
   const image = (raw, alt, className) => {
     if (!raw || !raw.startsWith("/uploads/")) return null;

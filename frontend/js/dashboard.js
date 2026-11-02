@@ -203,3 +203,20 @@ if (active === "overview") {
 } else if (PLACEHOLDERS[active]) {
   main.append(emptyState(PLACEHOLDERS[active]));
 }
+
+let previewDirty = false;
+window.addEventListener("message", (event) => {
+  const frame = document.querySelector(".portfolio-preview");
+  if (
+    event.origin === window.location.origin &&
+    event.source === frame?.contentWindow &&
+    event.data?.type === "portfolio-save"
+  )
+    previewDirty = event.data.dirty === true;
+});
+window.addEventListener("beforeunload", (event) => {
+  if (previewDirty) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});

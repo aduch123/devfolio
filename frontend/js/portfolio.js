@@ -3,6 +3,7 @@ import { apiFetch } from "./api.js";
 import { showFieldErrors, errorText } from "./forms.js";
 import { logout } from "./authGuard.js";
 import { hasSessionHint } from "./session.js";
+import { setupInlineEditor } from "./inlineEditor.js";
 import { render } from "./render.js";
 
 const isPreview = window.location.pathname === "/preview";
@@ -35,7 +36,8 @@ async function init() {
     return;
   }
 
-  render(result.data);
+  render(result.data, { preview: isPreview });
+  if (isPreview) await setupInlineEditor(result.data);
   if (!isPreview) setupContactForm();
   else {
     document
