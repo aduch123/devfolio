@@ -23,6 +23,10 @@ model User {
   timelineItems      TimelineItem[]
   sessions           Session[]
   emailTokens        EmailToken[]
+  views              View[]
+  likes              Like[]
+  clicks             ClickEvent[]
+  dailyMetrics       DailyMetric[]
   messages           Message[]
   shareLinks         ShareLink[]
   onboardingDraft    OnboardingDraft?
@@ -184,6 +188,8 @@ model ShareLink {
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String @unique
+  viewCount Int @default(0)
+  views View[]
   label String
   expiresAt DateTime?
   revokedAt DateTime?
@@ -208,4 +214,48 @@ model Message {
   createdAt DateTime @default(now())
   @@index([userId, createdAt])
   @@index([userId, status])
+}
+
+model View {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitorHash String
+  referrerHost String?
+  deviceType String
+  shareLinkId String?
+  shareLink ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  windowStart DateTime
+  createdAt DateTime @default(now())
+  @@unique([userId, visitorHash, windowStart])
+  @@index([userId, createdAt])
+}
+model Like {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitorHash String
+  createdAt DateTime @default(now())
+  @@unique([userId, visitorHash])
+  @@index([userId, createdAt])
+}
+model ClickEvent {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitorHash String
+  targetType String
+  targetId String?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
+model DailyMetric {
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day DateTime @db.Date
+  views Int
+  uniqueVisitors Int
+  sources Json
+  devices Json
+  @@id([userId, day])
 }

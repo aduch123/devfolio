@@ -20,13 +20,14 @@ export function safeHref(value, protocols = ["https:", "http:"]) {
     return null;
   }
 }
-const link = (url, label, protocols) => {
+const link = (url, label, protocols, trackType) => {
   const href = safeHref(url, protocols);
   return href
     ? h(
         "a",
         {
           href,
+          ...(trackType ? { "data-track-type": trackType, "data-track-target": url } : {}),
           ...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {}),
         },
         label,
@@ -132,8 +133,8 @@ export function portfolioView(data, { preview = false } = {}) {
             h(
               "div",
               { class: "project-links" },
-              link(project.repoUrl, "Code"),
-              link(project.liveUrl, "Live"),
+              link(project.repoUrl, "Code", undefined, "PROJECT_REPO"),
+              link(project.liveUrl, "Live", undefined, "PROJECT_LIVE"),
             ),
           );
         }),
@@ -160,10 +161,10 @@ export function portfolioView(data, { preview = false } = {}) {
       h(
         "div",
         { id: "socials-list", class: "socials" },
-        link(p.githubUrl, "GitHub"),
+        link(p.githubUrl, "GitHub", undefined, "SOCIAL"),
         p.contactEmail ? link(`mailto:${p.contactEmail}`, "Email", ["mailto:"]) : null,
         p.contactPhone ? link(`tel:${p.contactPhone.replace(/\s/g, "")}`, "Phone", ["tel:"]) : null,
-        (data.socialLinks || []).map((item) => link(item.url, item.platform)),
+        (data.socialLinks || []).map((item) => link(item.url, item.platform, undefined, "SOCIAL")),
       ),
     ]),
   };
@@ -245,7 +246,11 @@ export function portfolioView(data, { preview = false } = {}) {
               : null,
           ),
           p.resumeUrl && /^\/uploads\/(?:[a-zA-Z0-9_-]+\/)?[a-zA-Z0-9._-]+$/.test(p.resumeUrl)
-            ? h("a", { href: p.resumeUrl, class: "btn" }, "Download resume")
+            ? h(
+                "a",
+                { href: p.resumeUrl, class: "btn", "data-track-type": "RESUME" },
+                "Download resume",
+              )
             : null,
           h(
             "div",

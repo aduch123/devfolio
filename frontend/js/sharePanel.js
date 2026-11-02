@@ -120,6 +120,7 @@ export async function mountSharePanel(root, user) {
       row.append(
         make("strong", "", link.label),
         make("span", "", state),
+        make("span", "", `${link.viewCount || 0} views`),
         make(
           "span",
           "",

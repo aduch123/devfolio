@@ -702,3 +702,21 @@
   margin-left: 0.5rem;
   font-weight: bold;
 }
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block: 1rem;
+}
+.analytics-table th,
+.analytics-table td {
+  padding: 0.4rem;
+  text-align: left;
+}
+.analytics-table meter {
+  width: min(12rem, 20vw);
+}
+.analytics-panel select {
+  margin: 0.5rem;
+  padding: 0.4rem;
+}

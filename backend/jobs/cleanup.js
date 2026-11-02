@@ -1,3 +1,4 @@
+import { rollupViews } from "./analyticsRetention.js";
 import cron from "node-cron";
 import prisma from "../config/prisma.js";
 import logger from "../config/logger.js";
@@ -40,7 +41,10 @@ export async function runCleanup(now = new Date()) {
 
 // Daily at 03:30 server time, and once shortly after start-up.
 export function startJobs() {
-  const run = () => runCleanup().catch((err) => logger.error({ err }, "cleanup job failed"));
+  const run = () =>
+    Promise.all([runCleanup(), rollupViews()]).catch((err) =>
+      logger.error({ err }, "maintenance job failed"),
+    );
   cron.schedule("30 3 * * *", run);
   setTimeout(run, 30 * 1000).unref();
 }

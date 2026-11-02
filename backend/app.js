@@ -30,6 +30,7 @@ import {
   sitemap,
   robots,
 } from "./modules/portfolio/portfolio.pages.js";
+import analyticsRoutes from "./modules/analytics/analytics.routes.js";
 import messageRoutes from "./modules/messages/messages.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -122,6 +123,7 @@ app.use("/api/v1", timelineRoutes);
 app.use("/api/v1", onboardingRoutes);
 app.use("/api/v1", shareRoutes);
 app.use("/api/v1", messageRoutes);
+app.use("/api/v1", analyticsRoutes);
 
 app.get("/login", guestPage(pageFile("login.html")));
 
@@ -160,6 +162,7 @@ app.get("/edit", (req, res) => res.redirect(302, "/dashboard/portfolio"));
 
 app.get("/share/:token", sharedPortfolioPage);
 
+app.get("/privacy", (req, res) => res.sendFile(pageFile("privacy.html")));
 app.get("/sitemap.xml", sitemap);
 app.get("/robots.txt", robots);
 app.get("/:username/og.png", portfolioImage);
