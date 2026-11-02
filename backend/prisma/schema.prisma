@@ -31,6 +31,8 @@ model User {
 
 model Profile {
   id            String   @id @default(uuid())
+  published     Boolean  @default(false)
+  publishedAt   DateTime?
   displayName   String?
   aboutText     String?
   heroRoleTexts String[]

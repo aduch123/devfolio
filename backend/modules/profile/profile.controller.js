@@ -1,5 +1,5 @@
 import prisma from "../../config/prisma.js";
-import { notFound } from "../../utils/AppError.js";
+import { notFound, forbidden, badRequest } from "../../utils/AppError.js";
 import { PUBLIC_PORTFOLIO_SELECT } from "../../utils/publicPortfolio.js";
 import { mergeSectionConfig, presentProfile, presentPublic } from "../../utils/sectionConfig.js";
 
@@ -33,7 +33,7 @@ export const getPublicPortfolio = async (req, res) => {
   const username = req.params.username.toLowerCase();
 
   const user = await prisma.user.findUnique({
-    where: { username, deletedAt: null },
+    where: { username, deletedAt: null, profile: { published: true } },
     select: PUBLIC_PORTFOLIO_SELECT,
   });
 
@@ -42,4 +42,44 @@ export const getPublicPortfolio = async (req, res) => {
   }
 
   res.status(200).json(presentPublic(user));
+};
+
+// Owner reads deliberately use the same allowlist as visitor reads.
+export const getOwnPortfolio = async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id, deletedAt: null },
+    select: PUBLIC_PORTFOLIO_SELECT,
+  });
+  if (!user) throw notFound("User not found", "USER_NOT_FOUND");
+  res.status(200).json(presentPublic(user));
+};
+
+export const publishPortfolio = async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id, deletedAt: null },
+    select: { emailVerifiedAt: true, profile: true },
+  });
+  if (!user?.emailVerifiedAt) {
+    throw forbidden("Verify your email before publishing", "EMAIL_NOT_VERIFIED");
+  }
+  if (!user.profile?.displayName?.trim() || !user.profile?.aboutText?.trim()) {
+    throw badRequest(
+      "Add your name and about text before publishing",
+      undefined,
+      "INCOMPLETE_PROFILE",
+    );
+  }
+  const profile = await prisma.profile.update({
+    where: { userId: req.user.id },
+    data: { published: true, publishedAt: user.profile.publishedAt || new Date() },
+  });
+  res.status(200).json({ profile: presentProfile(profile) });
+};
+
+export const unpublishPortfolio = async (req, res) => {
+  const profile = await prisma.profile.update({
+    where: { userId: req.user.id },
+    data: { published: false },
+  });
+  res.status(200).json({ profile: presentProfile(profile) });
 };
