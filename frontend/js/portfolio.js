@@ -1,3 +1,4 @@
+import { startEngagement } from "./engagement.js";
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { showFieldErrors, errorText } from "./forms.js";
@@ -51,6 +52,13 @@ async function init() {
         el.disabled = true;
       });
   }
+
+  if (!isPreview)
+    startEngagement(
+      isShareMode
+        ? `/portfolio/share/${encodeURIComponent(shareToken)}`
+        : `/portfolio/${encodeURIComponent(username)}`,
+    );
 
   if (!isShareMode && !isPreview) {
     setupOwnerControls(username);
@@ -149,6 +157,7 @@ function setupContactForm() {
     }
 
     status.textContent = `Thanks ${name}! Your message has been sent.`;
+    document.dispatchEvent(new Event("portfolio-contact-sent"));
     form.reset();
 
     setTimeout(() => {

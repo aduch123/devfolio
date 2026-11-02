@@ -1,3 +1,4 @@
+import { mountAnalytics } from "./analytics.js";
 import { mountInbox } from "./inbox.js";
 import { mountSharePanel } from "./sharePanel.js";
 import { mountContentEditor } from "./contentEditor.js";
@@ -192,12 +193,6 @@ if (active === "overview") {
       ],
     }),
     card({
-      icon: "fa-chart-line",
-      title: "Views and likes",
-      value: "—",
-      text: "Analytics will appear here.",
-    }),
-    card({
       icon: "fa-envelope",
       title: "Messages",
       value: String(unreadMessages),
@@ -211,6 +206,7 @@ if (active === "overview") {
     }),
   );
   main.append(grid);
+  await mountAnalytics(main, { compact: true });
 } else if (active === "portfolio") {
   const toolbar = make("div", "card-links");
   toolbar.setAttribute("role", "group");
@@ -245,6 +241,8 @@ if (active === "overview") {
     },
   });
   await mountSharePanel(main, user);
+} else if (active === "analytics") {
+  await mountAnalytics(main);
 } else if (active === "messages") {
   await mountInbox(main, updateUnread);
 } else if (PLACEHOLDERS[active]) {
