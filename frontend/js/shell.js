@@ -1,5 +1,7 @@
 // The dashboard layout: sidebar (bottom bar on phones), top bar and account menu.
 // mountShell() replaces the page's #app contents and returns the <main> element to fill.
+import { apiFetch } from "./api.js";
+import { API_PREFIX } from "./config.js";
 import { logout } from "./authGuard.js";
 import { make, makeIcon } from "./ui.js";
 
@@ -150,5 +152,19 @@ export function mountShell({ user, active, title }) {
   const column = make("div", "dash-main");
   column.append(buildTopbar(user), main);
   app.replaceChildren(buildSidebar(active), column);
+  if (active === "settings") {
+    apiFetch(`${API_PREFIX}/profile`).then((result) => {
+      if (result.ok)
+        document.getElementById("portfolio-status").textContent = result.data.profile.published
+          ? "Published"
+          : "Draft";
+    });
+    apiFetch(`${API_PREFIX}/messages/unread`).then((result) => {
+      if (!result.ok || !result.data.unread) return;
+      const badge = make("span", "message-unread-count", String(result.data.unread));
+      badge.setAttribute("aria-label", `${result.data.unread} unread messages`);
+      app.querySelector('a[href="/dashboard/messages"]')?.append(badge);
+    });
+  }
   return main;
 }

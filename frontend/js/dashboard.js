@@ -1,3 +1,4 @@
+import { mountInbox } from "./inbox.js";
 import { mountSharePanel } from "./sharePanel.js";
 import { mountContentEditor } from "./contentEditor.js";
 import { requireAuth } from "./authGuard.js";
@@ -37,6 +38,24 @@ const active = section && NAV_TITLES[section] ? section : "overview";
 const main = mountShell({ user, active, title: NAV_TITLES[active] });
 
 main.append(make("h1", "dash-title", NAV_TITLES[active]));
+let unreadMessages = 0;
+function updateUnread(count) {
+  unreadMessages = count;
+  const link = document.querySelector('a[href="/dashboard/messages"]');
+  if (link) {
+    let badge = link.querySelector(".message-unread-count");
+    if (!badge) {
+      badge = make("span", "message-unread-count");
+      link.append(badge);
+    }
+    badge.textContent = count ? String(count) : "";
+    badge.setAttribute("aria-label", `${count} unread messages`);
+  }
+}
+if (active !== "messages") {
+  const result = await apiFetch(`${API_PREFIX}/messages/unread`);
+  if (result.ok) updateUnread(result.data.unread);
+}
 
 // Publishing controls reflect saved server state, including migrated portfolios.
 const profileResult = await apiFetch(`${API_PREFIX}/profile`);
@@ -181,7 +200,7 @@ if (active === "overview") {
     card({
       icon: "fa-envelope",
       title: "Messages",
-      value: "—",
+      value: String(unreadMessages),
       text: "Messages from visitors will appear here.",
     }),
     card({
@@ -226,6 +245,8 @@ if (active === "overview") {
     },
   });
   await mountSharePanel(main, user);
+} else if (active === "messages") {
+  await mountInbox(main, updateUnread);
 } else if (PLACEHOLDERS[active]) {
   main.append(emptyState(PLACEHOLDERS[active]));
 }
