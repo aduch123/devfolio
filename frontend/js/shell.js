@@ -59,10 +59,7 @@ function buildSidebar(active) {
 
   const out = make("button", "dash-logout");
   out.type = "button";
-  out.append(
-    makeIcon("fa-right-from-bracket"),
-    make("span", "dash-nav-label", "Log out"),
-  );
+  out.append(makeIcon("fa-right-from-bracket"), make("span", "dash-nav-label", "Log out"));
   out.addEventListener("click", logout);
 
   side.append(brand, list, out);

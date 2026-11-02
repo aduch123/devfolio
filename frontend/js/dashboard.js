@@ -78,10 +78,7 @@ if (profile) {
       }
       profile = result.data.profile;
       refresh();
-      toast(
-        profile.published ? "Portfolio published" : "Portfolio unpublished",
-        "success",
-      );
+      toast(profile.published ? "Portfolio published" : "Portfolio unpublished", "success");
     } finally {
       button.disabled = false;
     }
@@ -150,20 +147,12 @@ async function skippedNotice() {
   if (!names.length) return null;
   const box = make("div", "dash-todo");
   const head = make("div", "card-head");
-  head.append(
-    makeIcon("fa-list-check"),
-    make("h2", "card-title", "Finish setting up"),
-  );
+  head.append(makeIcon("fa-list-check"), make("h2", "card-title", "Finish setting up"));
   const list = make("ul", "dash-todo-list");
   for (const name of names) list.append(make("li", "", name));
   const link = make("a", "card-link", "Add them in the editor");
   link.href = "/dashboard/portfolio";
-  box.append(
-    head,
-    make("p", "card-text", "You skipped these sections during setup:"),
-    list,
-    link,
-  );
+  box.append(head, make("p", "card-text", "You skipped these sections during setup:"), list, link);
   return box;
 }
 
@@ -222,9 +211,7 @@ if (active === "overview") {
       frame.style.width = width;
       toolbar
         .querySelectorAll("button")
-        .forEach((el) =>
-          el.setAttribute("aria-pressed", String(el === button)),
-        );
+        .forEach((el) => el.setAttribute("aria-pressed", String(el === button)));
     });
     toolbar.append(button);
   }

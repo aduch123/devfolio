@@ -31,15 +31,7 @@ export async function setupInlineEditor(data) {
   });
   function attach(
     element,
-    {
-      key,
-      name,
-      value = "",
-      max,
-      endpoint = "profile",
-      encode,
-      multiline = false,
-    },
+    { key, name, value = "", max, endpoint = "profile", encode, multiline = false },
   ) {
     if (!element) return;
     const edit = document.createElement("textarea");
@@ -100,14 +92,7 @@ export async function setupInlineEditor(data) {
     });
   }
   const profile = data.profile || {};
-  for (const name of [
-    "about",
-    "skills",
-    "projects",
-    "experience",
-    "education",
-    "contact",
-  ]) {
+  for (const name of ["about", "skills", "projects", "experience", "education", "contact"]) {
     const title = document.querySelector(`#${name} h2`);
     attach(title, {
       key: `section:${name}`,
@@ -157,34 +142,31 @@ export async function setupInlineEditor(data) {
   }
   const projects = await apiFetch(`${API_PREFIX}/projects`);
   if (projects.ok) {
-    document
-      .querySelectorAll(".project-card[data-project-index]")
-      .forEach((card) => {
-        const project =
-          projects.data.projects[Number(card.dataset.projectIndex)];
-        if (!project) return;
-        attach(card.querySelector("h3"), {
-          key: `${project.id}:title`,
-          name: "title",
-          value: project.title,
-          max: 100,
-          endpoint: `projects/${project.id}`,
-        });
-        let description = card.querySelector(".project-description");
-        if (!description) {
-          description = document.createElement("p");
-          description.textContent = "Add description";
-          card.append(description);
-        }
-        attach(description, {
-          key: `${project.id}:description`,
-          name: "description",
-          value: project.description,
-          max: 1000,
-          endpoint: `projects/${project.id}`,
-          multiline: true,
-        });
+    document.querySelectorAll(".project-card[data-project-index]").forEach((card) => {
+      const project = projects.data.projects[Number(card.dataset.projectIndex)];
+      if (!project) return;
+      attach(card.querySelector("h3"), {
+        key: `${project.id}:title`,
+        name: "title",
+        value: project.title,
+        max: 100,
+        endpoint: `projects/${project.id}`,
       });
+      let description = card.querySelector(".project-description");
+      if (!description) {
+        description = document.createElement("p");
+        description.textContent = "Add description";
+        card.append(description);
+      }
+      attach(description, {
+        key: `${project.id}:description`,
+        name: "description",
+        value: project.description,
+        max: 1000,
+        endpoint: `projects/${project.id}`,
+        multiline: true,
+      });
+    });
   }
   window.addEventListener("beforeunload", (event) => {
     if (queue.dirty) {

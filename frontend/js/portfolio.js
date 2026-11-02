@@ -143,36 +143,30 @@ function setupShareButton() {
 
     document.getElementById("share-link-input").value = shareUrl;
 
-    document
-      .getElementById("regenerate-share")
-      ?.addEventListener("click", async () => {
-        const result = await apiFetch(`${API_PREFIX}/share`, {
-          method: "POST",
-        });
-        if (result.ok) renderShareDropdown(result.data.shareToken);
+    document.getElementById("regenerate-share")?.addEventListener("click", async () => {
+      const result = await apiFetch(`${API_PREFIX}/share`, {
+        method: "POST",
       });
+      if (result.ok) renderShareDropdown(result.data.shareToken);
+    });
 
-    document
-      .getElementById("revoke-share")
-      ?.addEventListener("click", async () => {
-        await apiFetch(`${API_PREFIX}/share`, { method: "DELETE" });
-        loaded = false;
-        dropdown.classList.remove("visible");
-        shareBtn.classList.remove("active");
-      });
+    document.getElementById("revoke-share")?.addEventListener("click", async () => {
+      await apiFetch(`${API_PREFIX}/share`, { method: "DELETE" });
+      loaded = false;
+      dropdown.classList.remove("visible");
+      shareBtn.classList.remove("active");
+    });
 
-    document
-      .getElementById("copy-share-link")
-      ?.addEventListener("click", () => {
-        const input = document.getElementById("share-link-input");
-        // input.select();
-        navigator.clipboard.writeText(input.value);
-        const btn = document.getElementById("copy-share-link");
-        btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
-        setTimeout(() => {
-          btn.innerHTML = `<i class="fa-regular fa-copy"></i>`;
-        }, 1500);
-      });
+    document.getElementById("copy-share-link")?.addEventListener("click", () => {
+      const input = document.getElementById("share-link-input");
+      // input.select();
+      navigator.clipboard.writeText(input.value);
+      const btn = document.getElementById("copy-share-link");
+      btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
+      setTimeout(() => {
+        btn.innerHTML = `<i class="fa-regular fa-copy"></i>`;
+      }, 1500);
+    });
   }
 }
 

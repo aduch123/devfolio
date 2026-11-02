@@ -32,3 +32,9 @@ Goal: the owner sees their real portfolio inside the dashboard, edits it in plac
 - An unverified user cannot publish and sees why.
 - Leaving the page with unsaved or failed changes prompts a warning.
 - All inline-edit paths are covered by at least one automated or scripted UI test.
+
+## Acceptance scope — 2026-11-02
+
+At the user's request, browser/layout testing is deferred to conserve tokens. A lightweight DOM adapter exercises the actual inline handlers for all six section titles, name, about, roles, headline, location, project title and description. It checks generated requests, plain-text paste, failed-save retention, retry and unsaved-change warnings. This does not establish visual parity, real-browser interaction, drag geometry, responsive layout or pixel accuracy. Those remain documented validation limits rather than claimed results. API tests cover draft access, owner reads, publish requirements, unpublish, private draft links, section config and routes. Full regression, lint and configured formatting checks gate the Phase 4 merge.
+
+**Final non-browser validation:** 136 tests pass; lint, repository-configured Prettier and 11 smoke checks pass. Phase implementation is accepted under the user-requested browser-testing deferral. Push, no-ff merge and completion tag follow this closure commit.

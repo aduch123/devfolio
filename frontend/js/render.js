@@ -1,25 +1,17 @@
 import { skillStyles } from "./skillStyles.js";
-const prefersReducedMotion = window.matchMedia(
-  "(prefers-reduced-motion: reduce)",
-).matches;
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function render(data, { preview = false } = {}) {
   const { username: uname, profile = {}, skills = [], projects = [] } = data;
 
-  document.getElementById("nav-username").textContent =
-    profile.displayName || uname;
-  document.getElementById("page-title").textContent =
-    `${profile.displayName || uname} | Portfolio`;
-  document.getElementById("hero-name").textContent =
-    `"${profile.displayName || uname}"`;
-  document.getElementById("footer-name").textContent =
-    profile.displayName || uname;
+  document.getElementById("nav-username").textContent = profile.displayName || uname;
+  document.getElementById("page-title").textContent = `${profile.displayName || uname} | Portfolio`;
+  document.getElementById("hero-name").textContent = `"${profile.displayName || uname}"`;
+  document.getElementById("footer-name").textContent = profile.displayName || uname;
 
   renderAbout(profile.aboutText);
   if (preview)
-    document.getElementById("role-text").textContent = (
-      profile.heroRoleTexts || []
-    ).join(", ");
+    document.getElementById("role-text").textContent = (profile.heroRoleTexts || []).join(", ");
   else renderRoleTyping(profile.heroRoleTexts || []);
   renderSkills(skills);
   renderProjects(projects);
@@ -28,20 +20,10 @@ export function render(data, { preview = false } = {}) {
   if (preview) {
     document.getElementById("about").style.display = "";
     if (!profile.aboutText)
-      document.getElementById("about-content").textContent =
-        "Add your about text";
+      document.getElementById("about-content").textContent = "Add your about text";
   }
-  const sections = [
-    "about",
-    "skills",
-    "projects",
-    "experience",
-    "education",
-    "contact",
-  ];
-  const defaultOrder = Object.fromEntries(
-    sections.map((name, index) => [name, index]),
-  );
+  const sections = ["about", "skills", "projects", "experience", "education", "contact"];
+  const defaultOrder = Object.fromEntries(sections.map((name, index) => [name, index]));
   sections.sort(
     (a, b) =>
       (profile.sectionConfig?.[a]?.order ?? defaultOrder[a]) -
@@ -53,10 +35,8 @@ export function render(data, { preview = false } = {}) {
     if (!section) continue;
     root.append(section);
     if (profile.sectionConfig?.[name]?.title)
-      section.querySelector("h2").textContent =
-        profile.sectionConfig[name].title;
-    if (profile.sectionConfig?.[name]?.visible === false)
-      setSectionVisible(name, false);
+      section.querySelector("h2").textContent = profile.sectionConfig[name].title;
+    if (profile.sectionConfig?.[name]?.visible === false) setSectionVisible(name, false);
   }
 }
 
@@ -124,11 +104,7 @@ function renderSkills(skills) {
     const card = make("div", "skill-card");
     const ico = makeIcon(style.icon);
     ico.style.color = style.color;
-    card.append(
-      ico,
-      make("span", "", skillLabel(skill.name)),
-      make("small", "", skill.level),
-    );
+    card.append(ico, make("span", "", skillLabel(skill.name)), make("small", "", skill.level));
     grid.appendChild(card);
   });
 }
@@ -167,31 +143,19 @@ function renderProjects(projects) {
     article.dataset.projectIndex = index;
 
     const head = make("div", "project-card-head");
-    head.append(
-      makeIcon("fa-regular fa-file-code"),
-      make("h3", "", project.title),
-    );
+    head.append(makeIcon("fa-regular fa-file-code"), make("h3", "", project.title));
     article.appendChild(head);
 
     if (project.description)
-      article.appendChild(
-        make("p", "project-description", project.description),
-      );
+      article.appendChild(make("p", "project-description", project.description));
 
     const tags = make("div", "project-tags");
-    (project.tags || []).forEach((t) =>
-      tags.appendChild(make("span", "tag", t)),
-    );
+    (project.tags || []).forEach((t) => tags.appendChild(make("span", "tag", t)));
     article.appendChild(tags);
 
     const links = make("div", "project-links");
     const repo = makeLink(project.repoUrl, "fa-brands fa-github", "Code", true);
-    const live = makeLink(
-      project.liveUrl,
-      "fa-solid fa-arrow-up-right-from-square",
-      "Live",
-      true,
-    );
+    const live = makeLink(project.liveUrl, "fa-solid fa-arrow-up-right-from-square", "Live", true);
     if (repo) links.appendChild(repo);
     if (live) links.appendChild(live);
     if (links.children.length > 0) article.appendChild(links);
@@ -204,19 +168,9 @@ function renderContact(profile) {
   const list = document.getElementById("socials-list");
   list.replaceChildren();
 
-  const github = makeLink(
-    profile.githubUrl,
-    "fa-brands fa-github",
-    "GitHub",
-    true,
-  );
+  const github = makeLink(profile.githubUrl, "fa-brands fa-github", "GitHub", true);
   const email = profile.contactEmail
-    ? makeLink(
-        `mailto:${profile.contactEmail}`,
-        "fa-solid fa-envelope",
-        "Email",
-        false,
-      )
+    ? makeLink(`mailto:${profile.contactEmail}`, "fa-solid fa-envelope", "Email", false)
     : null;
   const phone = profile.contactPhone
     ? makeLink(
@@ -278,12 +232,7 @@ function setSectionVisible(id, visible) {
   if (link) link.style.display = visible ? "" : "none";
 }
 
-function renderExtras({
-  profile = {},
-  projects = [],
-  socialLinks = [],
-  timelineItems = [],
-}) {
+function renderExtras({ profile = {}, projects = [], socialLinks = [], timelineItems = [] }) {
   const hero = document.querySelector(".editor-body");
   hero.querySelectorAll(".profile-extra").forEach((el) => el.remove());
   for (const field of ["headline", "location"]) {
@@ -342,10 +291,7 @@ function renderExtras({
     const items = timelineItems.filter((item) => item.type === type);
     for (const item of items) {
       const article = make("article", "project-card");
-      article.append(
-        make("h3", "", item.title),
-        make("p", "", item.organization),
-      );
+      article.append(make("h3", "", item.title), make("p", "", item.organization));
       article.append(
         make(
           "p",

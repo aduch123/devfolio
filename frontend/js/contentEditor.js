@@ -26,11 +26,7 @@ const specs = [
     fields: [
       ["name", "Name", "text", 40],
       ["level", "Level", ["great", "good", "learning"]],
-      [
-        "category",
-        "Category",
-        ["frontend", "backend", "database", "tools", "other"],
-      ],
+      ["category", "Category", ["frontend", "backend", "database", "tools", "other"]],
     ],
   },
   {
@@ -93,10 +89,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
   root.append(host);
   async function mutate(path, options) {
     if (!canChange()) {
-      toast(
-        "Wait for inline edits to save, or retry failed edits first.",
-        "error",
-      );
+      toast("Wait for inline edits to save, or retry failed edits first.", "error");
       return false;
     }
     const result = await apiFetch(`${API_PREFIX}/${path}`, options);
@@ -171,11 +164,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
   const media = make("details", "card");
   media.append(
     make("summary", "", "Profile images and resume"),
-    upload(
-      "profile/avatar",
-      "Profile photo",
-      "image/jpeg,image/png,image/webp",
-    ),
+    upload("profile/avatar", "Profile photo", "image/jpeg,image/png,image/webp"),
     upload("profile/resume", "Resume", "application/pdf"),
   );
   host.append(media);
@@ -189,9 +178,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
     status.setAttribute("role", "status");
     panel.append(
       list,
-      ...(spec.singleton
-        ? []
-        : [button(`Add ${spec.title.toLowerCase()}`, () => edit())]),
+      ...(spec.singleton ? [] : [button(`Add ${spec.title.toLowerCase()}`, () => edit())]),
       formHost,
       status,
     );
@@ -205,9 +192,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
         status.textContent = result.error.message;
         return;
       }
-      items = spec.singleton
-        ? [result.data[spec.key]]
-        : result.data[spec.key] || [];
+      items = spec.singleton ? [result.data[spec.key]] : result.data[spec.key] || [];
       render();
     }
     async function move(from, to) {
@@ -231,16 +216,12 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
         list.append(button("Edit profile and contact", () => edit(items[0])));
         return;
       }
-      if (!items.length)
-        list.append(make("p", "", "No items yet. Add your first one below."));
+      if (!items.length) list.append(make("p", "", "No items yet. Add your first one below."));
       items.forEach((item, index) => {
         const row = make("div", "editor-item");
         row.draggable = true;
         row.addEventListener("dragstart", (event) => {
-          event.dataTransfer.setData(
-            "text/plain",
-            `${spec.path}:${spec.type || ""}:${item.id}`,
-          );
+          event.dataTransfer.setData("text/plain", `${spec.path}:${spec.type || ""}:${item.id}`);
         });
         row.addEventListener("dragover", (event) => event.preventDefault());
         row.addEventListener("drop", async (event) => {
@@ -249,9 +230,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
           const value = event.dataTransfer.getData("text/plain");
           if (value.startsWith(prefix))
             await move(
-              items.findIndex(
-                (entry) => entry.id === value.slice(prefix.length),
-              ),
+              items.findIndex((entry) => entry.id === value.slice(prefix.length)),
               index,
             );
         });
@@ -264,23 +243,17 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
             if (
               await confirmModal({
                 title: "Delete item?",
-                message:
-                  "This permanently removes this item from your portfolio.",
+                message: "This permanently removes this item from your portfolio.",
                 danger: true,
               })
             ) {
-              if (await mutate(`${spec.path}/${item.id}`, { method: "DELETE" }))
-                await load();
+              if (await mutate(`${spec.path}/${item.id}`, { method: "DELETE" })) await load();
             }
           }),
         );
         if (spec.path === "projects")
           row.append(
-            upload(
-              `projects/${item.id}/cover`,
-              "Project cover",
-              "image/jpeg,image/png,image/webp",
-            ),
+            upload(`projects/${item.id}/cover`, "Project cover", "image/jpeg,image/png,image/webp"),
           );
         list.append(row);
       });
@@ -304,9 +277,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
         }
         input.name = name;
         if (max) input.maxLength = max;
-        if (
-          ["name", "title", "organization", "startDate", "url"].includes(name)
-        )
+        if (["name", "title", "organization", "startDate", "url"].includes(name))
           input.required = true;
         if (kind === "checkbox") input.checked = !!item[name];
         else if (item[name] != null)
@@ -367,8 +338,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
         save.disabled = false;
         if (!result.ok) {
           error.textContent =
-            Object.values(result.error.fields || {}).join(" ") ||
-            result.error.message;
+            Object.values(result.error.fields || {}).join(" ") || result.error.message;
           return;
         }
         formHost.replaceChildren();
@@ -398,10 +368,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
         method: "PATCH",
         body: JSON.stringify({
           sectionConfig: Object.fromEntries(
-            Object.entries(next).map(([name, { visible, order }]) => [
-              name,
-              { visible, order },
-            ]),
+            Object.entries(next).map(([name, { visible, order }]) => [name, { visible, order }]),
           ),
         }),
       })
@@ -412,24 +379,13 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
   }
   function renderSections() {
     sectionRows.replaceChildren();
-    const names = Object.keys(config).sort(
-      (a, b) => config[a].order - config[b].order,
-    );
+    const names = Object.keys(config).sort((a, b) => config[a].order - config[b].order);
     async function moveSection(from, to) {
-      if (
-        from < 0 ||
-        to < 0 ||
-        from >= names.length ||
-        to >= names.length ||
-        from === to
-      )
-        return;
+      if (from < 0 || to < 0 || from >= names.length || to >= names.length || from === to) return;
       const ordered = [...names];
       ordered.splice(to, 0, ordered.splice(from, 1)[0]);
       await saveConfig(
-        Object.fromEntries(
-          ordered.map((name, order) => [name, { ...config[name], order }]),
-        ),
+        Object.fromEntries(ordered.map((name, order) => [name, { ...config[name], order }])),
       );
     }
     names.forEach((name, index) => {
@@ -442,8 +398,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
       row.addEventListener("drop", async (event) => {
         event.preventDefault();
         const value = event.dataTransfer.getData("text/plain");
-        if (value.startsWith("section:"))
-          await moveSection(names.indexOf(value.slice(8)), index);
+        if (value.startsWith("section:")) await moveSection(names.indexOf(value.slice(8)), index);
       });
       const label = make("label", "", name);
       const checkbox = make("input");
