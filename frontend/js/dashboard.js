@@ -11,6 +11,7 @@ import { make, makeIcon, emptyState, confirmModal, toast } from "./ui.js";
 
 let previewDirty = false;
 let pendingPreviewRefresh = false;
+let lastPreviewTheme;
 window.addEventListener("message", (event) => {
   const frame = document.querySelector(".portfolio-preview");
   if (
@@ -23,6 +24,31 @@ window.addEventListener("message", (event) => {
       pendingPreviewRefresh = false;
       frame.src = "/preview";
     }
+  }
+});
+window.addEventListener("message", (event) => {
+  const frame = document.querySelector(".portfolio-preview");
+  if (event.origin !== window.location.origin || event.source !== frame?.contentWindow) return;
+  if (document.querySelector('[role="dialog"]')) return;
+  if (event.data?.type === "portfolio-publish") document.getElementById("publish-control")?.click();
+  if (event.data?.type === "portfolio-ready" && lastPreviewTheme)
+    frame.contentWindow.postMessage(
+      { type: "portfolio-theme", profile: lastPreviewTheme },
+      window.location.origin,
+    );
+});
+window.addEventListener("keydown", (event) => {
+  if (!(event.ctrlKey || event.metaKey) || document.querySelector('[role="dialog"]')) return;
+  const frame = document.querySelector(".portfolio-preview");
+  if (event.key.toLowerCase() === "s" && frame) {
+    event.preventDefault();
+    const form = document.activeElement?.closest("form.editor-form");
+    if (form) form.requestSubmit();
+    else frame.contentWindow?.postMessage({ type: "portfolio-save-now" }, window.location.origin);
+  }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    document.getElementById("publish-control")?.click();
   }
 });
 window.addEventListener("beforeunload", (event) => {
@@ -68,6 +94,7 @@ if (profile) {
   badge.setAttribute("role", "status");
   const button = make("button", "dash-btn dash-btn-primary");
   button.type = "button";
+  button.id = "publish-control";
   const refresh = () => {
     badge.textContent = profile.published ? "Published" : "Draft";
     const topStatus = document.getElementById("portfolio-status");
@@ -243,9 +270,24 @@ if (active === "overview") {
     toolbar.append(button);
   }
   viewport.append(frame);
-  main.append(toolbar, viewport);
+  main.append(
+    toolbar,
+    make(
+      "p",
+      "card-text",
+      "Select a field to edit. Ctrl/Cmd+S saves; Ctrl/Cmd+Enter opens publishing.",
+    ),
+    viewport,
+  );
   await mountContentEditor(main, {
     canChange: () => !previewDirty,
+    previewTheme: (profile) => {
+      lastPreviewTheme = profile;
+      frame.contentWindow?.postMessage(
+        { type: "portfolio-theme", profile },
+        window.location.origin,
+      );
+    },
     refreshPreview: () => {
       if (previewDirty) pendingPreviewRefresh = true;
       else frame.src = "/preview";

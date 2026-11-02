@@ -1,3 +1,5 @@
+import { readControls, changedFields } from "./editorFields.js";
+import { accentTokens, contrast } from "./theme.js";
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { make, confirmModal, toast } from "./ui.js";
@@ -17,6 +19,9 @@ const specs = [
       ["contactEmail", "Contact email", "email", 254],
       ["contactPhone", "Contact phone", "tel", 20],
       ["githubUrl", "GitHub URL", "url", 300],
+      ["theme", "Portfolio theme", ["editor", "minimal", "bold", "gradient"]],
+      ["colorMode", "Default appearance", ["auto", "light", "dark"]],
+      ["accentColor", "Accent color", "color"],
       ["seoTitle", "Search title", "text", 80],
       ["seoDescription", "Search description", "textarea", 160],
       ["ogImageUrl", "Custom social preview image URL", "url", 300],
@@ -87,9 +92,19 @@ const specs = [
   })),
 ];
 
-export async function mountContentEditor(root, { canChange, refreshPreview }) {
+export async function mountContentEditor(
+  root,
+  { canChange, refreshPreview, previewTheme = () => {} },
+) {
   const requestedFocus = new URLSearchParams(window.location.search).get("focus")?.split(":");
   let focusHandled = false;
+  const dirtyForms = new Set();
+  window.addEventListener("beforeunload", (event) => {
+    if (dirtyForms.size) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+  });
   const host = make("div", "content-editor");
   root.append(host);
   async function mutate(path, options) {
@@ -253,7 +268,14 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
                 danger: true,
               })
             ) {
-              if (await mutate(`${spec.path}/${item.id}`, { method: "DELETE" })) await load();
+              if (await mutate(`${spec.path}/${item.id}`, { method: "DELETE" })) {
+                const openForm = formHost.querySelector("form");
+                if (openForm?.dataset.itemId === item.id) {
+                  dirtyForms.delete(openForm);
+                  formHost.replaceChildren();
+                }
+                await load();
+              }
             }
           }),
         );
@@ -264,8 +286,24 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
         list.append(row);
       });
     }
-    function edit(item = {}) {
+    function edit(item = {}, discard = false) {
+      const previous = formHost.querySelector("form");
+      if (previous && dirtyForms.has(previous) && !discard) {
+        void confirmModal({
+          title: "Discard unsaved changes?",
+          message: "Your changes in this panel have not been saved.",
+          danger: true,
+        }).then((ok) => {
+          if (ok) {
+            dirtyForms.delete(previous);
+            edit(item, true);
+          }
+        });
+        return;
+      }
+      if (previous) dirtyForms.delete(previous);
       const form = make("form", "editor-form");
+      form.dataset.itemId = item.id || "new";
       const controls = new Map();
       for (const [name, label, kind, max] of spec.fields) {
         const wrapper = make("label", "", label);
@@ -299,6 +337,26 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
         form.append(wrapper);
         controls.set(name, input);
       }
+      const original = readControls(controls);
+      const contrastHint = make("p");
+      if (spec.singleton) {
+        const preview = () => {
+          const profile = Object.fromEntries(
+            ["theme", "colorMode", "accentColor"].map((name) => [name, controls.get(name)?.value]),
+          );
+          const tokens = accentTokens(profile.accentColor);
+          contrastHint.textContent = `Accent text adjusts automatically for readability (${contrast(tokens["--accent"], tokens["--on-accent"]).toFixed(1)}:1 contrast).`;
+          previewTheme(profile);
+        };
+        for (const name of ["theme", "colorMode", "accentColor"])
+          controls.get(name)?.addEventListener("input", preview);
+        form.append(contrastHint);
+      }
+      form.addEventListener("input", () => {
+        if (Object.keys(changedFields(readControls(controls), original)).length)
+          dirtyForms.add(form);
+        else dirtyForms.delete(form);
+      });
       const error = make("p");
       error.setAttribute("role", "alert");
       const save = make("button", "dash-btn dash-btn-primary", "Save");
@@ -306,7 +364,11 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
       form.append(
         error,
         save,
-        button("Cancel", () => formHost.replaceChildren()),
+        button("Cancel", () => {
+          dirtyForms.delete(form);
+          if (spec.singleton) previewTheme(item);
+          formHost.replaceChildren();
+        }),
       );
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -314,24 +376,8 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
           error.textContent = "Save or retry inline changes first.";
           return;
         }
-        const data = Object.fromEntries(
-          [...controls].map(([name, input]) => [
-            name,
-            input.type === "checkbox"
-              ? input.checked
-              : name === "heroRoleTexts"
-                ? input.value
-                    .split("\n")
-                    .map((role) => role.trim())
-                    .filter(Boolean)
-                : name === "tags"
-                  ? input.value
-                      .split(",")
-                      .map((tag) => tag.trim())
-                      .filter(Boolean)
-                  : input.value,
-          ]),
-        );
+        const values = readControls(controls);
+        const data = item.id || spec.singleton ? changedFields(values, original) : values;
         if (spec.type && !item.id) data.type = spec.type;
         save.disabled = true;
         const result = await apiFetch(
@@ -347,6 +393,7 @@ export async function mountContentEditor(root, { canChange, refreshPreview }) {
             Object.values(result.error.fields || {}).join(" ") || result.error.message;
           return;
         }
+        dirtyForms.delete(form);
         formHost.replaceChildren();
         refreshPreview();
         await load();

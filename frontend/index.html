@@ -1,24 +1,141 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-color-mode="auto">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Devfolio</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap"
-      rel="stylesheet"
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Devfolio — Your work deserves a place</title>
+    <meta
+      name="description"
+      content="Build a developer portfolio, publish your work, share it privately and understand what connects with visitors."
     />
-    <link rel="stylesheet" href="./css/global.css" />
+    <link rel="stylesheet" href="/css/global.css" />
+    <link rel="stylesheet" href="/css/themes.css" />
+    <link rel="stylesheet" href="/css/landing.css" />
+    <script src="/js/colorMode.js"></script>
   </head>
-  <body class="auth-body">
-    <div class="auth-wrapper" style="text-align: center">
-      <h1 style="font-family: var(--font-display); font-size: 32px; margin-bottom: 12px">
-        Build your dev portfolio
-      </h1>
-      <p style="color: var(--ink-soft); margin-bottom: 24px">
-        Sign up, fill your info, get a shareable portfolio page.
-      </p>
-      <a href="/signup" class="btn">Get started</a>
-    </div>
+  <body class="landing">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="landing-nav">
+      <a class="landing-brand" href="/" aria-label="Devfolio home"
+        >dev<span>folio</span><span aria-hidden="true">.</span></a
+      >
+      <nav aria-label="Main">
+        <a href="#how">How it works</a><a href="/demo">View demo</a><a href="/login">Log in</a>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="landing-hero">
+        <div>
+          <p class="eyebrow">BUILT FOR DEVELOPERS</p>
+          <h1>Your work.<br />Your story.<br /><span>A place to shine.</span></h1>
+          <p class="landing-lead">
+            Turn what you’ve built into a portfolio worth sharing. Make it yours, publish when
+            you’re ready, and see what connects.
+          </p>
+          <div class="landing-actions">
+            <a class="btn" href="/signup">Build your portfolio</a
+            ><a class="btn btn-outline" href="/demo">Explore the demo</a>
+          </div>
+          <p class="landing-note">No code required. Your content, your public URL.</p>
+        </div>
+        <aside class="landing-code" aria-label="A portfolio that grows with you">
+          <div class="landing-dots" aria-hidden="true">● ● ●</div>
+          <p class="code-comment">// your next chapter</p>
+          <pre><code>const developer = {
+  story: "uniquely yours",
+  work: ["ideas", "projects"],
+  status: "ready to share"
+};</code></pre>
+          <div class="landing-status">
+            <span aria-hidden="true">●</span> Built by you. Ready for what’s next.
+          </div>
+        </aside>
+      </section>
+      <section id="how" class="landing-section">
+        <p class="eyebrow">FROM FIRST IDEA TO YOUR NEXT OPPORTUNITY</p>
+        <h2>A portfolio that moves with you</h2>
+        <div class="landing-grid">
+          <article>
+            <span class="step-number">01</span>
+            <h3>Tell your story</h3>
+            <p>
+              Add your skills, projects and experience. Edit directly in a live preview and watch
+              your portfolio take shape.
+            </p>
+          </article>
+          <article>
+            <span class="step-number">02</span>
+            <h3>Make it yours</h3>
+            <p>
+              Choose a theme, find your accent and preview every screen size. Keep a draft or
+              publish at your own URL.
+            </p>
+          </article>
+          <article>
+            <span class="step-number">03</span>
+            <h3>Share and grow</h3>
+            <p>
+              Send a public URL or a private link. Manage messages, understand your visitors and get
+              clear ideas for improving.
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="landing-section landing-sample">
+        <div class="landing-section-head">
+          <div>
+            <p class="eyebrow">A LITTLE INSPIRATION</p>
+            <h2>See what your work could look like</h2>
+            <p>This fictional sample uses the same portfolio editor and layout as yours.</p>
+          </div>
+          <a class="btn btn-outline" href="/demo">Open full demo</a>
+        </div>
+        <iframe
+          src="/demo"
+          title="Live sample developer portfolio for Alex Example"
+          loading="lazy"
+          sandbox="allow-scripts allow-same-origin allow-popups"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </section>
+      <section class="landing-section">
+        <h2>Everything around your work, in one place</h2>
+        <div class="landing-grid">
+          <article>
+            <h3>Publish with confidence</h3>
+            <p>
+              Preview before you publish, control which sections appear, and use a health checklist
+              to catch missing details.
+            </p>
+          </article>
+          <article>
+            <h3>A direct connection</h3>
+            <p>
+              Visitors can contact you through your portfolio. Keep the conversation organized in
+              your private inbox.
+            </p>
+          </article>
+          <article>
+            <h3>Insight without the noise</h3>
+            <p>
+              See visits, link clicks and likes with first-party analytics. No third-party trackers
+              or analytics cookies.
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="landing-cta">
+        <p class="eyebrow">YOUR NEXT CHAPTER STARTS HERE</p>
+        <h2>Give your work a home.</h2>
+        <a class="btn" href="/signup">Get started</a>
+      </section>
+    </main>
+    <footer class="landing-footer">
+      <a class="landing-brand" href="/">devfolio.</a>
+      <p>A place for the work you’re proud of.</p>
+      <nav aria-label="Footer">
+        <a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/login">Log in</a>
+      </nav>
+    </footer>
   </body>
 </html>

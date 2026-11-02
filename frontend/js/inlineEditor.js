@@ -168,6 +168,25 @@ export async function setupInlineEditor(data) {
       });
     });
   }
+  window.addEventListener("keydown", (event) => {
+    if (!(event.ctrlKey || event.metaKey)) return;
+    if (event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      void queue.flush();
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      window.parent.postMessage({ type: "portfolio-publish" }, window.location.origin);
+    }
+  });
+  window.addEventListener("message", (event) => {
+    if (
+      event.origin === window.location.origin &&
+      event.source === window.parent &&
+      event.data?.type === "portfolio-save-now"
+    )
+      void queue.flush();
+  });
   window.addEventListener("beforeunload", (event) => {
     if (queue.dirty) {
       event.preventDefault();

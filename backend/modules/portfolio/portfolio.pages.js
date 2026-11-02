@@ -1,3 +1,5 @@
+import { demoPortfolio } from "../../utils/demoPortfolio.js";
+import { accentTokens, THEMES, MODES } from "../../../frontend/js/theme.js";
 import fs from "node:fs";
 import sharp from "sharp";
 import prisma from "../../config/prisma.js";
@@ -25,7 +27,7 @@ export function unavailablePage(res, message = "This portfolio is not available"
     .set({ "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "no-store" })
     .type("html")
     .send(
-      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Portfolio unavailable | ${APP_NAME}</title><link rel="stylesheet" href="/css/global.css"></head><body><main><h1>${escapeHtml(message)}</h1><p>The portfolio may be unpublished or the link may have expired or been revoked.</p><a href="/">Go to ${APP_NAME}</a></main></body></html>`,
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Portfolio unavailable | ${APP_NAME}</title><link rel="stylesheet" href="/css/global.css"><link rel="stylesheet" href="/css/themes.css"><script src="/js/colorMode.js"></script></head><body><main><h1>${escapeHtml(message)}</h1><p>The portfolio may be unpublished or the link may have expired or been revoked.</p><a href="/">Go to ${APP_NAME}</a></main></body></html>`,
     );
 }
 export function sendPortfolioPage(res, user, { privateLink = false } = {}) {
@@ -41,16 +43,30 @@ export function sendPortfolioPage(res, user, { privateLink = false } = {}) {
   const canonical = `${origin()}/${encodeURIComponent(user.username)}`;
   const image = safeHref(p.ogImageUrl) || `${canonical}/og.png`;
   const head = `<meta name="robots" content="${privateLink ? "noindex,nofollow" : "index,follow"}"><link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:site_name" content="${APP_NAME}"><meta property="og:type" content="profile"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(canonical)}"><meta property="og:image" content="${escapeHtml(image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(image)}"><script type="application/ld+json">${json({ "@context": "https://schema.org", "@type": "Person", name, description, url: canonical, ...(p.headline ? { jobTitle: p.headline } : {}), sameAs: (data.socialLinks || []).map((item) => safeHref(item.url)).filter(Boolean) })}</script>`;
+  const theme = THEMES.includes(p.theme) ? p.theme : "editor";
+  const mode = MODES.includes(p.colorMode) ? p.colorMode : "auto";
+  const style = Object.entries(accentTokens(p.accentColor))
+    .map(([key, value]) => `${key}:${value}`)
+    .join(";");
   let html = template
-    .replace(/<title[^>]*>.*?<\/title>/, `<title id="page-title">${escapeHtml(title)}</title>`)
+    .replace(
+      '<html lang="en"',
+      () =>
+        `<html lang="en" data-template="${theme}" data-color-mode="${mode}" style="${escapeHtml(style)}"`,
+    )
+    .replace(
+      /<title[^>]*>.*?<\/title>/,
+      () => `<title id="page-title">${escapeHtml(title)}</title>`,
+    )
     .replace(
       /<meta name="description"[^>]*\/>/,
-      `<meta name="description" content="${escapeHtml(description)}" id="page-description">`,
+      () => `<meta name="description" content="${escapeHtml(description)}" id="page-description">`,
     )
-    .replace("</head>", `${head}</head>`);
+    .replace("</head>", () => `${head}</head>`);
   html = html.replace(
     /<main id="main">[\s\S]*?<\/main>/,
-    `<main id="main"><div id="portfolio-loading" hidden></div><div id="portfolio-error" hidden></div><div id="portfolio-content">${viewToHtml(portfolioView(data))}</div></main><script id="portfolio-data" type="application/json">${json(data)}</script>`,
+    () =>
+      `<main id="main"><div id="portfolio-loading" hidden></div><div id="portfolio-error" hidden></div><div id="portfolio-content">${viewToHtml(portfolioView(data))}</div></main><script id="portfolio-data" type="application/json">${json(data)}</script>`,
   );
   for (const id of ["nav-username", "footer-name"])
     html = html.replace(
@@ -86,14 +102,17 @@ export async function publicPortfolioPage(req, res) {
   return sendPortfolioPage(res, user);
 }
 export async function portfolioImage(req, res) {
-  const user = await prisma.user.findUnique({
-    where: {
-      username: req.params.username.toLowerCase(),
-      deletedAt: null,
-      profile: { published: true },
-    },
-    select: { username: true, profile: { select: { displayName: true, headline: true } } },
-  });
+  const user =
+    req.params.username === "demo"
+      ? demoPortfolio
+      : await prisma.user.findUnique({
+          where: {
+            username: req.params.username.toLowerCase(),
+            deletedAt: null,
+            profile: { published: true },
+          },
+          select: { username: true, profile: { select: { displayName: true, headline: true } } },
+        });
   if (!user) return res.status(404).end();
   const name = escapeHtml((user.profile.displayName || user.username).slice(0, 60));
   const headline = escapeHtml((user.profile.headline || "Developer portfolio").slice(0, 85));
@@ -118,4 +137,8 @@ export function robots(req, res) {
     .send(
       `User-agent: *\nDisallow: /dashboard\nDisallow: /preview\nDisallow: /share/\nDisallow: /api/\nSitemap: ${origin()}/sitemap.xml\n`,
     );
+}
+
+export function demoPortfolioPage(req, res) {
+  return sendPortfolioPage(res, demoPortfolio, { privateLink: true });
 }

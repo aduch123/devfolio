@@ -25,6 +25,7 @@ import shareRoutes from "./modules/share/share.routes.js";
 import mediaRoutes from "./modules/media/media.routes.js";
 import { storage } from "./config/storage.js";
 import {
+  demoPortfolioPage,
   publicPortfolioPage,
   portfolioImage,
   sitemap,
@@ -164,6 +165,8 @@ app.get("/edit", (req, res) => res.redirect(302, "/dashboard/portfolio"));
 
 app.get("/share/:token", sharedPortfolioPage);
 
+app.get("/demo", demoPortfolioPage);
+app.get("/terms", (req, res) => res.sendFile(pageFile("terms.html")));
 app.get("/privacy", (req, res) => res.sendFile(pageFile("privacy.html")));
 app.get("/sitemap.xml", sitemap);
 app.get("/robots.txt", robots);

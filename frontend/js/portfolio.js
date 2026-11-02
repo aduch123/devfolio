@@ -1,3 +1,4 @@
+import { applyPortfolioTheme, MODES } from "./theme.js";
 import { startEngagement } from "./engagement.js";
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
@@ -7,6 +8,7 @@ import { hasSessionHint } from "./session.js";
 import { setupInlineEditor } from "./inlineEditor.js";
 import { render } from "./render.js";
 
+const isDemo = window.location.pathname === "/demo";
 const isPreview = window.location.pathname === "/preview";
 
 const pathParts = window.location.pathname.split("/").filter(Boolean);
@@ -42,8 +44,41 @@ async function init() {
   }
 
   if (!serverData || isPreview) render(result.data, { preview: isPreview });
-  if (isPreview) await setupInlineEditor(result.data);
-  if (!isPreview) setupContactForm();
+  applyPortfolioTheme(result.data.profile, document, { preview: isPreview });
+  if (isPreview) {
+    await setupInlineEditor(result.data);
+    window.addEventListener("message", (event) => {
+      if (
+        event.origin === window.location.origin &&
+        event.source === window.parent &&
+        event.data?.type === "portfolio-theme"
+      )
+        applyPortfolioTheme({ ...result.data.profile, ...event.data.profile }, document, {
+          preview: true,
+        });
+    });
+  } else {
+    const modeButton = document.createElement("button");
+    modeButton.type = "button";
+    modeButton.className = "btn btn-outline";
+    const updateLabel = () => {
+      modeButton.textContent = `Appearance: ${document.documentElement.dataset.colorMode}`;
+    };
+    updateLabel();
+    modeButton.addEventListener("click", () => {
+      const mode =
+        MODES[(MODES.indexOf(document.documentElement.dataset.colorMode) + 1) % MODES.length];
+      try {
+        localStorage.setItem("devfolio-portfolio-mode", mode);
+      } catch {
+        /* optional preference */
+      }
+      document.documentElement.dataset.colorMode = mode;
+      updateLabel();
+    });
+    document.querySelector(".hero-buttons")?.append(modeButton);
+  }
+  if (!isPreview && !isDemo) setupContactForm();
   else {
     document
       .getElementById("contact-form")
@@ -53,17 +88,21 @@ async function init() {
       });
   }
 
-  if (!isPreview)
+  if (!isPreview && !isDemo)
     startEngagement(
       isShareMode
         ? `/portfolio/share/${encodeURIComponent(shareToken)}`
         : `/portfolio/${encodeURIComponent(username)}`,
     );
 
-  if (!isShareMode && !isPreview) {
+  if (!isShareMode && !isPreview && !isDemo) {
     setupOwnerControls(username);
   }
 
+  if (isDemo)
+    document.getElementById("form-status").textContent =
+      "This is a sample portfolio. Create your own to receive messages.";
+  if (isPreview) window.parent.postMessage({ type: "portfolio-ready" }, window.location.origin);
   loadingEl.style.display = "none";
   contentEl.style.display = "block";
 

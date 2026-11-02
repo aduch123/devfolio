@@ -53,3 +53,17 @@ it("pastes text without interpreting markup and respects replacement length", ()
   assert.equal(pasteText("abcd", 1, 3, "<script>", 6), "a<scrd");
   assert.equal(pasteText("", 0, 0, "a\r\nb", 10), "a\nb");
 });
+
+it("flushes debounced edits immediately for the save shortcut", async () => {
+  const calls = [];
+  const queue = createSaveQueue({
+    delay: 10000,
+    save: async (key, value) => {
+      calls.push([key, value]);
+    },
+  });
+  queue.enqueue("name", "Latest name");
+  await queue.flush();
+  assert.deepEqual(calls, [["name", "Latest name"]]);
+  assert.equal(queue.dirty, false);
+});
