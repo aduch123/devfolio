@@ -29,14 +29,18 @@ async function init() {
       ? `${API_PREFIX}/portfolio/share/${shareToken}`
       : `${API_PREFIX}/portfolio/${username}`;
 
-  const result = await apiFetch(endpoint, { anonymous: !isPreview });
+  const serverData = document.getElementById("portfolio-data");
+  const result =
+    serverData && !isPreview
+      ? { ok: true, data: JSON.parse(serverData.textContent) }
+      : await apiFetch(endpoint, { anonymous: !isPreview });
 
   if (!result.ok) {
     showError();
     return;
   }
 
-  render(result.data, { preview: isPreview });
+  if (!serverData || isPreview) render(result.data, { preview: isPreview });
   if (isPreview) await setupInlineEditor(result.data);
   if (!isPreview) setupContactForm();
   else {
@@ -87,87 +91,9 @@ async function setupOwnerControls(viewedUsername) {
 }
 
 function setupShareButton() {
-  const shareBtn = document.getElementById("share-btn");
-  const dropdown = document.getElementById("share-dropdown");
-  let loaded = false;
-
-  shareBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    const opening = !dropdown.classList.contains("visible");
-    dropdown.classList.toggle("visible", opening);
-    shareBtn.classList.toggle("active", opening);
-
-    if (opening && !loaded) {
-      loaded = true;
-      dropdown.innerHTML = `<p style="color:var(--ink-soft); font-size:12px;">Generating link…</p>`;
-
-      const existing = await apiFetch(`${API_PREFIX}/share`);
-      let token = existing.data?.shareToken;
-
-      if (!token) {
-        const created = await apiFetch(`${API_PREFIX}/share`, {
-          method: "POST",
-        });
-        token = created.data?.shareToken;
-      }
-
-      renderShareDropdown(token || null);
-    }
+  document.getElementById("share-btn").addEventListener("click", () => {
+    window.location.href = "/dashboard/portfolio#sharing";
   });
-
-  document.addEventListener("click", (e) => {
-    if (!dropdown.contains(e.target) && e.target !== shareBtn) {
-      dropdown.classList.remove("visible");
-      shareBtn.classList.remove("active");
-    }
-  });
-
-  function renderShareDropdown(token) {
-    if (!token) {
-      dropdown.innerHTML = `<p style="color:var(--ink-soft); font-size:12px;">Couldn't generate a link. Try again.</p>`;
-      return;
-    }
-
-    const shareUrl = `${window.location.origin}/share/${token}`;
-
-    dropdown.innerHTML = `
-      <div class="share-link-row">
-        <input type="text" id="share-link-input" readonly>
-        <button type="button" id="copy-share-link" aria-label="Copy link"><i class="fa-regular fa-copy"></i></button>
-      </div>
-      <div class="share-actions">
-        <button type="button" id="regenerate-share">Regenerate</button>
-        <button type="button" id="revoke-share">Revoke</button>
-      </div>
-    `;
-
-    document.getElementById("share-link-input").value = shareUrl;
-
-    document.getElementById("regenerate-share")?.addEventListener("click", async () => {
-      const result = await apiFetch(`${API_PREFIX}/share`, {
-        method: "POST",
-      });
-      if (result.ok) renderShareDropdown(result.data.shareToken);
-    });
-
-    document.getElementById("revoke-share")?.addEventListener("click", async () => {
-      await apiFetch(`${API_PREFIX}/share`, { method: "DELETE" });
-      loaded = false;
-      dropdown.classList.remove("visible");
-      shareBtn.classList.remove("active");
-    });
-
-    document.getElementById("copy-share-link")?.addEventListener("click", () => {
-      const input = document.getElementById("share-link-input");
-      // input.select();
-      navigator.clipboard.writeText(input.value);
-      const btn = document.getElementById("copy-share-link");
-      btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
-      setTimeout(() => {
-        btn.innerHTML = `<i class="fa-regular fa-copy"></i>`;
-      }, 1500);
-    });
-  }
 }
 
 function setupContactForm() {

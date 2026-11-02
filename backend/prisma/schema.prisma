@@ -12,7 +12,6 @@ model User {
   username           String    @unique
   passwordHash       String
   onboardingComplete Boolean   @default(false)
-  shareToken         String?   @unique
   emailVerifiedAt    DateTime?
   deletedAt          DateTime?
   createdAt          DateTime  @default(now())
@@ -24,6 +23,7 @@ model User {
   timelineItems      TimelineItem[]
   sessions           Session[]
   emailTokens        EmailToken[]
+  shareLinks         ShareLink[]
   onboardingDraft    OnboardingDraft?
 
   @@index([deletedAt])
@@ -31,6 +31,9 @@ model User {
 
 model Profile {
   id            String   @id @default(uuid())
+  seoTitle      String?
+  seoDescription String?
+  ogImageUrl    String?
   published     Boolean  @default(false)
   publishedAt   DateTime?
   displayName   String?
@@ -172,4 +175,16 @@ model OnboardingDraft {
 
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ShareLink {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  label String
+  expiresAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
 }

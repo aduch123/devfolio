@@ -864,3 +864,8 @@ footer {
   margin: 0.25rem;
   cursor: pointer;
 }
+
+/* Hidden sections and save controls must stay hidden despite component display rules. */
+[hidden] {
+  display: none !important;
+}

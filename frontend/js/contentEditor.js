@@ -17,6 +17,9 @@ const specs = [
       ["contactEmail", "Contact email", "email", 254],
       ["contactPhone", "Contact phone", "tel", 20],
       ["githubUrl", "GitHub URL", "url", 300],
+      ["seoTitle", "Search title", "text", 80],
+      ["seoDescription", "Search description", "textarea", 160],
+      ["ogImageUrl", "Custom social preview image URL", "url", 300],
     ],
   },
   {

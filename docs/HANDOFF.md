@@ -3,10 +3,10 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-11-02 (Codex: Phase 4 editor implementation in progress)
+**Last updated:** 2026-11-02 (Phase 5 implementation and non-browser acceptance complete)
 **Implementation update (2026-11-02):** Phase 4.1 publishing backend committed (`866c681`). Draft migration applied successfully to the isolated test DB; both focused publishing integration tests pass. Baseline lint, targeted lint, syntax checks and Prisma generation pass. Dashboard publish/unpublish confirmation controls and accurate status added. Production database migration is still pending. Existing public-read tests now explicitly mark their fixtures published under the new draft default; Phase 4.2 shared DOM renderer and authenticated iframe preview implemented with viewport controls; renderer now includes profile media, headline, location, social links, timeline, and section ordering/visibility. Browser verification pending. Phase 4.3 started: serialized/coalesced save queue with retry and unit tests, plain-text paste helper, keyboard-accessible inline profile/project editing and unsaved navigation warnings. Phase 4.4 list/media panels added with create/update/delete, drag and keyboard ordering, upload previews and section controls; section titles can now be edited through sectionConfig. Last regression run passed 130 tests. Legacy editor files removed after adding profile/contact editing; /edit now redirects old bookmarks to /dashboard/portfolio. Browser testing stopped at user request; only focused checks will be used. Full Phase 4 acceptance is still pending; later phases are not implemented.
 
-**Current position:** Phase 4 implementation and non-browser acceptance are complete on `phase-4-editor`: 136 tests, lint, configured formatting and smoke checks pass. Push/merge/tag is the next integration step, then Phase 5 starts from updated main. Browser/layout validation is explicitly deferred by the user.
+**Current position:** Phase 5 implementation and non-browser checks are complete on `phase-5-public-portfolio`: shared SSR/DOM rendering, SEO, sitemap/robots, preview PNGs, hashed multi-link sharing, QR and sharing panel. Final regression: 144 tests pass; lint/format and smoke checks pass. Push/merge/tag is next, then Phase 6 messages/inbox. Browser/Lighthouse checks are deferred by explicit user instruction; per-link counts remain Phase 7.
 **Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1 to 1.7. Phase 2: 2.1 to 2.5. Phase 3: 3.1 and 3.2 (Session 17), 3.3 (Session 18), 3.4 (Session 19), 3.5 (Session 20).
 
 ---
@@ -673,3 +673,19 @@ Added full profile/contact and list/media editing, keyboard and drag ordering, s
 ### 2026-11-02 — Phase 4 closure checks
 
 User explicitly authorized pushing the phase branch, merging into main with --no-ff, tagging, and creating the next phase branch from updated main. Added a non-browser inline-handler test covering every editable field plus failed saves/retry/paste/unload behavior; it passes. Applied the repository's configured Prettier settings (100-column width). Final checks passed: 136 tests, lint, configured formatting and all 11 smoke checks. Branch integration is pending Git confirmation. Browser/layout acceptance is deferred by explicit user instruction, including the earlier uncertain click interaction; the handler test verifies native Edit triggers but does not validate browser layout.
+
+### 2026-11-02 — Phase 4 integrated; Phase 5 branch opened
+
+Closure commit `44c787d` pushed on phase-4-editor. Merged into main with --no-ff at `45c96ec`; pushed main and annotated tag phase-4-complete. Created phase-5-public-portfolio from that exact merged main commit and configured its origin tracking. Phase 5 implementation is next; no Phase 5 application changes yet. The publishing migration was tested against the isolated test database only; deploy it to the application database before running this version.
+
+### 2026-11-02 — Phase 5 public rendering started
+
+Added a shared environment-independent view tree, used for browser DOM creation and escaped server HTML. Public pages now include content without JavaScript, SEO/social metadata, canonical URL, JSON-LD, sitemap/robots and generated PNG preview images. Added SEO profile fields and editor controls, with an additive migration pending test application. Private-link migration and dashboard sharing remain next. No browser checks per user instruction.
+
+Phase 5 sharing backend: added ShareLink with hashed tokens, one-time creation response, labels, expiry, ownership checks and revocation. Migration hashes existing tokens before dropping User.shareToken; compatibility creation endpoints remain, but tokens cannot be recovered from listing. Private HTML is server-rendered and noindex; contact recipient resolution uses active hashed links. Sharing UI and tests in progress.
+
+Focused Phase 5 checks passed: 15 public-page/routing tests, 9 sharing/public/publishing checks (including actual migration backfill), and shared-view/inline unit checks. Added request URL/cookie redaction because private URLs carry bearer tokens; test logging is silent to keep verification output compact. Final regression and sharing-panel syntax checks remain.
+
+Phase 5 implementation now includes the dashboard sharing panel (public copy, QR, LinkedIn/X/email, one-time private-link copy, label/expiry editing and confirmed revoke) and SEO editor controls. Added QR dependency. Full regression and configured format checks are running; browser/Lighthouse checks remain explicitly deferred, and per-link counts remain Phase 7. Main application database has not been migrated by this session.
+
+Phase 5 final regression passed: 144 tests; lint and configured formatting pass. Commit 5324a00 contains SSR/SEO and hashed share-link backend/migrations. Sharing panel and SEO controls are ready for the next commit; smoke check is running. Added an explicit hidden rule so component display styles cannot reveal hidden sections or retry controls. Browser/Lighthouse checks remain deferred by user instruction; no score or visual parity claim is made.

@@ -1,3 +1,4 @@
+import { resolveSharedUser } from "../share/share.controller.js";
 import prisma from "../../config/prisma.js";
 import { notFound } from "../../utils/AppError.js";
 import { sendContactEmail } from "../../utils/mailer.js";
@@ -10,9 +11,9 @@ async function resolveRecipient(req) {
     });
   }
   if (req.params.token) {
-    return prisma.user.findUnique({
-      where: { shareToken: req.params.token, deletedAt: null },
-      select: { email: true, profile: { select: { contactEmail: true } } },
+    return resolveSharedUser(req.params.token, {
+      email: true,
+      profile: { select: { contactEmail: true } },
     });
   }
   return null;

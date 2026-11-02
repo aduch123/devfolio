@@ -7,6 +7,8 @@ export const RESERVED_USERNAMES = new Set([
   "dashboard",
   "preview",
   "me",
+  "sitemap.xml",
+  "robots.txt",
   "login",
   "logout",
   "signup",

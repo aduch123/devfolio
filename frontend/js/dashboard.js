@@ -1,3 +1,4 @@
+import { mountSharePanel } from "./sharePanel.js";
 import { mountContentEditor } from "./contentEditor.js";
 import { requireAuth } from "./authGuard.js";
 import { API_PREFIX } from "./config.js";
@@ -224,6 +225,7 @@ if (active === "overview") {
       else frame.src = "/preview";
     },
   });
+  await mountSharePanel(main, user);
 } else if (PLACEHOLDERS[active]) {
   main.append(emptyState(PLACEHOLDERS[active]));
 }
