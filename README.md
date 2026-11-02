@@ -148,3 +148,13 @@ Public `/:username` pages are rendered on the server using the same view tree as
 Authenticated share management: `GET`/`POST /api/v1/share-links`, `PATCH`/`DELETE /api/v1/share-links/:id`, and `GET /api/v1/share-links/qr` for the public URL QR image. A private link has a label and optional future expiry. Its token is returned only when created; listing never returns tokens or hashes. Revocation is permanent. Private links can open drafts and are always noindex. Existing tokens are migrated to SHA-256 hashes before the plaintext column is removed, preserving existing URLs. Legacy `/share` endpoints remain for compatibility, but `GET /share` cannot recover a token.
 
 Run `npm install` in backend for QR support, then `npx prisma migrate deploy` and `npx prisma generate` before running this version. The migrations add SEO fields and replace the old share-token column. Private/verification request URLs and authentication cookies are redacted from logs; normal test request logs are suppressed. Browser and Lighthouse checks are deferred at the user's request, so no visual/performance score is claimed. Per-link view counts are delivered with Phase 7 analytics.
+
+## Messages and inbox (Phase 6)
+
+Contact submissions are saved before notification delivery. Failed notifications do not lose the message; owners can read it under `/dashboard/messages`. The inbox supports status filters, sender/text search, 20-message pages, read/unread, archive/restore, confirmed deletion and email-client replies. Email notifications can be disabled without disabling message storage.
+
+Public contact requests require a published portfolio; active private links can accept draft messages. Requests include `name`, `email`, `message`, an empty `website` honeypot and `startedAt` (milliseconds, between 2 seconds and 24 hours ago). Global IP, IP/URL and recipient-wide limits apply. These are basic spam controls, not proof of a human visitor. Optional third-party CAPTCHA is not enabled.
+
+Owner endpoints: `GET /api/v1/messages?status=UNREAD|READ|ARCHIVED&q=&page=1`, `GET /messages/unread`, `PATCH /messages/:id` (`{ status }`), `DELETE /messages/:id`, and `GET`/`PATCH /messages/preferences` (`{ emailNotifications }`), all under `/api/v1` and authenticated. Message state and preferences are private and excluded from public portfolio data. Apply the message-inbox migration before starting this version.
+
+Live email delivery still requires a verified Resend sending domain and correct `RESEND_FROM`/`APP_URL`. No external email-account configuration was changed by the implementation. Actual domain/delivery verification remains a launch gate; tests simulate successful delivery, provider failure and notification opt-out. Browser testing remains deferred.

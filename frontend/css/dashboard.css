@@ -690,3 +690,15 @@
   max-height: 120px;
   object-fit: contain;
 }
+
+.message-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message-detail {
+  margin-top: 1rem;
+}
+.message-unread-count {
+  margin-left: 0.5rem;
+  font-weight: bold;
+}

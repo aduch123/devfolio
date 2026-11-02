@@ -3,10 +3,10 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-11-02 (Phase 5 implementation and non-browser acceptance complete)
+**Last updated:** 2026-11-02 (Phase 5 integrated; Phase 6 implementation and checks)
 **Implementation update (2026-11-02):** Phase 4.1 publishing backend committed (`866c681`). Draft migration applied successfully to the isolated test DB; both focused publishing integration tests pass. Baseline lint, targeted lint, syntax checks and Prisma generation pass. Dashboard publish/unpublish confirmation controls and accurate status added. Production database migration is still pending. Existing public-read tests now explicitly mark their fixtures published under the new draft default; Phase 4.2 shared DOM renderer and authenticated iframe preview implemented with viewport controls; renderer now includes profile media, headline, location, social links, timeline, and section ordering/visibility. Browser verification pending. Phase 4.3 started: serialized/coalesced save queue with retry and unit tests, plain-text paste helper, keyboard-accessible inline profile/project editing and unsaved navigation warnings. Phase 4.4 list/media panels added with create/update/delete, drag and keyboard ordering, upload previews and section controls; section titles can now be edited through sectionConfig. Last regression run passed 130 tests. Legacy editor files removed after adding profile/contact editing; /edit now redirects old bookmarks to /dashboard/portfolio. Browser testing stopped at user request; only focused checks will be used. Full Phase 4 acceptance is still pending; later phases are not implemented.
 
-**Current position:** Phase 5 implementation and non-browser checks are complete on `phase-5-public-portfolio`: shared SSR/DOM rendering, SEO, sitemap/robots, preview PNGs, hashed multi-link sharing, QR and sharing panel. Final regression: 144 tests pass; lint/format and smoke checks pass. Push/merge/tag is next, then Phase 6 messages/inbox. Browser/Lighthouse checks are deferred by explicit user instruction; per-link counts remain Phase 7.
+**Current position:** Phases 0–5 are integrated. Phase 5 merge c38db3b and phase-5-complete are pushed. Current branch: phase-6-messages. Persistent messages/inbox, spam controls, notification preferences and unread indicators are implemented; 5 focused tests and lint pass. Full regression passed: 149 tests; lint and configured formatting pass. Replacement Resend key is installed locally and recognized as sending-only. Sender address and an owner-approved recipient are still needed for a live delivery test; RESEND_FROM and APP_URL remain unset. No email has been sent. Browser checks remain deferred by user instruction.
 **Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1 to 1.7. Phase 2: 2.1 to 2.5. Phase 3: 3.1 and 3.2 (Session 17), 3.3 (Session 18), 3.4 (Session 19), 3.5 (Session 20).
 
 ---
@@ -689,3 +689,27 @@ Focused Phase 5 checks passed: 15 public-page/routing tests, 9 sharing/public/pu
 Phase 5 implementation now includes the dashboard sharing panel (public copy, QR, LinkedIn/X/email, one-time private-link copy, label/expiry editing and confirmed revoke) and SEO editor controls. Added QR dependency. Full regression and configured format checks are running; browser/Lighthouse checks remain explicitly deferred, and per-link counts remain Phase 7. Main application database has not been migrated by this session.
 
 Phase 5 final regression passed: 144 tests; lint and configured formatting pass. Commit 5324a00 contains SSR/SEO and hashed share-link backend/migrations. Sharing panel and SEO controls are ready for the next commit; smoke check is running. Added an explicit hidden rule so component display styles cannot reveal hidden sections or retry controls. Browser/Lighthouse checks remain deferred by user instruction; no score or visual parity claim is made.
+
+### 2026-11-02 — Phase 5 integrated; Phase 6 started
+
+Phase 5 merged with --no-ff at c38db3b; main and phase-5-complete pushed. Created phase-6-messages from updated main. Started persistent contact messages, inbox APIs, status/search/pagination, notification preferences and spam limits. Drafts reject public submissions while active private links remain valid. New message migration and focused tests pending. Verified Resend domain setup requires actual external account/domain access; no production email configuration was changed.
+
+Phase 6 inbox UI added: list/detail, search/filter/pagination, read/unread, archive/restore, confirmed delete, reply by mail client, notification toggle, sidebar unread count and overview unread count. Added focused tests for ownership, provider failure, opt-out, spam rejection, private drafts, pagination/search and real 429 behavior. Message migration applied to isolated test database; lint passes. No production email was sent or configured.
+
+Phase 6 focused tests pass (5): persistence/ownership/status controls, simulated provider failure and opt-out, spam/drafts/private links, search/pagination, and contact 429. Corrected route wiring caught by those tests. Inbox UI implemented without browser testing; native/email domain delivery remains unverified. Documentation updated for API payload, limits, setup and launch gate.
+
+Expanded request log redaction to query/route parameters as well as URLs, so verification and private-share tokens cannot leak through alternate serialized request fields.
+
+Phase 6 backend committed as c982612. Final regression: 149 passed, no failures. Inbox UI, unread indicators and documentation ready for separate commit and push. Phase 6 live Resend domain/delivery acceptance remains unverified; no phase-6-complete tag or merge is claimed. Browser interaction checks remain deferred by the user.
+
+### 2026-11-02 — Secure verification of existing email setup
+
+User explicitly authorized secure reading of backend/.env and reuse of existing setup. Checked configuration presence without printing secrets. Read-only Resend requests failed with HTTP 400 and the sanitized provider explanation "API key is invalid". RESEND_FROM and APP_URL are absent locally. No .env edits, email sends, main-database migrations, merge or completion tag were performed. User must replace/restore a working Resend API key locally before live delivery can be verified; never request the key in chat. Phase 6 code remains pushed at df96228 with 149 tests passing.
+
+### 2026-11-02 — Replacement email key installed securely
+
+User supplied and authorized installation of a replacement Resend API key. Saved only in ignored backend/.env and restricted file permissions; no key value recorded here. Resend recognizes it as sending-only (domain listing returns the expected restricted-permission response, not an invalid-key response). No broader access requested and no email sent. RESEND_FROM remains unset; a sender address and owner-approved recipient are needed for live delivery verification. This supersedes the earlier invalid-key blocker, but does not claim successful delivery or verified domain configuration.
+
+### 2026-11-02 — Phase 6 acceptance scope confirmed
+
+User confirmed there is no verified sending domain and accepted using the Resend development test sender, with domain verification deferred to launch. Replacement key is recognized as sending-only. Phase 6 engineering checks are complete (149 tests, lint, configured formatting); live delivery is not claimed. No live email was sent. Close and integrate Phase 6 under this explicitly agreed scope, then begin Phase 7 analytics/likes.
