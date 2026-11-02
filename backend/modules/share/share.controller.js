@@ -8,7 +8,14 @@ import { presentPublic } from "../../utils/sectionConfig.js";
 import { sendPortfolioPage, unavailablePage } from "../portfolio/portfolio.pages.js";
 
 export const hashShareToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
-const selectLink = { id: true, label: true, expiresAt: true, revokedAt: true, createdAt: true };
+const selectLink = {
+  id: true,
+  viewCount: true,
+  label: true,
+  expiresAt: true,
+  revokedAt: true,
+  createdAt: true,
+};
 export async function resolveSharedUser(token, select = PUBLIC_PORTFOLIO_SELECT) {
   if (!/^[a-f0-9]{32,64}$/.test(token || "")) return null;
   const link = await prisma.shareLink.findFirst({

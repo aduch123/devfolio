@@ -111,3 +111,9 @@ export const portfolioContactLimiter = build({
   message: "This inbox is receiving too many messages. Please try again later.",
   keyGenerator: (req) => req.messageRecipient.id,
 });
+
+export const engagementLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 120,
+  message: "Too many engagement requests. Please try again later.",
+});
