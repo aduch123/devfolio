@@ -140,3 +140,11 @@ Changing the password ends all other sessions; changing the email marks it unver
 ## Portfolio editor (Phase 4)
 
 Editing now lives at `/dashboard/portfolio`; `/edit` redirects there. The dashboard provides responsive preview, inline autosave with retry, profile/contact and content panels, uploads, ordering and section controls. New portfolios are drafts. Publishing requires a verified email, display name and about text; private share links can still open drafts. Apply the publishing migration with `npx prisma migrate deploy` before starting the updated app. Section configuration also accepts an optional `title` (1–80 characters) per section.
+
+## Public pages and private sharing (Phase 5)
+
+Public `/:username` pages are rendered on the server using the same view tree as the dashboard preview. They include canonical, Open Graph/Twitter and JSON-LD metadata. `/sitemap.xml` lists only published active accounts; `/robots.txt` excludes private/app routes. Default preview images are generated at `/:username/og.png`. Set `APP_URL` to your production origin for canonical URLs and QR codes. Profile settings accept `seoTitle`, `seoDescription` and `ogImageUrl`.
+
+Authenticated share management: `GET`/`POST /api/v1/share-links`, `PATCH`/`DELETE /api/v1/share-links/:id`, and `GET /api/v1/share-links/qr` for the public URL QR image. A private link has a label and optional future expiry. Its token is returned only when created; listing never returns tokens or hashes. Revocation is permanent. Private links can open drafts and are always noindex. Existing tokens are migrated to SHA-256 hashes before the plaintext column is removed, preserving existing URLs. Legacy `/share` endpoints remain for compatibility, but `GET /share` cannot recover a token.
+
+Run `npm install` in backend for QR support, then `npx prisma migrate deploy` and `npx prisma generate` before running this version. The migrations add SEO fields and replace the old share-token column. Private/verification request URLs and authentication cookies are redacted from logs; normal test request logs are suppressed. Browser and Lighthouse checks are deferred at the user's request, so no visual/performance score is claimed. Per-link view counts are delivered with Phase 7 analytics.
