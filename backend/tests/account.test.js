@@ -136,6 +136,10 @@ describe("POST account/username", () => {
     assert.equal(res.status, 200);
     assert.equal(res.body.user.username, username);
     errorOf(await request(app).get(`${API}/portfolio/${ident.username}`), 404, "USER_NOT_FOUND");
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username } })).id },
+      data: { published: true },
+    });
     await request(app).get(`${API}/portfolio/${username}`).expect(200);
     const me = await agent.get(`${API}/auth/me`).expect(200);
     assert.equal(me.body.user.username, username);

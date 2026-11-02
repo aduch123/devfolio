@@ -1,8 +1,32 @@
+import { mountContentEditor } from "./contentEditor.js";
 import { requireAuth } from "./authGuard.js";
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { mountShell, NAV_TITLES } from "./shell.js";
-import { make, makeIcon, emptyState } from "./ui.js";
+import { make, makeIcon, emptyState, confirmModal, toast } from "./ui.js";
+
+let previewDirty = false;
+let pendingPreviewRefresh = false;
+window.addEventListener("message", (event) => {
+  const frame = document.querySelector(".portfolio-preview");
+  if (
+    event.origin === window.location.origin &&
+    event.source === frame?.contentWindow &&
+    event.data?.type === "portfolio-save"
+  ) {
+    previewDirty = event.data.dirty === true;
+    if (!previewDirty && pendingPreviewRefresh) {
+      pendingPreviewRefresh = false;
+      frame.src = "/preview";
+    }
+  }
+});
+window.addEventListener("beforeunload", (event) => {
+  if (previewDirty) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
 
 const user = await requireAuth();
 
@@ -13,13 +37,63 @@ const main = mountShell({ user, active, title: NAV_TITLES[active] });
 
 main.append(make("h1", "dash-title", NAV_TITLES[active]));
 
+// Publishing controls reflect saved server state, including migrated portfolios.
+const profileResult = await apiFetch(`${API_PREFIX}/profile`);
+let profile = profileResult.ok ? profileResult.data.profile : null;
+if (profile) {
+  const controls = make("div", "card-links");
+  const badge = make("span", "card-text");
+  badge.setAttribute("role", "status");
+  const button = make("button", "dash-btn dash-btn-primary");
+  button.type = "button";
+  const refresh = () => {
+    badge.textContent = profile.published ? "Published" : "Draft";
+    const topStatus = document.getElementById("portfolio-status");
+    if (topStatus) topStatus.textContent = badge.textContent;
+    button.textContent = profile.published ? "Unpublish" : "Publish";
+  };
+  refresh();
+  button.addEventListener("click", async () => {
+    if (previewDirty) {
+      toast("Save or retry your inline changes first.", "error");
+      return;
+    }
+    const action = profile.published ? "unpublish" : "publish";
+    const confirmed = await confirmModal({
+      title: profile.published ? "Unpublish portfolio?" : "Publish portfolio?",
+      message: profile.published
+        ? "Your public page will become unavailable. Private share links will still work."
+        : `Your portfolio will be public at ${window.location.origin}/${user.username}. A verified email, name and about text are required.`,
+      confirmText: profile.published ? "Unpublish" : "Publish",
+    });
+    if (!confirmed) return;
+    button.disabled = true;
+    try {
+      const result = await apiFetch(`${API_PREFIX}/profile/${action}`, {
+        method: "POST",
+      });
+      if (!result.ok) {
+        toast(result.error.message, "error");
+        return;
+      }
+      profile = result.data.profile;
+      refresh();
+      toast(profile.published ? "Portfolio published" : "Portfolio unpublished", "success");
+    } finally {
+      button.disabled = false;
+    }
+  });
+  controls.append(badge, button);
+  main.append(controls);
+}
+
 // Placeholders that later phases replace with real content.
 const PLACEHOLDERS = {
   portfolio: {
     icon: "fa-id-card",
     title: "Edit your portfolio",
     text: "The live editor with a preview is coming soon. For now, use the current editor.",
-    action: { label: "Open the editor", href: "/edit" },
+    action: { label: "Open the editor", href: "/dashboard/portfolio" },
   },
   messages: {
     icon: "fa-envelope",
@@ -56,10 +130,17 @@ function card({ icon, title, value, text, links = [] }) {
 }
 
 // Sections the user skipped in the setup wizard (step numbers 2 to 5).
-const SKIPPED_NAMES = { 2: "About and roles", 3: "Skills", 4: "Projects", 5: "Links" };
+const SKIPPED_NAMES = {
+  2: "About and roles",
+  3: "Skills",
+  4: "Projects",
+  5: "Links",
+};
 
 async function skippedNotice() {
-  const result = await apiFetch(`${API_PREFIX}/onboarding/state`, { noRedirect: true });
+  const result = await apiFetch(`${API_PREFIX}/onboarding/state`, {
+    noRedirect: true,
+  });
   const names = result.ok
     ? (result.data.skipped ?? []).map((n) => SKIPPED_NAMES[n]).filter(Boolean)
     : [];
@@ -70,7 +151,7 @@ async function skippedNotice() {
   const list = make("ul", "dash-todo-list");
   for (const name of names) list.append(make("li", "", name));
   const link = make("a", "card-link", "Add them in the editor");
-  link.href = "/edit";
+  link.href = "/dashboard/portfolio";
   box.append(head, make("p", "card-text", "You skipped these sections during setup:"), list, link);
   return box;
 }
@@ -83,11 +164,11 @@ if (active === "overview") {
     card({
       icon: "fa-id-card",
       title: "Portfolio",
-      value: "Public",
+      value: profile?.published ? "Published" : "Draft",
       text: `Your page lives at /${user.username}.`,
       links: [
         { label: "View public page", href: `/${user.username}` },
-        { label: "Edit portfolio", href: "/edit" },
+        { label: "Edit portfolio", href: "/dashboard/portfolio" },
       ],
     }),
     card({
@@ -110,6 +191,39 @@ if (active === "overview") {
     }),
   );
   main.append(grid);
+} else if (active === "portfolio") {
+  const toolbar = make("div", "card-links");
+  toolbar.setAttribute("role", "group");
+  toolbar.setAttribute("aria-label", "Preview viewport");
+  const viewport = make("div", "preview-viewport");
+  const frame = make("iframe", "portfolio-preview");
+  frame.title = "Your portfolio preview";
+  frame.src = "/preview";
+  for (const [label, width] of [
+    ["Desktop", "100%"],
+    ["Tablet", "768px"],
+    ["Mobile", "375px"],
+  ]) {
+    const button = make("button", "dash-btn dash-btn-ghost", label);
+    button.type = "button";
+    button.setAttribute("aria-pressed", String(label === "Desktop"));
+    button.addEventListener("click", () => {
+      frame.style.width = width;
+      toolbar
+        .querySelectorAll("button")
+        .forEach((el) => el.setAttribute("aria-pressed", String(el === button)));
+    });
+    toolbar.append(button);
+  }
+  viewport.append(frame);
+  main.append(toolbar, viewport);
+  await mountContentEditor(main, {
+    canChange: () => !previewDirty,
+    refreshPreview: () => {
+      if (previewDirty) pendingPreviewRefresh = true;
+      else frame.src = "/preview";
+    },
+  });
 } else if (PLACEHOLDERS[active]) {
   main.append(emptyState(PLACEHOLDERS[active]));
 }

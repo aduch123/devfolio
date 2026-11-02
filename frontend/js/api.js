@@ -48,7 +48,7 @@ export async function apiFetch(path, options = {}) {
       ...fetchOptions,
       credentials: "same-origin",
       headers: {
-        "Content-Type": "application/json",
+        ...(fetchOptions.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
         ...fetchOptions.headers,
       },
     });

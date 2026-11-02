@@ -45,7 +45,7 @@ describe("page redirects: logged out", () => {
 
   it("sends pages that are not valid return targets to a plain /login", async () => {
     redirectsTo(await request(app).get("/onboarding"), "/login");
-    redirectsTo(await request(app).get("/edit"), "/login");
+    redirectsTo(await request(app).get("/edit"), "/dashboard/portfolio");
   });
 
   it("shows the landing, login and signup pages without redirecting", async () => {
@@ -88,7 +88,7 @@ describe("page redirects: logged in, onboarding unfinished", () => {
   it("keeps settings and the editor reachable", async () => {
     const { agent } = await registerAndLogin();
     assert.equal((await agent.get("/settings")).status, 200);
-    assert.equal((await agent.get("/edit")).status, 200);
+    redirectsTo(await agent.get("/edit"), "/dashboard/portfolio");
   });
 
   it("lets ?reauth=1 show the login page (breaks a redirect loop)", async () => {
@@ -107,7 +107,7 @@ describe("page redirects: logged in, onboarding finished", () => {
       "/dashboard/portfolio",
       "/dashboard/messages",
       "/settings",
-      "/edit",
+      "/preview",
     ]) {
       assert.equal((await agent.get(path)).status, 200, path);
     }

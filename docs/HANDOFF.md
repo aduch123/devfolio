@@ -3,8 +3,10 @@
 > **Read this first.** This file is the single source of truth for where the project stands. It is written for a fresh Claude chat with no memory of earlier sessions. Keep it updated at the end of every session (see section 9).
 
 **Project name:** **Devfolio** (repo name `devfolio`)
-**Last updated:** 2026-10-13 (Session 20: 3.4 verified clean by the user; 3.5 tests and wrap-up implemented, awaiting verification)
-**Current position:** Phases 0 to 2 are merged and tagged. On **Phase 3** (branch `phase-3-dashboard`): 3.1 to 3.4 are verified and committed; **3.5 (tests and wrap-up) is implemented, awaiting user verification**. Next: run `npm test` and `npm run smoke`, commit 3.5, apply Prettier in its own commit, merge `--no-ff` into `main` and tag `phase-3-complete` (commands in section 8a). Then Phase 4 (brief first).
+**Last updated:** 2026-11-02 (Codex: Phase 4 editor implementation in progress)
+**Implementation update (2026-11-02):** Phase 4.1 publishing backend committed (`866c681`). Draft migration applied successfully to the isolated test DB; both focused publishing integration tests pass. Baseline lint, targeted lint, syntax checks and Prisma generation pass. Dashboard publish/unpublish confirmation controls and accurate status added. Production database migration is still pending. Existing public-read tests now explicitly mark their fixtures published under the new draft default; Phase 4.2 shared DOM renderer and authenticated iframe preview implemented with viewport controls; renderer now includes profile media, headline, location, social links, timeline, and section ordering/visibility. Browser verification pending. Phase 4.3 started: serialized/coalesced save queue with retry and unit tests, plain-text paste helper, keyboard-accessible inline profile/project editing and unsaved navigation warnings. Phase 4.4 list/media panels added with create/update/delete, drag and keyboard ordering, upload previews and section controls; section titles can now be edited through sectionConfig. Last regression run passed 130 tests. Legacy editor files removed after adding profile/contact editing; /edit now redirects old bookmarks to /dashboard/portfolio. Browser testing stopped at user request; only focused checks will be used. Full Phase 4 acceptance is still pending; later phases are not implemented.
+
+**Current position:** Phase 4 implementation and non-browser acceptance are complete on `phase-4-editor`: 136 tests, lint, configured formatting and smoke checks pass. Push/merge/tag is the next integration step, then Phase 5 starts from updated main. Browser/layout validation is explicitly deferred by the user.
 **Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1 to 1.7. Phase 2: 2.1 to 2.5. Phase 3: 3.1 and 3.2 (Session 17), 3.3 (Session 18), 3.4 (Session 19), 3.5 (Session 20).
 
 ---
@@ -65,6 +67,7 @@ The goal is an **intermediate-level** project that is also well structured and s
 | File | Contents | Use it when |
 |---|---|---|
 | `BUILD_PLAN.md` | Full 11-phase plan (0 to 10), data model, API surface, architecture, success criteria per phase, traceability appendices | Starting a **new phase** (paste only that phase's section) |
+| `PHASE_4_PLAN.md` | Phase 4 split into 5 subphases (4.1 to 4.5) with tasks, success criteria and the proposed decisions | Starting a **new Phase 4 subphase** (paste only that row) |
 | `PHASE_3_PLAN.md` | Phase 3 split into 5 subphases (3.1 to 3.5) with tasks, success criteria and the approved decisions | Starting a **new Phase 3 subphase** (paste only that row) |
 | `PHASE_0_PLAN.md` | Phase 0 split into 8 subphases (0.1 to 0.8) with tasks and success criteria | Starting a **new subphase** (paste only that subphase's section) |
 | `HANDOFF.md` (this file) | Status, context, rules, log | **Every** new chat |
@@ -243,7 +246,14 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 - [x] 3.2 Dashboard shell and settings UI (committed)
 - [x] 3.3 Wizard backend (`OnboardingDraft`, `GET /onboarding/state`, `PUT /onboarding/step/:n`, `POST /onboarding/complete`), user-verified, tests green
 - [x] 3.4 Wizard UI (steps, progress, resume, skip, live preview, skipped list on the dashboard), user-verified
-- [~] 3.5 Tests and wrap-up: **implemented, awaiting user verification** (then Prettier commit, merge, tag)
+- [x] 3.5 Tests and wrap-up (tests green, Prettier committed, **Phase 3 merged into `main`**, user-confirmed Session 21)
+
+### Phase 4: Live preview, inline editing and publishing (branch `phase-4-editor`, plan in `docs/PHASE_4_PLAN.md`)
+- [ ] 4.1 Publish backend and draft protection
+- [ ] 4.2 Shared render and live preview
+- [ ] 4.3 Inline text editing and autosave
+- [ ] 4.4 Lists, uploads and reordering
+- [ ] 4.5 Tests and wrap-up
 
 ### Phases 4 to 10
 - [ ] Phase 4 · [ ] Phase 5 · [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
@@ -252,14 +262,11 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 
 ## 8. NEXT TASK
 
-### 8a. Verify 3.5 and close Phase 3 (branch `phase-3-dashboard`)
+### 8a. Approve the Phase 4 brief, then build batch 4.1 + 4.2 (branch `phase-4-editor`)
 
-Apply the 3.5 zip over the repo root. No migration, no new dependency. Run `npm run lint` and `npm test` (new: `pages.test.js` and three more cases in `onboarding-wizard.test.js`). With the server running, run `npm run smoke`. Commit as `test(3.5): page redirects and wizard edge cases`. Then, in its own commit, `npm run format` and `style: format with prettier` (re-run `npm test` and `npm run lint` after it). Then merge: `git switch main`, `git pull`, `git merge --no-ff phase-3-dashboard`, `git tag phase-3-complete`, push with tags (a GitHub pull request merge commit is equivalent to `--no-ff`; tag `main` afterwards).
-Phase 3 success criteria to confirm in the browser: no flash of the landing page when logged in; `/dashboard` logged out lands on `/login` and returns after login; wizard resume, skip and live preview (verified in 3.4); shell at 360, 768 and 1280 px; every settings action; logout from every dashboard page.
+Create the branch from `main` (`git switch main && git pull && git switch -c phase-4-editor`) and add `docs/PHASE_4_PLAN.md`. The 7 decisions at the top of that file are proposed defaults; the user replies "approved" or changes them (rule 1b: no code before approval). Then build **4.1** (publish backend and draft protection) and **4.2** (shared render and live preview) in order, one zip each, cumulative.
 
-### 8b. Then Phase 4
-
-Start a fresh brief from `BUILD_PLAN.md` Phase 4 (the portfolio editor with draft and publish, which replaces `/edit` and the `Public` badge). Read its plan first and send the brief before any code (rule 1b).
+Watch-outs from the Phase 3 history: every file passed to `guestPage` or `appPage` must be an absolute path from `pageFile(...)`; run `npm run migrate:test` after the 4.1 migration; the CSP change for the iframe is `frame-ancestors 'self'` only.
 
 ---
 
@@ -613,7 +620,12 @@ Must not break: page redirect tests assert the exact `location`; wizard error co
 Result: fixed; awaiting user re-run of `npm test`. Five tests in `pages.test.js` returned 500 instead of 200 for every served app page. Cause: `app.js` passed bare file names (`appPage("dashboard.html")`) while `res.sendFile` needs an absolute path; guest pages already used `pageFile(...)`, which is why `/login` worked. Fix: `appPage(pageFile("dashboard.html" | "settings.html" | "onboarding.html" | "edit.html"), ...)` in `backend/app.js`. Files changed: `backend/app.js`, `docs/HANDOFF.md`. No migration, no new dependency.
 Must not break: every file given to `guestPage` or `appPage` is an absolute path built with `pageFile` (or `LANDING_PAGE`).
 
-*(Add Session 21 and onward below this line.)*
+### Session 21: Phase 3 closed, Phase 4 plan file (2026-10-13)
+Result: completed (docs only, no code changed). The user confirmed the 3.5 fix, tests green, Prettier commit done, and merged `phase-3-dashboard` into `main` (tag `phase-3-complete`). Claude sent the Phase 4 brief (5 subphases, 7 proposed decisions); the user asked for the plan file first.
+Files created: `docs/PHASE_4_PLAN.md`. Files changed: `docs/HANDOFF.md` (header, section 3, tracker, section 8, this entry).
+Must not break: the plan file lists decisions as proposed until the user approves them.
+
+*(Add Session 22 and onward below this line.)*
 
 ---
 
@@ -653,3 +665,11 @@ docs/           HANDOFF.md  BUILD_PLAN.md  PHASE_0_PLAN.md
 
 **Known debt carried forward:** Phase 1 replaces `localStorage` JWT with cookies (the `apiFetch` 401 redirect and `authGuard.js` change with it); CSP `'unsafe-inline'` styles; in-memory rate limits; dev-only audit findings; Prettier not applied; `other` is a single skill preset until Phase 2.
 
+
+### 2026-11-02 — Phase 4 editor continuation
+
+Added full profile/contact and list/media editing, keyboard and drag ordering, section titles and visibility, upload previews compatible with CSP, and redirects from the retired editor. Corrected the topbar status and multipart handling. Preserved pending inline edits during content refresh. Last full regression run: 130 passed; focused changed-path checks: 24 passed; autosave unit checks passed; lint and syntax checks passed. An earlier browser click attempt did not reveal the inline textbox; added explicit native Edit buttons as an accessible fallback, but this interaction remains unverified. User requested no further browser testing and concise tool output; browser acceptance remains unverified. No phase merge/tag yet.
+
+### 2026-11-02 — Phase 4 closure checks
+
+User explicitly authorized pushing the phase branch, merging into main with --no-ff, tagging, and creating the next phase branch from updated main. Added a non-browser inline-handler test covering every editable field plus failed saves/retry/paste/unload behavior; it passes. Applied the repository's configured Prettier settings (100-column width). Final checks passed: 136 tests, lint, configured formatting and all 11 smoke checks. Branch integration is pending Git confirmation. Browser/layout acceptance is deferred by explicit user instruction, including the earlier uncertain click interaction; the handler test verifies native Edit triggers but does not validate browser layout.

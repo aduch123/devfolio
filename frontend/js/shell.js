@@ -5,10 +5,30 @@ import { make, makeIcon } from "./ui.js";
 
 const NAV = [
   { id: "overview", label: "Overview", href: "/dashboard", icon: "fa-house" },
-  { id: "portfolio", label: "Portfolio", href: "/dashboard/portfolio", icon: "fa-id-card" },
-  { id: "messages", label: "Messages", href: "/dashboard/messages", icon: "fa-envelope" },
-  { id: "analytics", label: "Analytics", href: "/dashboard/analytics", icon: "fa-chart-line" },
-  { id: "health", label: "Health", href: "/dashboard/health", icon: "fa-heart-pulse" },
+  {
+    id: "portfolio",
+    label: "Portfolio",
+    href: "/dashboard/portfolio",
+    icon: "fa-id-card",
+  },
+  {
+    id: "messages",
+    label: "Messages",
+    href: "/dashboard/messages",
+    icon: "fa-envelope",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    href: "/dashboard/analytics",
+    icon: "fa-chart-line",
+  },
+  {
+    id: "health",
+    label: "Health",
+    href: "/dashboard/health",
+    icon: "fa-heart-pulse",
+  },
   { id: "settings", label: "Settings", href: "/settings", icon: "fa-gear" },
 ];
 
@@ -102,9 +122,9 @@ function buildTopbar(user) {
   brand.href = "/dashboard";
   brand.append(make("span", "dash-brand-accent", "folio"));
 
-  // Every portfolio is public today; draft and publish controls arrive with the new editor.
-  const status = make("span", "status-badge", "Public");
-  status.title = "Draft and publish controls are coming soon";
+  // The dashboard fills this from the saved profile state.
+  const status = make("span", "status-badge", "Loading…");
+  status.id = "portfolio-status";
 
   const view = make("a", "dash-top-link");
   view.href = `/${user.username}`;

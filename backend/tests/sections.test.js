@@ -13,11 +13,24 @@ const patch = (agent, sectionConfig) => agent.patch(`${API}/profile`).send({ sec
 const orderOf = (config) => SECTIONS.slice().sort((a, b) => config[a].order - config[b].order);
 
 describe("sectionConfig", () => {
+  it("persists section titles as plain data and validates their length", async () => {
+    const { agent } = await registerAndLogin();
+    const title = "<script>plain text</script>";
+    await patch(agent, { about: { title } }).expect(200);
+    const own = await agent.get(`${API}/portfolio/me`).expect(200);
+    assert.equal(own.body.profile.sectionConfig.about.title, title);
+    await patch(agent, { about: { title: "" } }).expect(400);
+    await patch(agent, { about: { title: "x".repeat(81) } }).expect(400);
+  });
   it("is complete with defaults for a new profile, on the profile and on the public page", async () => {
     const { agent, ident } = await registerAndLogin();
     const own = (await agent.get(`${API}/profile`).expect(200)).body.profile.sectionConfig;
     assert.deepEqual(orderOf(own), SECTIONS);
     assert.ok(SECTIONS.every((s) => own[s].visible === true));
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body
       .profile.sectionConfig;
     assert.deepEqual(pub, own);
@@ -28,6 +41,10 @@ describe("sectionConfig", () => {
     const res = await patch(agent, { education: { visible: false } }).expect(200);
     assert.equal(res.body.profile.sectionConfig.education.visible, false);
     assert.equal(res.body.profile.sectionConfig.about.visible, true);
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = (await request(app).get(`${API}/portfolio/${ident.username}`).expect(200)).body
       .profile.sectionConfig;
     assert.equal(pub.education.visible, false);

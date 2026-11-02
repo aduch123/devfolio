@@ -87,6 +87,10 @@ describe("PUT skills/order", () => {
       [c, a, b],
     );
 
+    await prisma.profile.update({
+      where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+      data: { published: true },
+    });
     const pub = await request(app).get(`${API}/portfolio/${ident.username}`).expect(200);
     assert.deepEqual(
       pub.body.skills.map((s) => s.name),

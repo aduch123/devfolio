@@ -10,6 +10,7 @@ export const DEFAULT_SECTION_CONFIG = Object.fromEntries(
 );
 
 const sectionPatch = z.strictObject({
+  title: z.string().trim().min(1).max(80).optional(),
   visible: z.boolean({ error: "Must be true or false" }).optional(),
   order: z
     .number({ error: "Must be a number" })
