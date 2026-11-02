@@ -709,3 +709,7 @@ User explicitly authorized secure reading of backend/.env and reuse of existing 
 ### 2026-11-02 — Replacement email key installed securely
 
 User supplied and authorized installation of a replacement Resend API key. Saved only in ignored backend/.env and restricted file permissions; no key value recorded here. Resend recognizes it as sending-only (domain listing returns the expected restricted-permission response, not an invalid-key response). No broader access requested and no email sent. RESEND_FROM remains unset; a sender address and owner-approved recipient are needed for live delivery verification. This supersedes the earlier invalid-key blocker, but does not claim successful delivery or verified domain configuration.
+
+### 2026-11-02 — Phase 6 acceptance scope confirmed
+
+User confirmed there is no verified sending domain and accepted using the Resend development test sender, with domain verification deferred to launch. Replacement key is recognized as sending-only. Phase 6 engineering checks are complete (149 tests, lint, configured formatting); live delivery is not claimed. No live email was sent. Close and integrate Phase 6 under this explicitly agreed scope, then begin Phase 7 analytics/likes.
