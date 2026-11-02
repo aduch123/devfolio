@@ -1,8 +1,32 @@
+import { mountContentEditor } from "./contentEditor.js";
 import { requireAuth } from "./authGuard.js";
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { mountShell, NAV_TITLES } from "./shell.js";
 import { make, makeIcon, emptyState, confirmModal, toast } from "./ui.js";
+
+let previewDirty = false;
+let pendingPreviewRefresh = false;
+window.addEventListener("message", (event) => {
+  const frame = document.querySelector(".portfolio-preview");
+  if (
+    event.origin === window.location.origin &&
+    event.source === frame?.contentWindow &&
+    event.data?.type === "portfolio-save"
+  ) {
+    previewDirty = event.data.dirty === true;
+    if (!previewDirty && pendingPreviewRefresh) {
+      pendingPreviewRefresh = false;
+      frame.src = "/preview";
+    }
+  }
+});
+window.addEventListener("beforeunload", (event) => {
+  if (previewDirty) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
 
 const user = await requireAuth();
 
@@ -24,10 +48,16 @@ if (profile) {
   button.type = "button";
   const refresh = () => {
     badge.textContent = profile.published ? "Published" : "Draft";
+    const topStatus = document.getElementById("portfolio-status");
+    if (topStatus) topStatus.textContent = badge.textContent;
     button.textContent = profile.published ? "Unpublish" : "Publish";
   };
   refresh();
   button.addEventListener("click", async () => {
+    if (previewDirty) {
+      toast("Save or retry your inline changes first.", "error");
+      return;
+    }
     const action = profile.published ? "unpublish" : "publish";
     const confirmed = await confirmModal({
       title: profile.published ? "Unpublish portfolio?" : "Publish portfolio?",
@@ -66,7 +96,7 @@ const PLACEHOLDERS = {
     icon: "fa-id-card",
     title: "Edit your portfolio",
     text: "The live editor with a preview is coming soon. For now, use the current editor.",
-    action: { label: "Open the editor", href: "/edit" },
+    action: { label: "Open the editor", href: "/dashboard/portfolio" },
   },
   messages: {
     icon: "fa-envelope",
@@ -127,7 +157,7 @@ async function skippedNotice() {
   const list = make("ul", "dash-todo-list");
   for (const name of names) list.append(make("li", "", name));
   const link = make("a", "card-link", "Add them in the editor");
-  link.href = "/edit";
+  link.href = "/dashboard/portfolio";
   box.append(
     head,
     make("p", "card-text", "You skipped these sections during setup:"),
@@ -149,7 +179,7 @@ if (active === "overview") {
       text: `Your page lives at /${user.username}.`,
       links: [
         { label: "View public page", href: `/${user.username}` },
-        { label: "Edit portfolio", href: "/edit" },
+        { label: "Edit portfolio", href: "/dashboard/portfolio" },
       ],
     }),
     card({
@@ -200,23 +230,13 @@ if (active === "overview") {
   }
   viewport.append(frame);
   main.append(toolbar, viewport);
+  await mountContentEditor(main, {
+    canChange: () => !previewDirty,
+    refreshPreview: () => {
+      if (previewDirty) pendingPreviewRefresh = true;
+      else frame.src = "/preview";
+    },
+  });
 } else if (PLACEHOLDERS[active]) {
   main.append(emptyState(PLACEHOLDERS[active]));
 }
-
-let previewDirty = false;
-window.addEventListener("message", (event) => {
-  const frame = document.querySelector(".portfolio-preview");
-  if (
-    event.origin === window.location.origin &&
-    event.source === frame?.contentWindow &&
-    event.data?.type === "portfolio-save"
-  )
-    previewDirty = event.data.dirty === true;
-});
-window.addEventListener("beforeunload", (event) => {
-  if (previewDirty) {
-    event.preventDefault();
-    event.returnValue = "";
-  }
-});

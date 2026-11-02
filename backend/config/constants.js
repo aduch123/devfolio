@@ -6,6 +6,7 @@ export const RESERVED_USERNAMES = new Set([
   "edit",
   "dashboard",
   "preview",
+  "me",
   "login",
   "logout",
   "signup",

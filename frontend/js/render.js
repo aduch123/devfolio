@@ -25,6 +25,12 @@ export function render(data, { preview = false } = {}) {
   renderProjects(projects);
   renderContact(profile);
   renderExtras(data);
+  if (preview) {
+    document.getElementById("about").style.display = "";
+    if (!profile.aboutText)
+      document.getElementById("about-content").textContent =
+        "Add your about text";
+  }
   const sections = [
     "about",
     "skills",
@@ -46,6 +52,9 @@ export function render(data, { preview = false } = {}) {
     const section = document.getElementById(name);
     if (!section) continue;
     root.append(section);
+    if (profile.sectionConfig?.[name]?.title)
+      section.querySelector("h2").textContent =
+        profile.sectionConfig[name].title;
     if (profile.sectionConfig?.[name]?.visible === false)
       setSectionVisible(name, false);
   }

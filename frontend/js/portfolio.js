@@ -80,7 +80,7 @@ async function setupOwnerControls(viewedUsername) {
   });
 
   document.getElementById("edit-btn").addEventListener("click", () => {
-    window.location.href = "/edit";
+    window.location.href = "/dashboard/portfolio";
   });
 
   setupShareButton();

@@ -48,12 +48,18 @@ export async function apiFetch(path, options = {}) {
       ...fetchOptions,
       credentials: "same-origin",
       headers: {
-        "Content-Type": "application/json",
+        ...(fetchOptions.body instanceof FormData
+          ? {}
+          : { "Content-Type": "application/json" }),
         ...fetchOptions.headers,
       },
     });
   } catch {
-    return fail(0, "NETWORK_ERROR", "Can't reach the server. Check your connection and try again.");
+    return fail(
+      0,
+      "NETWORK_ERROR",
+      "Can't reach the server. Check your connection and try again.",
+    );
   }
 
   if (res.status === 401 && !skipAuthRedirect && !anonymous) {
@@ -91,7 +97,15 @@ export async function apiFetch(path, options = {}) {
     return { ok: false, status: res.status, data: null, error: body.error };
   }
   if (res.status === 429) {
-    return fail(429, "RATE_LIMITED", "Too many attempts. Please wait a few minutes and try again.");
+    return fail(
+      429,
+      "RATE_LIMITED",
+      "Too many attempts. Please wait a few minutes and try again.",
+    );
   }
-  return fail(res.status, `HTTP_${res.status}`, "Something went wrong. Try again.");
+  return fail(
+    res.status,
+    `HTTP_${res.status}`,
+    "Something went wrong. Try again.",
+  );
 }

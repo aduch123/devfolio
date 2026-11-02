@@ -13,6 +13,15 @@ const patch = (agent, sectionConfig) => agent.patch(`${API}/profile`).send({ sec
 const orderOf = (config) => SECTIONS.slice().sort((a, b) => config[a].order - config[b].order);
 
 describe("sectionConfig", () => {
+  it("persists section titles as plain data and validates their length", async () => {
+    const { agent } = await registerAndLogin();
+    const title = "<script>plain text</script>";
+    await patch(agent, { about: { title } }).expect(200);
+    const own = await agent.get(`${API}/portfolio/me`).expect(200);
+    assert.equal(own.body.profile.sectionConfig.about.title, title);
+    await patch(agent, { about: { title: "" } }).expect(400);
+    await patch(agent, { about: { title: "x".repeat(81) } }).expect(400);
+  });
   it("is complete with defaults for a new profile, on the profile and on the public page", async () => {
     const { agent, ident } = await registerAndLogin();
     const own = (await agent.get(`${API}/profile`).expect(200)).body.profile.sectionConfig;

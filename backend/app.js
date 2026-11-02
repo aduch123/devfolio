@@ -148,7 +148,8 @@ app.get("/onboarding", appPage(pageFile("onboarding.html"), { onboarding: "incom
 
 app.get("/preview", appPage(pageFile("portfolio.html")));
 
-app.get("/edit", appPage(pageFile("edit.html")));
+// Preserve old bookmarks while the dashboard owns all editing.
+app.get("/edit", (req, res) => res.redirect(302, "/dashboard/portfolio"));
 
 app.get("/share/:token", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/pages/portfolio.html"));

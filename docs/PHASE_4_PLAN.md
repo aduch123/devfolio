@@ -2,13 +2,13 @@
 
 Goal: the owner sees their real portfolio inside the dashboard, edits it in place with safe autosave, and controls whether it is public. Source: Phase 4 in `BUILD_PLAN.md`. Built as 5 subphases, one commit each on `phase-4-editor`. Batches: 4.1 + 4.2, then 4.3 + 4.4, then 4.5.
 
-**Decisions (proposed, awaiting approval):**
+**Decisions (approved by user for implementation, 2026-11-02):**
 1. Users who already finished onboarding become `Published` in the migration (nobody's page disappears); new portfolios start as `Draft`.
 2. The preview is a same-origin **iframe** of the shared render (media queries need a real viewport for the tablet and mobile toggle); editing happens inside the frame and status is passed up to the dashboard. CSP `frame-ancestors` changes from `'none'` to `'self'`; nothing else is loosened.
 3. The owner reads a draft through a new `GET /portfolio/me` (login required, same shape as the public response). `PUBLIC_PORTFOLIO_SELECT` stays the only public surface.
 4. Unverified users can edit but cannot publish (403 `EMAIL_NOT_VERIFIED`) and the dialog says why; unpublish is always allowed.
 5. The shared renderer also covers experience and education (rendering in 4.2, editing in 4.4).
-6. No new dependencies: editing logic is written as DOM-free modules covered by `node:test`; the inline paths get a scripted headless-Chromium pass run in the Claude sandbox (Playwright stays Phase 10).
+6. No new dependencies: editing logic is written as DOM-free modules covered by `node:test`; browser testing is deferred at the user’s explicit request to conserve tokens; use focused syntax, lint and unit/API checks.
 7. `/edit`, `edit.js` and `edit.css` are removed in 4.4, once the new editor covers everything they did.
 
 **Out of scope:** server-rendered public page, SEO and "not available" pages (Phase 5); blocking messages to drafts (Phase 6); health link in the publish dialog (Phase 8). Until Phase 5 the public page shows a simple "not available" state for a draft.

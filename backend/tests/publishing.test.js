@@ -39,3 +39,12 @@ it("requires verification and complete content, then supports publish and unpubl
   await request(app).get(`${API}/portfolio/${ident.username}`).expect(404);
   await agent.get(`${API}/portfolio/me`).expect(200);
 });
+
+it("keeps draft share links available and denies unauthenticated publishing", async () => {
+  const { agent } = await registerAndLogin();
+  const { shareToken } = (await agent.post(`${API}/share`).expect(200)).body;
+  await request(app).get(`${API}/portfolio/share/${shareToken}`).expect(200);
+  for (const action of ["publish", "unpublish"]) {
+    errorOf(await request(app).post(`${API}/profile/${action}`), 401, "UNAUTHORIZED");
+  }
+});

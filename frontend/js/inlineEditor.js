@@ -21,10 +21,12 @@ export async function setupInlineEditor(data) {
       if (!field) return;
       field.status.textContent = error ? `Failed: ${error.message}` : state;
       field.retry.hidden = state !== "Failed";
-      queueMicrotask(() => window.parent.postMessage(
-        { type: "portfolio-save", dirty: queue.dirty },
-        window.location.origin,
-      ));
+      queueMicrotask(() =>
+        window.parent.postMessage(
+          { type: "portfolio-save", dirty: queue.dirty },
+          window.location.origin,
+        ),
+      );
     },
   });
   function attach(
@@ -72,12 +74,20 @@ export async function setupInlineEditor(data) {
       );
       input();
     });
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "inline-edit-trigger";
+    trigger.textContent = "Edit";
+    trigger.setAttribute("aria-label", `Edit ${name}`);
+    element.after(trigger);
     const open = () => {
       if (element.contains(edit)) return;
       element.replaceChildren(edit, counter, status, retry);
+      trigger.hidden = true;
       edit.focus();
       counter.textContent = `${edit.value.length}/${max}`;
     };
+    trigger.addEventListener("click", open);
     element.tabIndex = 0;
     element.classList.add("inline-editable");
     element.setAttribute("aria-label", `Edit ${name}`);
@@ -90,6 +100,23 @@ export async function setupInlineEditor(data) {
     });
   }
   const profile = data.profile || {};
+  for (const name of [
+    "about",
+    "skills",
+    "projects",
+    "experience",
+    "education",
+    "contact",
+  ]) {
+    const title = document.querySelector(`#${name} h2`);
+    attach(title, {
+      key: `section:${name}`,
+      name: "sectionConfig",
+      value: title?.textContent,
+      max: 80,
+      encode: (value) => ({ [name]: { title: value } }),
+    });
+  }
   attach(document.getElementById("hero-name"), {
     key: "name",
     name: "displayName",
@@ -108,7 +135,7 @@ export async function setupInlineEditor(data) {
     key: "roles",
     name: "heroRoleTexts",
     value: profile.heroRoleTexts?.join("\n"),
-    max: 500,
+    max: 304,
     multiline: true,
     encode: (text) =>
       text

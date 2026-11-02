@@ -152,5 +152,10 @@ await check("Security headers present (CSP, no x-powered-by)", async () => {
   if (res.headers.get("x-powered-by")) return "x-powered-by is exposed";
 });
 
+await check("Owner draft read requires authentication", async () => {
+  const { res, body } = await call("/api/v1/portfolio/me");
+  if (res.status !== 401 || !isErrorShape(body)) return `got ${res.status}`;
+});
+
 console.log(failed === 0 ? "\nAll checks passed." : `\n${failed} check(s) failed.`);
-process.exit(failed === 0 ? 0 : 1);
+process.exit(failed > 0 ? 1 : 0);
