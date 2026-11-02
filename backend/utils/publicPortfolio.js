@@ -17,6 +17,9 @@ export const PUBLIC_PORTFOLIO_SELECT = {
       avatarUrl: true,
       resumeUrl: true,
       sectionConfig: true,
+      seoTitle: true,
+      seoDescription: true,
+      ogImageUrl: true,
     },
   },
   skills: {

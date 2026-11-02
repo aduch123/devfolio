@@ -20,4 +20,7 @@ export const profileUpdateSchema = z.object({
   headline: optionalText(LIMITS.headline),
   location: optionalText(LIMITS.location),
   sectionConfig: sectionConfigSchema,
+  seoTitle: optionalText(80),
+  seoDescription: optionalText(160),
+  ogImageUrl: optionalUrl,
 });

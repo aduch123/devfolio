@@ -677,3 +677,13 @@ User explicitly authorized pushing the phase branch, merging into main with --no
 ### 2026-11-02 — Phase 4 integrated; Phase 5 branch opened
 
 Closure commit `44c787d` pushed on phase-4-editor. Merged into main with --no-ff at `45c96ec`; pushed main and annotated tag phase-4-complete. Created phase-5-public-portfolio from that exact merged main commit and configured its origin tracking. Phase 5 implementation is next; no Phase 5 application changes yet. The publishing migration was tested against the isolated test database only; deploy it to the application database before running this version.
+
+### 2026-11-02 — Phase 5 public rendering started
+
+Added a shared environment-independent view tree, used for browser DOM creation and escaped server HTML. Public pages now include content without JavaScript, SEO/social metadata, canonical URL, JSON-LD, sitemap/robots and generated PNG preview images. Added SEO profile fields and editor controls, with an additive migration pending test application. Private-link migration and dashboard sharing remain next. No browser checks per user instruction.
+
+Phase 5 sharing backend: added ShareLink with hashed tokens, one-time creation response, labels, expiry, ownership checks and revocation. Migration hashes existing tokens before dropping User.shareToken; compatibility creation endpoints remain, but tokens cannot be recovered from listing. Private HTML is server-rendered and noindex; contact recipient resolution uses active hashed links. Sharing UI and tests in progress.
+
+Focused Phase 5 checks passed: 15 public-page/routing tests, 9 sharing/public/publishing checks (including actual migration backfill), and shared-view/inline unit checks. Added request URL/cookie redaction because private URLs carry bearer tokens; test logging is silent to keep verification output compact. Final regression and sharing-panel syntax checks remain.
+
+Phase 5 implementation now includes the dashboard sharing panel (public copy, QR, LinkedIn/X/email, one-time private-link copy, label/expiry editing and confirmed revoke) and SEO editor controls. Added QR dependency. Full regression and configured format checks are running; browser/Lighthouse checks remain explicitly deferred, and per-link counts remain Phase 7. Main application database has not been migrated by this session.

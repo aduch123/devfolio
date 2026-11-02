@@ -20,9 +20,16 @@ import projectRoutes from "./modules/projects/projects.routes.js";
 import socialRoutes from "./modules/social/social.routes.js";
 import timelineRoutes from "./modules/timeline/timeline.routes.js";
 import onboardingRoutes from "./modules/onboarding/onboarding.routes.js";
+import { sharedPortfolioPage } from "./modules/share/share.controller.js";
 import shareRoutes from "./modules/share/share.routes.js";
 import mediaRoutes from "./modules/media/media.routes.js";
 import { storage } from "./config/storage.js";
+import {
+  publicPortfolioPage,
+  portfolioImage,
+  sitemap,
+  robots,
+} from "./modules/portfolio/portfolio.pages.js";
 import messageRoutes from "./modules/messages/messages.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -151,13 +158,12 @@ app.get("/preview", appPage(pageFile("portfolio.html")));
 // Preserve old bookmarks while the dashboard owns all editing.
 app.get("/edit", (req, res) => res.redirect(302, "/dashboard/portfolio"));
 
-app.get("/share/:token", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/pages/portfolio.html"));
-});
+app.get("/share/:token", sharedPortfolioPage);
 
-app.get("/:username", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/pages/portfolio.html"));
-});
+app.get("/sitemap.xml", sitemap);
+app.get("/robots.txt", robots);
+app.get("/:username/og.png", portfolioImage);
+app.get("/:username", publicPortfolioPage);
 
 app.use(notFoundHandler);
 
