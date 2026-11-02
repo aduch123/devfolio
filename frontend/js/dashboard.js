@@ -2,7 +2,7 @@ import { requireAuth } from "./authGuard.js";
 import { API_PREFIX } from "./config.js";
 import { apiFetch } from "./api.js";
 import { mountShell, NAV_TITLES } from "./shell.js";
-import { make, makeIcon, emptyState } from "./ui.js";
+import { make, makeIcon, emptyState, confirmModal, toast } from "./ui.js";
 
 const user = await requireAuth();
 
@@ -12,6 +12,53 @@ const active = section && NAV_TITLES[section] ? section : "overview";
 const main = mountShell({ user, active, title: NAV_TITLES[active] });
 
 main.append(make("h1", "dash-title", NAV_TITLES[active]));
+
+// Publishing controls reflect saved server state, including migrated portfolios.
+const profileResult = await apiFetch(`${API_PREFIX}/profile`);
+let profile = profileResult.ok ? profileResult.data.profile : null;
+if (profile) {
+  const controls = make("div", "card-links");
+  const badge = make("span", "card-text");
+  badge.setAttribute("role", "status");
+  const button = make("button", "dash-btn dash-btn-primary");
+  button.type = "button";
+  const refresh = () => {
+    badge.textContent = profile.published ? "Published" : "Draft";
+    button.textContent = profile.published ? "Unpublish" : "Publish";
+  };
+  refresh();
+  button.addEventListener("click", async () => {
+    const action = profile.published ? "unpublish" : "publish";
+    const confirmed = await confirmModal({
+      title: profile.published ? "Unpublish portfolio?" : "Publish portfolio?",
+      message: profile.published
+        ? "Your public page will become unavailable. Private share links will still work."
+        : `Your portfolio will be public at ${window.location.origin}/${user.username}. A verified email, name and about text are required.`,
+      confirmText: profile.published ? "Unpublish" : "Publish",
+    });
+    if (!confirmed) return;
+    button.disabled = true;
+    try {
+      const result = await apiFetch(`${API_PREFIX}/profile/${action}`, {
+        method: "POST",
+      });
+      if (!result.ok) {
+        toast(result.error.message, "error");
+        return;
+      }
+      profile = result.data.profile;
+      refresh();
+      toast(
+        profile.published ? "Portfolio published" : "Portfolio unpublished",
+        "success",
+      );
+    } finally {
+      button.disabled = false;
+    }
+  });
+  controls.append(badge, button);
+  main.append(controls);
+}
 
 // Placeholders that later phases replace with real content.
 const PLACEHOLDERS = {
@@ -56,22 +103,37 @@ function card({ icon, title, value, text, links = [] }) {
 }
 
 // Sections the user skipped in the setup wizard (step numbers 2 to 5).
-const SKIPPED_NAMES = { 2: "About and roles", 3: "Skills", 4: "Projects", 5: "Links" };
+const SKIPPED_NAMES = {
+  2: "About and roles",
+  3: "Skills",
+  4: "Projects",
+  5: "Links",
+};
 
 async function skippedNotice() {
-  const result = await apiFetch(`${API_PREFIX}/onboarding/state`, { noRedirect: true });
+  const result = await apiFetch(`${API_PREFIX}/onboarding/state`, {
+    noRedirect: true,
+  });
   const names = result.ok
     ? (result.data.skipped ?? []).map((n) => SKIPPED_NAMES[n]).filter(Boolean)
     : [];
   if (!names.length) return null;
   const box = make("div", "dash-todo");
   const head = make("div", "card-head");
-  head.append(makeIcon("fa-list-check"), make("h2", "card-title", "Finish setting up"));
+  head.append(
+    makeIcon("fa-list-check"),
+    make("h2", "card-title", "Finish setting up"),
+  );
   const list = make("ul", "dash-todo-list");
   for (const name of names) list.append(make("li", "", name));
   const link = make("a", "card-link", "Add them in the editor");
   link.href = "/edit";
-  box.append(head, make("p", "card-text", "You skipped these sections during setup:"), list, link);
+  box.append(
+    head,
+    make("p", "card-text", "You skipped these sections during setup:"),
+    list,
+    link,
+  );
   return box;
 }
 
@@ -83,7 +145,7 @@ if (active === "overview") {
     card({
       icon: "fa-id-card",
       title: "Portfolio",
-      value: "Public",
+      value: profile?.published ? "Published" : "Draft",
       text: `Your page lives at /${user.username}.`,
       links: [
         { label: "View public page", href: `/${user.username}` },
