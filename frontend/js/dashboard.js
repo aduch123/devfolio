@@ -1,3 +1,4 @@
+import { mountHealth } from "./health.js";
 import { mountAnalytics } from "./analytics.js";
 import { mountInbox } from "./inbox.js";
 import { mountSharePanel } from "./sharePanel.js";
@@ -80,11 +81,21 @@ if (profile) {
       return;
     }
     const action = profile.published ? "unpublish" : "publish";
+    let healthAdvice = "";
+    if (action === "publish") {
+      const health = await apiFetch(`${API_PREFIX}/health/report`);
+      if (
+        health.ok &&
+        (health.data.score < 60 ||
+          health.data.checks.some((check) => ["BROKEN", "TIMEOUT"].includes(check.status)))
+      )
+        healthAdvice = ` Your health score is ${health.data.score}/100. Review your suggestions and links when convenient; you can still publish now.`;
+    }
     const confirmed = await confirmModal({
       title: profile.published ? "Unpublish portfolio?" : "Publish portfolio?",
       message: profile.published
         ? "Your public page will become unavailable. Private share links will still work."
-        : `Your portfolio will be public at ${window.location.origin}/${user.username}. A verified email, name and about text are required.`,
+        : `Your portfolio will be public at ${window.location.origin}/${user.username}. A verified email, name and about text are required.${healthAdvice}`,
       confirmText: profile.published ? "Unpublish" : "Publish",
     });
     if (!confirmed) return;
@@ -241,6 +252,8 @@ if (active === "overview") {
     },
   });
   await mountSharePanel(main, user);
+} else if (active === "health") {
+  await mountHealth(main);
 } else if (active === "analytics") {
   await mountAnalytics(main);
 } else if (active === "messages") {

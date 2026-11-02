@@ -20,6 +20,29 @@ function addCard(title, description, extraClass = "") {
   return el;
 }
 
+if (!user.emailVerified) {
+  const verification = addCard(
+    "Verify your email",
+    "Verify your account email before publishing your portfolio.",
+  );
+  verification.id = "email-verification";
+  const resend = make("button", "dash-btn dash-btn-primary", "Send verification link");
+  resend.type = "button";
+  resend.addEventListener("click", async () => {
+    resend.disabled = true;
+    const result = await apiFetch(`${API_PREFIX}/auth/resend-verification`, {
+      method: "POST",
+      body: JSON.stringify({ email: user.email }),
+    });
+    resend.disabled = false;
+    toast(
+      result.ok ? "Check your inbox for a verification link." : result.error.message,
+      result.ok ? "success" : "error",
+    );
+  });
+  verification.append(resend);
+}
+
 // Builds a form: fields is [{ name, label, type, autocomplete }]; returns the form element.
 function buildForm(id, fields, submitLabel, submitClass = "dash-btn-primary") {
   const form = make("form", "dash-form");
