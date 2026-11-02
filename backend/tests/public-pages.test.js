@@ -60,3 +60,23 @@ it("escapes script-breaking metadata and returns robots instructions", async () 
   assert.match(page.text, /\\u003c\/script/);
   assert.match((await request(app).get("/robots.txt").expect(200)).text, /Disallow: \/share\//);
 });
+
+it("preserves replacement-pattern characters in metadata and content", async () => {
+  const { agent, ident } = await registerAndLogin();
+  await agent
+    .patch(`${API}/profile`)
+    .send({
+      displayName: "Developer $&",
+      seoTitle: "Work $& costs $1",
+      aboutText: "Literal $' and $` text",
+    })
+    .expect(200);
+  await prisma.profile.update({
+    where: { userId: (await prisma.user.findUnique({ where: { username: ident.username } })).id },
+    data: { published: true },
+  });
+  const page = await request(app).get(`/${ident.username}`).expect(200);
+  assert.ok(page.text.includes('<title id="page-title">Work $&amp; costs $1</title>'));
+  assert.ok(page.text.includes("Literal $&#39; and $` text"));
+  assert.equal((page.text.match(/id="portfolio-content"/g) || []).length, 1);
+});

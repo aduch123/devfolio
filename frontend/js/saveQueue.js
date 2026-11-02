@@ -3,6 +3,7 @@ export function createSaveQueue({ save, onState = () => {}, delay = 500 }) {
   const pending = new Map();
   const failed = new Map();
   const timers = new Map();
+  const scheduled = new Map();
   const versions = new Map();
   let running = false;
   async function drain() {
@@ -36,10 +37,12 @@ export function createSaveQueue({ save, onState = () => {}, delay = 500 }) {
     pending.delete(key);
     failed.delete(key);
     onState(key, "Saving");
+    scheduled.set(key, { value, version });
     timers.set(
       key,
       setTimeout(() => {
         timers.delete(key);
+        scheduled.delete(key);
         pending.set(key, { value, version });
         void drain();
       }, delay),
@@ -47,6 +50,15 @@ export function createSaveQueue({ save, onState = () => {}, delay = 500 }) {
   }
   return {
     enqueue,
+    flush() {
+      for (const [key, entry] of scheduled) {
+        clearTimeout(timers.get(key));
+        pending.set(key, entry);
+      }
+      timers.clear();
+      scheduled.clear();
+      return drain();
+    },
     retry(key) {
       const entry = failed.get(key);
       if (!entry) return;

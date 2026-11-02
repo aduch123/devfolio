@@ -139,7 +139,30 @@ function buildTopbar(user) {
   view.setAttribute("aria-label", "View public page (opens in a new tab)");
 
   const right = make("div", "dash-top-right");
-  right.append(status, view, buildAccountMenu(user));
+  const appearance = make(
+    "button",
+    "dash-btn dash-btn-ghost",
+    `Appearance: ${document.documentElement.dataset.colorMode || "auto"}`,
+  );
+  appearance.type = "button";
+  appearance.setAttribute(
+    "aria-label",
+    `App appearance: ${document.documentElement.dataset.colorMode || "auto"}. Activate to change.`,
+  );
+  appearance.addEventListener("click", () => {
+    const modes = ["auto", "light", "dark"],
+      current = document.documentElement.dataset.colorMode || "auto";
+    const mode = modes[(modes.indexOf(current) + 1) % modes.length];
+    document.documentElement.dataset.colorMode = mode;
+    appearance.textContent = `Appearance: ${mode}`;
+    appearance.setAttribute("aria-label", `App appearance: ${mode}. Activate to change.`);
+    try {
+      localStorage.setItem("devfolio-app-mode", mode);
+    } catch {
+      /* optional preference */
+    }
+  });
+  right.append(status, appearance, view, buildAccountMenu(user));
   top.append(brand, right);
   return top;
 }

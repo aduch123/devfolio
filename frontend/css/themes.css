@@ -1,0 +1,242 @@
+:root {
+  --on-accent: #fff;
+  --accent-ink-light: #3947e0;
+  --accent-ink-dark: #aab4ff;
+  --accent-ink: var(--accent-ink-light);
+  --control-border: #737b87;
+  --danger-ink: #a3261b;
+  color-scheme: light;
+}
+:root[data-color-mode="dark"] {
+  color-scheme: dark;
+  --control-border: #8d99ab;
+  --danger-ink: #ffb4ab;
+  --paper: #111827;
+  --panel: #1f2937;
+  --ink: #f3f4f6;
+  --ink-soft: #c5cedb;
+  --line: #4b5563;
+  --accent-soft: #29354d;
+  --accent-ink: var(--accent-ink-dark);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-color-mode="auto"] {
+    color-scheme: dark;
+    --control-border: #8d99ab;
+    --danger-ink: #ffb4ab;
+    --paper: #111827;
+    --panel: #1f2937;
+    --ink: #f3f4f6;
+    --ink-soft: #c5cedb;
+    --line: #4b5563;
+    --accent-soft: #29354d;
+    --accent-ink: var(--accent-ink-dark);
+  }
+}
+a,
+.card-link {
+  color: var(--accent-ink);
+}
+.btn:not(.btn-outline),
+.dash-btn-primary {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+.btn:not(.btn-outline):hover,
+.dash-btn-primary:hover {
+  background: var(--accent);
+  filter: none;
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+.btn-outline {
+  color: var(--accent-ink);
+  border-color: var(--accent-ink);
+  background: transparent;
+}
+.card,
+.auth-wrapper,
+.modal,
+.dash-top,
+.account-menu {
+  background-color: var(--panel);
+  color: var(--ink);
+}
+input,
+textarea,
+select {
+  color: var(--ink);
+  background-color: var(--panel);
+  border-color: var(--control-border);
+}
+input[type="color"] {
+  min-height: 2.5rem;
+}
+:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+html[data-template="minimal"] .editor-titlebar {
+  display: none;
+}
+html[data-template="minimal"] .editor-window {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+html[data-template="minimal"] .editor-body .code-keyword,
+html[data-template="minimal"] .editor-body .code-fn {
+  color: var(--accent-ink);
+}
+html[data-template="minimal"] .editor-body .code-string,
+html[data-template="minimal"] .editor-body .code-op {
+  color: var(--ink);
+}
+html[data-template="minimal"] .editor-body .code-comment {
+  color: var(--ink-soft);
+}
+html[data-template="minimal"] .project-card,
+html[data-template="minimal"] .skill-card {
+  box-shadow: none;
+  border-radius: 0;
+}
+html[data-template="bold"] {
+  --font-display: system-ui, sans-serif;
+  --radius: 0;
+}
+html[data-template="bold"] .editor-window {
+  background: var(--accent);
+  border: 3px solid var(--ink);
+}
+html[data-template="bold"] .editor-body,
+html[data-template="bold"] .editor-body [class^="code-"] {
+  color: var(--on-accent);
+}
+html[data-template="bold"] h1 {
+  font-weight: 900;
+}
+html[data-template="bold"] .project-card,
+html[data-template="bold"] .skill-card {
+  border: 2px solid var(--ink);
+}
+html[data-template="gradient"] .hero {
+  background: linear-gradient(135deg, var(--accent), #7650a5);
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+}
+html[data-template="gradient"] .project-card {
+  border-top: 4px solid var(--accent-ink);
+}
+.inline-edit-trigger {
+  opacity: 0;
+}
+.inline-editable:hover + .inline-edit-trigger,
+.inline-editable:focus + .inline-edit-trigger,
+.inline-edit-trigger:hover,
+.inline-edit-trigger:focus {
+  opacity: 1;
+}
+@media (hover: none) {
+  .inline-edit-trigger {
+    opacity: 1;
+  }
+}
+body {
+  overflow-wrap: anywhere;
+}
+img {
+  max-width: 100%;
+}
+.dash-content,
+.dash-main,
+.card {
+  min-width: 0;
+}
+.dash-top-right {
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .dash-top {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .hero h1 {
+    font-size: clamp(1.2rem, 6vw, 2rem);
+  }
+  .editor-body {
+    padding: 1rem;
+  }
+  .dash-nav {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0;
+    width: 100%;
+  }
+  .dash-nav-link {
+    min-width: 0;
+    padding: 0.4rem 0.1rem;
+    font-size: 0.6rem;
+  }
+  .analytics-table {
+    font-size: 0.75rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.form-error,
+.auth-error,
+.field-error {
+  color: var(--danger-ink);
+}
+.editor-window .btn {
+  border-color: var(--dark-text);
+}
+.editor-window .btn-outline {
+  color: var(--accent-ink-dark);
+  border-color: var(--accent-ink-dark);
+}
+html[data-template="minimal"] .editor-window .btn {
+  border-color: var(--ink);
+}
+html[data-template="minimal"] .editor-window .btn-outline {
+  color: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+html[data-template="bold"] .editor-window .btn {
+  border-color: var(--on-accent);
+}
+html[data-template="bold"] .editor-window .btn-outline {
+  color: var(--on-accent);
+  border-color: var(--on-accent);
+}
+.dash-todo,
+.dash-todo .card-text {
+  color: #342408;
+}
+.dash-todo .card-link {
+  color: #4b3eb7;
+}
+
+a:hover,
+.card-link:hover,
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--accent-ink);
+}
+
+.dash-top {
+  height: auto;
+  min-height: 64px;
+}
+.dash-top-right {
+  min-width: 0;
+}

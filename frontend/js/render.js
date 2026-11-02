@@ -1,7 +1,9 @@
+import { applyPortfolioTheme } from "./theme.js";
 import { portfolioView, viewToDom } from "./portfolioView.js";
 
 export function render(data, options = {}) {
   const p = data.profile || {};
+  applyPortfolioTheme(p, document, options);
   const name = p.displayName || data.username;
   for (const id of ["nav-username", "footer-name"]) document.getElementById(id).textContent = name;
   document.getElementById("page-title").textContent = `${name} | Portfolio`;

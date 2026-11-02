@@ -20,6 +20,13 @@ export const profileUpdateSchema = z.object({
   headline: optionalText(LIMITS.headline),
   location: optionalText(LIMITS.location),
   sectionConfig: sectionConfigSchema,
+  theme: z.enum(["editor", "minimal", "bold", "gradient"]).optional(),
+  accentColor: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i, "Choose a six-digit hex color")
+    .transform((value) => value.toLowerCase())
+    .optional(),
+  colorMode: z.enum(["auto", "light", "dark"]).optional(),
   seoTitle: optionalText(80),
   seoDescription: optionalText(160),
   ogImageUrl: optionalUrl,

@@ -1,0 +1,1 @@
+ALTER TABLE "Profile" ADD COLUMN "theme" TEXT NOT NULL DEFAULT 'editor', ADD COLUMN "accentColor" TEXT NOT NULL DEFAULT '#4c5fff', ADD COLUMN "colorMode" TEXT NOT NULL DEFAULT 'auto';
