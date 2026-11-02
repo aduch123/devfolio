@@ -117,3 +117,10 @@ export const engagementLimiter = build({
   limit: 120,
   message: "Too many engagement requests. Please try again later.",
 });
+
+export const healthCheckLimiter = build({
+  windowMs: 15 * MINUTE,
+  limit: 5,
+  message: "Please wait before checking your links again.",
+  keyGenerator: (req) => req.user.id,
+});
