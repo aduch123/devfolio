@@ -23,6 +23,7 @@ model User {
   timelineItems      TimelineItem[]
   sessions           Session[]
   emailTokens        EmailToken[]
+  messages           Message[]
   shareLinks         ShareLink[]
   onboardingDraft    OnboardingDraft?
 
@@ -31,6 +32,7 @@ model User {
 
 model Profile {
   id            String   @id @default(uuid())
+  emailNotifications Boolean @default(true)
   seoTitle      String?
   seoDescription String?
   ogImageUrl    String?
@@ -187,4 +189,23 @@ model ShareLink {
   revokedAt DateTime?
   createdAt DateTime @default(now())
   @@index([userId, createdAt])
+}
+
+enum MessageStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+model Message {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderName String
+  senderEmail String
+  body String
+  status MessageStatus @default(UNREAD)
+  notificationState String @default("PENDING")
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([userId, status])
 }

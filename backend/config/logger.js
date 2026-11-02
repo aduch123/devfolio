@@ -9,6 +9,8 @@ const logger = pino({
   // Request URLs may contain private share or verification tokens.
   redact: [
     "req.url",
+    "req.query",
+    "req.params",
     "req.headers.cookie",
     "req.headers.authorization",
     'res.headers["set-cookie"]',

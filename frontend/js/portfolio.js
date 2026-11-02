@@ -102,6 +102,7 @@ function setupContactForm() {
   const submitBtn = document.getElementById("submit-btn");
   if (!form) return;
 
+  const startedAt = Date.now();
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -122,7 +123,13 @@ function setupContactForm() {
 
     const result = await apiFetch(endpoint, {
       method: "POST",
-      body: JSON.stringify({ name, email, message }),
+      body: JSON.stringify({
+        name,
+        email,
+        message,
+        startedAt,
+        website: form.querySelector('[name="website"]')?.value || "",
+      }),
       anonymous: true,
     });
 
@@ -130,6 +137,12 @@ function setupContactForm() {
     submitBtn.textContent = "Send message";
 
     if (!result.ok) {
+      if (result.error.fields?.startedAt || result.error.fields?.website) {
+        status.textContent = result.error.fields.startedAt
+          ? "Please take a moment before sending your message."
+          : "Your message could not be accepted. Please try again.";
+        return;
+      }
       const unmatched = showFieldErrors(form, result.error.fields);
       status.textContent = errorText(result.error, unmatched);
       return;

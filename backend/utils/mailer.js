@@ -14,9 +14,12 @@ const sendFailed = () =>
 
 // In tests nothing is sent: messages are collected here so tests can read the links in them.
 export const testOutbox = [];
+// Used only by isolated tests to exercise provider-failure recovery.
+export const testDelivery = { failure: null };
 
 async function deliver(payload) {
   if (env.NODE_ENV === "test") {
+    if (testDelivery.failure) throw testDelivery.failure;
     testOutbox.push(payload);
     return;
   }
@@ -35,12 +38,12 @@ async function deliver(payload) {
   }
 }
 
-export const sendContactEmail = ({ to, senderName, senderEmail, message }) =>
+export const sendContactEmail = ({ to, senderName, senderEmail, message, inboxUrl }) =>
   deliver({
     to,
     replyTo: senderEmail,
     subject: `New message from ${senderName}`,
-    text: `From: ${senderName} (${senderEmail})\n\n${message}`,
+    text: `From: ${senderName} (${senderEmail})\n\n${message}${inboxUrl ? `\n\nOpen your inbox: ${inboxUrl}` : ""}`,
   });
 
 export const sendPasswordResetEmail = ({ to, username, link }) =>

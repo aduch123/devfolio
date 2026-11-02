@@ -98,3 +98,16 @@ export const contactLimiter = build({
     return `${ipKeyGenerator(req.ip)}|${target}`;
   },
 });
+
+// Global per-IP limit plus a recipient-wide cap shared by all public/private URLs.
+export const contactIpLimiter = build({
+  windowMs: 60 * MINUTE,
+  limit: 20,
+  message: "You have sent too many messages. Please try again later.",
+});
+export const portfolioContactLimiter = build({
+  windowMs: 60 * MINUTE,
+  limit: 100,
+  message: "This inbox is receiving too many messages. Please try again later.",
+  keyGenerator: (req) => req.messageRecipient.id,
+});

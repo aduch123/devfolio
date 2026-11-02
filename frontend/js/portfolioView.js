@@ -148,6 +148,12 @@ export function portfolioView(data, { preview = false } = {}) {
         field("name", "Name"),
         field("email", "Email", "email"),
         field("message", "Message", "textarea"),
+        h(
+          "label",
+          { class: "contact-trap", "aria-hidden": "true" },
+          "Leave this field empty",
+          h("input", { name: "website", tabindex: -1, autocomplete: "off" }),
+        ),
         h("button", { id: "submit-btn", type: "submit", class: "btn" }, "Send message"),
         h("p", { id: "form-status", role: "status", "aria-live": "polite" }),
       ),
