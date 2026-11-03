@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -235,6 +236,7 @@ model View {
   createdAt DateTime @default(now())
   @@unique([userId, visitorHash, windowStart])
   @@index([userId, createdAt])
+  @@index([createdAt])
 }
 model Like {
   id String @id @default(uuid())

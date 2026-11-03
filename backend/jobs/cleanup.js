@@ -42,11 +42,17 @@ export async function runCleanup(now = new Date()) {
 
 // Daily at 03:30 server time, and once shortly after start-up.
 export function startJobs() {
-  startHealthJobs();
+  const healthTask = startHealthJobs();
   const run = () =>
     Promise.all([runCleanup(), rollupViews()]).catch((err) =>
       logger.error({ err }, "maintenance job failed"),
     );
-  cron.schedule("30 3 * * *", run);
-  setTimeout(run, 30 * 1000).unref();
+  const cleanupTask = cron.schedule("30 3 * * *", run);
+  const timer = setTimeout(run, 30 * 1000);
+  timer.unref();
+  return () => {
+    clearTimeout(timer);
+    cleanupTask.stop();
+    healthTask.stop();
+  };
 }

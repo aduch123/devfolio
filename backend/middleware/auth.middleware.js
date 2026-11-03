@@ -36,5 +36,6 @@ export const requireAuth = async (req, res, next) => {
   });
   if (!live) throw unauthorized("Your session has ended. Please log in again", "SESSION_ENDED");
   req.user = user;
+  res.setHeader("Cache-Control", "no-store");
   next();
 };

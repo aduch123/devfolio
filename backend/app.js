@@ -1,3 +1,5 @@
+import compression from "compression";
+import crypto from "node:crypto";
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
@@ -48,13 +50,9 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        // TODO(Phase 10): remove 'unsafe-inline' once inline style="" attributes are moved into CSS.
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://fonts.googleapis.com",
-          "https://cdnjs.cloudflare.com",
-        ],
+        // Dynamic accent and viewport styles need attributes; inline style elements stay blocked.
+        styleSrc: ["'self'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+        styleSrcAttr: ["'unsafe-inline'"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         imgSrc: ["'self'", "data:"],
         connectSrc: ["'self'"],
@@ -71,17 +69,46 @@ app.use(
   }),
 );
 
+app.use(
+  pinoHttp({
+    logger,
+    genReqId(req, res) {
+      const id = crypto.randomUUID();
+      res.setHeader("X-Request-ID", id);
+      return id;
+    },
+  }),
+);
+
 // Same-origin only unless CORS_ORIGINS lists other origins.
 app.use(cors({ origin: env.CORS_ORIGINS.length > 0 ? env.CORS_ORIGINS : false }));
 
+app.use(
+  compression({
+    filter: (req, res) =>
+      req.path.startsWith("/api/v1/auth") ||
+      (req.method === "POST" && req.path.startsWith("/api/v1/share"))
+        ? false
+        : compression.filter(req, res),
+  }),
+);
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
-app.use(pinoHttp({ logger }));
 
 // The landing page must be decided before static files: a logged-in visitor is redirected, not shown it.
 app.get("/", guestPage(LANDING_PAGE));
 
-app.use(express.static(path.join(__dirname, "../frontend")));
+app.use(
+  express.static(path.join(__dirname, "../frontend"), {
+    etag: true,
+    setHeaders(res, file) {
+      res.setHeader(
+        "Cache-Control",
+        file.endsWith(".html") ? "no-store" : "public, max-age=0, must-revalidate",
+      );
+    },
+  }),
+);
 
 // Uploaded files: random names never change, so they cache well. The headers keep a hostile file inert.
 app.use(
@@ -102,6 +129,7 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/healthz", async (req, res) => {
+  if (app.locals.shuttingDown) return res.status(503).json({ status: "shutting_down" });
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.status(200).json({ status: "ok" });

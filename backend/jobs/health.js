@@ -4,7 +4,7 @@ import logger from "../config/logger.js";
 import { runLinkChecks } from "../modules/health/health.service.js";
 let scheduledRunning = false;
 export function startHealthJobs() {
-  cron.schedule(
+  return cron.schedule(
     "0 4 * * *",
     async () => {
       if (scheduledRunning) return;

@@ -1,3 +1,4 @@
+import { reportServerError } from "../utils/errorReporter.js";
 import { escapeHtml } from "../../frontend/js/portfolioView.js";
 import { ZodError } from "zod";
 import logger from "../config/logger.js";
@@ -28,10 +29,14 @@ const send = (req, res, status, code, message, fields) => {
 };
 
 export const errorHandler = (err, req, res, next) => {
+  if (res.headersSent) return next(err);
   const log = req.log || logger;
 
   if (err instanceof AppError) {
-    if (err.status >= 500) log.error({ err }, err.message);
+    if (err.status >= 500) {
+      log.error({ err }, err.message);
+      reportServerError({ requestId: req.id });
+    }
     return send(req, res, err.status, err.code, err.message, err.fields);
   }
 
@@ -55,5 +60,6 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   log.error({ err }, "Unhandled error");
+  reportServerError({ requestId: req.id });
   send(req, res, 500, "INTERNAL_ERROR", "Something went wrong. Please try again.");
 };

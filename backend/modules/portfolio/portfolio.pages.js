@@ -83,7 +83,7 @@ export function sendPortfolioPage(res, user, { privateLink = false } = {}) {
   }
   res
     .set({
-      "Cache-Control": "no-store",
+      "Cache-Control": privateLink ? "no-store" : "public, max-age=0, must-revalidate",
       ...(privateLink ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
     })
     .type("html")
@@ -91,6 +91,7 @@ export function sendPortfolioPage(res, user, { privateLink = false } = {}) {
 }
 export async function publicPortfolioPage(req, res) {
   const user = await prisma.user.findUnique({
+    relationLoadStrategy: "join",
     where: {
       username: req.params.username.toLowerCase(),
       deletedAt: null,
@@ -114,8 +115,24 @@ export async function portfolioImage(req, res) {
           select: { username: true, profile: { select: { displayName: true, headline: true } } },
         });
   if (!user) return res.status(404).end();
-  const name = escapeHtml((user.profile.displayName || user.username).slice(0, 60));
-  const headline = escapeHtml((user.profile.headline || "Developer portfolio").slice(0, 85));
+  const svgText = (text, max) =>
+    escapeHtml(
+      Array.from(text)
+        .slice(0, max)
+        .map((char) => {
+          const code = char.codePointAt(0);
+          return code < 32 ||
+            code === 127 ||
+            (code >= 0xd800 && code <= 0xdfff) ||
+            code === 0xfffe ||
+            code === 0xffff
+            ? " "
+            : char;
+        })
+        .join(""),
+    );
+  const name = svgText(user.profile.displayName || user.username, 60);
+  const headline = svgText(user.profile.headline || "Developer portfolio", 85);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><rect width="1200" height="630" fill="#101827"/><text x="80" y="150" fill="#68e0b0" font-size="32">${APP_NAME}</text><text x="80" y="310" fill="white" font-family="sans-serif" font-size="54">${name}</text><text x="80" y="405" fill="#cbd5e1" font-family="sans-serif" font-size="28">${headline}</text></svg>`;
   const buffer = await sharp(Buffer.from(svg)).png().toBuffer();
   res.type("png").set("Cache-Control", "public, max-age=300").send(buffer);
