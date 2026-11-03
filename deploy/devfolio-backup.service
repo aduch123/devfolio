@@ -1,0 +1,16 @@
+[Unit]
+Description=Devfolio database and upload backup
+
+[Service]
+Type=oneshot
+User=devfolio
+WorkingDirectory=/opt/devfolio/backend
+EnvironmentFile=/etc/devfolio/backup.env
+Environment=BACKUP_DIR=/var/backups/devfolio
+ExecStart=/usr/bin/node scripts/backup.js
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/devfolio

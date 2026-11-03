@@ -6,8 +6,10 @@
 **Last updated:** 2026-11-03 (Phase 10 hardening and deployment preparation)
 **Implementation update (2026-11-02):** Phase 4.1 publishing backend committed (`866c681`). Draft migration applied successfully to the isolated test DB; both focused publishing integration tests pass. Baseline lint, targeted lint, syntax checks and Prisma generation pass. Dashboard publish/unpublish confirmation controls and accurate status added. Production database migration is still pending. Existing public-read tests now explicitly mark their fixtures published under the new draft default; Phase 4.2 shared DOM renderer and authenticated iframe preview implemented with viewport controls; renderer now includes profile media, headline, location, social links, timeline, and section ordering/visibility. Browser verification pending. Phase 4.3 started: serialized/coalesced save queue with retry and unit tests, plain-text paste helper, keyboard-accessible inline profile/project editing and unsaved navigation warnings. Phase 4.4 list/media panels added with create/update/delete, drag and keyboard ordering, upload previews and section controls; section titles can now be edited through sectionConfig. Last regression run passed 130 tests. Legacy editor files removed after adding profile/contact editing; /edit now redirects old bookmarks to /dashboard/portfolio. Browser testing stopped at user request; only focused checks will be used. Full Phase 4 acceptance is still pending; later phases are not implemented.
 
-**Current position:** Phases 0–9 are merged and pushed; phase-9-complete is on merge 64113b5. Current branch: phase-10-launch. Runtime/security, CI, container/recovery files and launch guide are prepared. Fresh 19-migration setup, seed, clean restore, patched zero-runtime-advisory audit and local 491 ms p95 verified. Final regression/push in progress. Actual hosting/HTTPS, Docker build access, verified Resend domain/delivery, operator/legal details and remote CI policy remain external checks; browser audits are explicitly deferred.
-**Code changes made so far:** Phase 0 complete (0.1 to 0.8). Phase 1: 1.1 to 1.7. Phase 2: 2.1 to 2.5. Phase 3: 3.1 and 3.2 (Session 17), 3.3 (Session 18), 3.4 (Session 19), 3.5 (Session 20).
+**Current position:** Phases 0–9 are merged and pushed; phase-9-complete is on merge 64113b5. Current branch: phase-10-launch. Runtime/security, CI, container/recovery files and launch guide are prepared. Fresh 19-migration setup, seed, clean restore, patched zero-runtime-advisory audit and local 491 ms p95 verified. Final regression passed: 178 passed, 0 failed, three optional checks skipped in the default suite after separate successful runs. Actual hosting/HTTPS, Docker build access, verified Resend domain/delivery, operator/legal details and remote CI policy remain external checks; browser audits are explicitly deferred.
+**Code changes made so far:** Phases 0–9 implemented and integrated. Phase 10 adds patched dependencies, runtime hardening, CI, deployment/recovery files, seed and verification scripts on `phase-10-launch`.
+
+**Current working agreement:** Work directly in the repository. The user authorized focused commits, pushes and merge/tag of completed phases. Skip browser/axe/Lighthouse runs and ask only for genuine missing launch inputs. The historical zip workflow below is not the current delivery method.
 
 ---
 
@@ -256,17 +258,13 @@ Mark `[x]` when **all** success criteria of that item are verified by the user. 
 - [ ] 4.5 Tests and wrap-up
 
 ### Phases 4 to 10
-- [ ] Phase 4 · [ ] Phase 5 · [ ] Phase 6 · [ ] Phase 7 · [ ] Phase 8 · [ ] Phase 9 · [ ] Phase 10
+- [x] Phase 4 · [x] Phase 5 · [x] Phase 6 · [x] Phase 7 · [x] Phase 8 · [x] Phase 9 · [~] Phase 10 (code/local checks complete; external launch acceptance pending)
 
 ---
 
 ## 8. NEXT TASK
 
-### 8a. Approve the Phase 4 brief, then build batch 4.1 + 4.2 (branch `phase-4-editor`)
-
-Create the branch from `main` (`git switch main && git pull && git switch -c phase-4-editor`) and add `docs/PHASE_4_PLAN.md`. The 7 decisions at the top of that file are proposed defaults; the user replies "approved" or changes them (rule 1b: no code before approval). Then build **4.1** (publish backend and draft protection) and **4.2** (shared render and live preview) in order, one zip each, cumulative.
-
-Watch-outs from the Phase 3 history: every file passed to `guestPage` or `appPage` must be an absolute path from `pageFile(...)`; run `npm run migrate:test` after the 4.1 migration; the CSP change for the iframe is `frame-ancestors 'self'` only.
+Phase 10 is the last phase. Review [deployment and recovery](DEPLOYMENT.md) and use the `phase-10-launch` branch. Local implementation checks are complete. For a live release, obtain the hosting target and public domain, configure HTTPS/persistent storage and a verified Resend sender, finalize operator/legal details, and verify staging/production, remote CI policy and scheduled backups. Keep browser/axe/Lighthouse checks deferred unless the user changes that instruction. Do not claim a live launch, merge Phase 10 or create its completion tag until the remaining acceptance scope is resolved.
 
 ---
 
@@ -769,3 +767,7 @@ Clean install succeeded with patched dependencies. Runtime audit: zero vulnerabi
 Phase 10 performance retest: joined public portfolio read reduced the 50-concurrent local HTTP p95 from 506 ms to 491 ms, passing the 500 ms target. Added deployment/recovery runbook, daily backup timer example, production validation, retention timestamp index and CI checks. No Docker daemon permission, remote GitHub CLI auth, hosting target, verified sender domain or operator legal details are available here; no build/deploy/live email claimed. Final non-browser regression and launch branch push remain.
 
 Fresh setup verified on 2026-11-03: a separate temporary DB accepted all 19 migrations, the seed produced one unverified draft with three projects, and a duplicate seed was refused. Temporary DB removed; main DB untouched. Protected APIs now send no-store, request IDs cover parsing errors, and CSP allows inline style attributes only for the current dynamic theme/viewport behavior, with style/script elements restricted to permitted sources. Final regression and launch branch commits follow.
+
+Final local regression: 178 passed, 0 failed, 3 optional tests skipped (100k analytics, clean restore, and 50-concurrent HTTP tests already passed separately). Lint and configured formatting pass. Runtime/recovery milestone is 46506ce. Deployment/CI milestone and branch push follow; Phase 10 remains unmerged/untagged because actual launch checks are outstanding.
+
+Final targeted cache check passed after adding no-store to authenticated API responses. Final smoke passed against a temporary local server with an isolated published fixture (including public payload privacy, readiness, auth/origin/error shape and owner-read protection). Final delivery is the phase-10-launch branch with local checks complete and live launch acceptance outstanding.

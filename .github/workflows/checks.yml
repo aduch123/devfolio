@@ -1,0 +1,45 @@
+name: Checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: devfolio
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: devfolio_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U devfolio -d devfolio_test"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://devfolio:ci-only-password@localhost:5432/devfolio_unused
+      DATABASE_URL_TEST: postgresql://devfolio:ci-only-password@localhost:5432/devfolio_test
+      JWT_SECRET: ci-only-secret-not-for-real-deployments-0123456789
+      RESEND_API_KEY: re_ci_dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run migrate:test
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run security:scan
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high

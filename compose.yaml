@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: devfolio
+      POSTGRES_USER: devfolio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment environment}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devfolio -d devfolio"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  migrate:
+    build:
+      context: .
+      target: migrate
+    env_file: .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: [tools]
+  app:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      UPLOAD_DIR: /data/uploads
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - uploads:/data/uploads
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      db:
+        condition: service_healthy
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: [tls]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN for HTTPS}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  postgres_data:
+  uploads:
+  caddy_data:
+  caddy_config:

@@ -10,7 +10,7 @@ Devfolio is a platform where developers build a portfolio, publish it at a publi
 
 ## Prerequisites
 
-- Node.js 20.19 or newer (required by Prisma 7)
+- Node.js 22.12+ in the Node 22 release line (see `.nvmrc`)
 - A running PostgreSQL database
 - A [Resend](https://resend.com) API key
 
@@ -18,9 +18,9 @@ Devfolio is a platform where developers build a portfolio, publish it at a publi
 
 ```bash
 cd backend
-npm install
-cp .env.example .env        # then edit .env with your real values
-npx prisma migrate dev      # applies the database migrations
+npm ci
+cp -n .env.example .env        # then edit .env with your real values
+npx prisma migrate deploy   # applies committed database migrations
 npx prisma generate         # generates the Prisma client
 npm run dev                 # starts the server with auto-reload
 ```
@@ -51,7 +51,7 @@ The server validates these at startup and exits with a clear message if any are 
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Start with nodemon (auto-reload) |
+| `npm run dev` | Start with Node watch mode (auto-reload) |
 | `npm start` | Start normally |
 | `npm run smoke` | Check a running server: `/healthz`, a public portfolio (set `SMOKE_USERNAME`), 404 and validation error shapes, security headers |
 | `npm run lint` | Lint backend and frontend with ESLint |
@@ -82,9 +82,9 @@ frontend/
 
 All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` after a database ping (503 if the DB is unreachable); `/health` is a legacy alias.
 
-| Area | Endpoints (relative to `/api/v1`) | Account | `POST account/password`, `POST account/email`, `POST account/username`, `POST account/delete` | yes (current password required except for username) |
-| Auth |
+| Area | Endpoints (relative to `/api/v1`) | Auth required |
 |---|---|---|
+| Account | `POST account/password`, `POST account/email`, `POST account/username`, `POST account/delete` | yes (current password required except for username) |
 | Auth | `POST auth/signup`, `POST auth/login`, `GET auth/username-available`, `POST auth/verify-email`, `POST auth/resend-verification`, `POST auth/forgot-password`, `POST auth/reset-password`, `POST auth/refresh`, `POST auth/logout` | no (refresh and logout use the cookies) |
 | Session | `GET auth/me` | yes |
 | Onboarding | `POST onboarding` (409 `ALREADY_ONBOARDED` if repeated) | yes |
@@ -93,11 +93,12 @@ All endpoints live under `/api/v1`. `GET /healthz` returns `{ "status": "ok" }` 
 | Projects | `GET`, `POST projects`; `PATCH`, `DELETE projects/:id`; `PUT projects/order` (`{ ids }`); `POST`, `DELETE projects/:id/cover` (multipart `file`) | yes |
 | Social links | `GET`, `POST social`; `PATCH`, `DELETE social/:id`; `PUT social/order` (`{ ids }`) | yes |
 | Timeline | `GET timeline?type=`, `POST timeline`; `PATCH`, `DELETE timeline/:id`; `PUT timeline/order` (`{ type, ids }`) | yes |
-| Share link | `POST`, `GET`, `DELETE share` | yes |
+| Share links | `GET`, `POST share-links`; `PATCH`, `DELETE share-links/:id`; `GET share-links/qr` | yes |
+| Owner preview | `GET portfolio/me` | yes |
 | Public portfolio | `GET portfolio/:username`, `GET portfolio/share/:token` | no |
 | Contact form | `POST portfolio/:username/message`, `POST portfolio/share/:token/message` | no |
 
-**Sessions:** login sets two `HttpOnly`, `SameSite=Lax` cookies (`Secure` in production): `dev_access` (JWT, 15 minutes) and `dev_refresh` (30 days, sent only to `/api/v1/auth`). The refresh token is stored hashed in the `Session` table and rotates on every refresh; presenting an already-rotated token after a 10-second grace window revokes that session. The client refreshes silently once on a 401 and retries. Logout revokes the session server-side, and protected routes check the session in the database on every request. State-changing `/api/v1` requests whose `Origin` header is another site are refused (`BAD_ORIGIN`, 403). Run `npm install` after pulling (adds `cookie-parser`).
+**Sessions:** login sets two `HttpOnly`, `SameSite=Lax` cookies (`Secure` in production): `dev_access` (JWT, 15 minutes) and `dev_refresh` (30 days, sent only to `/api/v1/auth`). The refresh token is stored hashed in the `Session` table and rotates on every refresh; presenting an already-rotated token after a 10-second grace window revokes that session. The client refreshes silently once on a 401 and retries. Logout revokes the session server-side, and protected routes check the session in the database on every request. State-changing `/api/v1` requests whose `Origin` header is another site are refused (`BAD_ORIGIN`, 403).
 
 **Email verification:** signup emails a single-use link (`/verify-email?token=...`, valid 24 hours; only the token hash is stored in `EmailToken`). The page posts the token to the API, so a link scanner opening the URL cannot use it up. Resending is public by email, answers the same for every address, and has a 60-second cooldown per account plus 5 requests per hour per IP. Nothing is blocked for unverified users yet. Resend's test sender only delivers to your own Resend account email until you verify a domain.
 
@@ -121,19 +122,19 @@ Every API error is `{ "error": { "code": "...", "message": "...", "fields": { "f
 
 - Contact-form emails use `RESEND_FROM` (default: Resend's test sender, which only delivers to the email of your Resend account until you verify a domain).
 - `.env` is git-ignored; only `.env.example` is committed. Rotate any secret that was ever shared.
-- Known dev-only advisories from `npm audit` (Prisma CLI and nodemon tooling) are tracked in `docs/HANDOFF.md`.
+- The final audit results and remaining development-tool advisories are tracked in `docs/HANDOFF.md`.
 - The project is being built in phases: see `docs/BUILD_PLAN.md`.
 
 
 ## Account settings and cleanup
 
-Changing the password ends all other sessions; changing the email marks it unverified and sends a new link; changing the username makes the old portfolio URL return 404 (no redirect). Deleting the account (password required) hides it and ends all sessions at once; a daily job (`node-cron`, 03:30 server time, and once 30 s after start) removes accounts 14 days after deletion, expired sessions and used or expired email tokens. Run `npm install node-cron` after pulling. Signup with a deleted account's email or username stays blocked until the account is removed.
+Changing the password ends all other sessions; changing the email marks it unverified and sends a new link; changing the username makes the old portfolio URL return 404 (no redirect). Deleting the account (password required) hides it and ends all sessions at once; a daily job (`node-cron`, 03:30 server time, and once 30 s after start) removes accounts 14 days after deletion, expired sessions and used or expired email tokens. Signup with a deleted account's email or username stays blocked until the account is removed.
 
 ## Tests
 
-`npm test` (in `backend/`) runs `node:test` with Supertest against a **separate** database. One-time setup: create an empty database (for example `devfolio_test`), put its URL in `backend/.env` as `DATABASE_URL_TEST`, then apply the migrations to it with `DATABASE_URL=<that url> npx prisma migrate deploy`. The tests refuse to run if `DATABASE_URL_TEST` is missing or equal to `DATABASE_URL`. They create users with the email domain `@devfolio-test.dev` and delete them afterwards; no email is sent (messages are collected in memory) and rate limits are off. Install once with `npm install -D supertest` and `npm pkg set scripts.test="node --test --test-concurrency=1 \"tests/**/*.test.js\""`.
+`npm test` (in `backend/`) runs `node:test` with Supertest against a **separate** database. One-time setup: create an empty database (for example `devfolio_test`), put its URL in `backend/.env` as `DATABASE_URL_TEST`, then run `npm run migrate:test` to apply its migrations. The tests refuse to run if `DATABASE_URL_TEST` is missing or equal to `DATABASE_URL`. They create users with the email domain `@devfolio-test.dev` and delete them afterwards; no email is sent (messages are collected in memory) and rate limits are off.
 
-**Content and uploads (Phase 2):** skills (preset or custom, with a category), projects (cover image, featured), social links and a timeline (experience and education) all have create, update, delete and a `PUT .../order` endpoint that takes the full list of ids in the new order; another user's id gives 404. Public reads return everything in the saved order. Uploads: avatar and cover images (JPEG, PNG or WebP, 2 MB) are checked by their content, resized and re-encoded as WebP; resumes (PDF, 5 MB) are checked by signature. Files get random names under `UPLOAD_DIR`, are served from `/uploads` with `nosniff` and a locked-down CSP, and the old file is deleted when replaced. Run `npm install multer sharp` after pulling.
+**Content and uploads (Phase 2):** skills (preset or custom, with a category), projects (cover image, featured), social links and a timeline (experience and education) all have create, update, delete and a `PUT .../order` endpoint that takes the full list of ids in the new order; another user's id gives 404. Public reads return everything in the saved order. Uploads: avatar and cover images (JPEG, PNG or WebP, 2 MB) are checked by their content, resized and re-encoded as WebP; resumes (PDF, 5 MB) are checked by signature. Files get random names under `UPLOAD_DIR`, are served from `/uploads` with `nosniff` and a locked-down CSP, and the old file is deleted when replaced.
 
 **Section config:** `profile.sectionConfig` says which sections the portfolio shows and in what order: `about`, `skills`, `projects`, `experience`, `education`, `contact`, each `{ visible, order }` (order 0 to 5, unique). `PATCH /profile` takes any subset and merges it into the saved config (two sections cannot share a position, so move several in one request); `null` resets to the defaults. `GET /profile` and the public portfolio always return all six sections.
 
@@ -147,7 +148,7 @@ Public `/:username` pages are rendered on the server using the same view tree as
 
 Authenticated share management: `GET`/`POST /api/v1/share-links`, `PATCH`/`DELETE /api/v1/share-links/:id`, and `GET /api/v1/share-links/qr` for the public URL QR image. A private link has a label and optional future expiry. Its token is returned only when created; listing never returns tokens or hashes. Revocation is permanent. Private links can open drafts and are always noindex. Existing tokens are migrated to SHA-256 hashes before the plaintext column is removed, preserving existing URLs. Legacy `/share` endpoints remain for compatibility, but `GET /share` cannot recover a token.
 
-Run `npm install` in backend for QR support, then `npx prisma migrate deploy` and `npx prisma generate` before running this version. The migrations add SEO fields and replace the old share-token column. Private/verification request URLs and authentication cookies are redacted from logs; normal test request logs are suppressed. Browser and Lighthouse checks are deferred at the user's request, so no visual/performance score is claimed. Per-link view counts are delivered with Phase 7 analytics.
+Run `npm ci` in backend, then `npx prisma migrate deploy` and `npx prisma generate` before running this version. The migrations add SEO fields and replace the old share-token column. Private/verification request URLs and authentication cookies are redacted from logs; normal test request logs are suppressed. Browser and Lighthouse checks are deferred at the user's request, so no visual/performance score is claimed. Per-link view counts are delivered with Phase 7 analytics.
 
 ## Messages and inbox (Phase 6)
 
@@ -182,3 +183,13 @@ Choose Editor, Minimal, Bold or Gradient in the profile editor, plus a six-digit
 The landing page includes a live fictional `/demo`, with messaging and analytics disabled. Privacy and development terms pages are available; operator-specific legal/contact details must be finalized before launch. Browser error pages preserve HTTP status codes and use friendly HTML; API errors keep their JSON format. The editor warns before leaving with unsaved panel changes. Ctrl/Cmd+S saves the active editor panel or flushes pending inline changes; Ctrl/Cmd+Enter opens publishing. Destructive persisted actions use confirmation dialogs. CSS includes visible focus, reduced motion, responsive layouts and mobile navigation rules.
 
 Deploy the theme migration before starting this version. Keyboard flows, responsive layout, axe and Lighthouse checks remain deferred under the user's no-browser-testing instruction; no audit/performance score is claimed for these interfaces.
+
+## Hardening and launch (Phase 10)
+
+See [Deployment and recovery](docs/DEPLOYMENT.md) for staging/production setup, Docker/Compose, HTTPS, persistent uploads, backups and the launch checklist. The production startup check requires a public HTTPS `APP_URL`, real key/secret, a non-test sender and an explicit upload directory. Runtime includes request IDs, redacted logs, optional sanitized error-spike alerts, bounded HTTP/DB connections, graceful shutdown and gzip/Brotli negotiation. Authentication and token creation responses are excluded from compression. Public pages revalidate with ETags so edits and unpublishing take effect immediately; private pages are not cached. Inline style attributes remain permitted for validated theme/viewport values; inline scripts and style elements are blocked.
+
+CI installs the locked dependencies, migrates a fresh isolated PostgreSQL service, runs lint/format/secret checks, tests and the runtime high-severity audit. `npm run security:scan -- --history` checks known credential patterns without printing values. The final runtime audit found zero advisories; the full audit found six moderate development-tool advisories and zero high/critical. Avoid forced major downgrades. Local verification restored a clean test database and checked an upload copy, verified graceful shutdown and measured 491 ms p95 for 50 concurrent public HTTP requests. These measurements describe the local test environment.
+
+Optional checks from `backend`: `RUN_BACKUP_RESTORE=1 node --test tests/backup-restore.test.js` (requires matching PostgreSQL tools and permission to create/drop a temporary database), `RUN_LAUNCH_PERF=1 node --test tests/launch-runtime.test.js`, and `RUN_ANALYTICS_PERF=1 node --test tests/analytics.test.js`. `npm run seed` creates a realistic unverified draft using your `DEMO_EMAIL` and `DEMO_PASSWORD` and never overwrites an existing account or sends email. The public `/demo` is available without seeding.
+
+Deployment files are prepared and Compose configuration validates. Container build/run, remote CI/branch policy, live HTTPS/domain/Resend delivery and operator-specific legal details remain external launch checks. Browser/axe/Lighthouse runs remain deferred by request.

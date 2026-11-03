@@ -8,6 +8,8 @@ A phase-by-phase plan to turn the current portfolio generator into a full portfo
 
 **Git workflow:** one branch per **phase** (`phase-N-name`, for example `phase-0-foundation`), created from `main` at the start of the phase. Each subphase or logical step is a commit on that branch (`type(N.X): summary`). When every success criterion of the phase is ticked, merge the branch into `main` with `git merge --no-ff` and tag it `phase-N-complete`.
 
+**Current delivery (2026-11-03):** Phases 0–9 are integrated. Phase 10 implementation and local checks are on `phase-10-launch`; see [HANDOFF.md](HANDOFF.md) for verified results and [DEPLOYMENT.md](DEPLOYMENT.md) for live launch gates. Browser/axe/Lighthouse checks were explicitly deferred, as was verified sending-domain setup until launch. The original criteria below remain the reference for what was deferred.
+
 ---
 
 ## Table of contents

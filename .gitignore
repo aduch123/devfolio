@@ -9,3 +9,9 @@ Thumbs.db
 .idea/
 uploads/
 generated/
+
+.env.production
+backend/backups/
+coverage/
+
+/backups/
