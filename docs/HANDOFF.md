@@ -771,3 +771,5 @@ Fresh setup verified on 2026-11-03: a separate temporary DB accepted all 19 migr
 Final local regression: 178 passed, 0 failed, 3 optional tests skipped (100k analytics, clean restore, and 50-concurrent HTTP tests already passed separately). Lint and configured formatting pass. Runtime/recovery milestone is 46506ce. Deployment/CI milestone and branch push follow; Phase 10 remains unmerged/untagged because actual launch checks are outstanding.
 
 Final targeted cache check passed after adding no-store to authenticated API responses. Final smoke passed against a temporary local server with an isolated published fixture (including public payload privacy, readiness, auth/origin/error shape and owner-read protection). Final delivery is the phase-10-launch branch with local checks complete and live launch acceptance outstanding.
+
+Container packaging explicitly installs fontconfig and DejaVu fonts so the slim image has a font for server-generated preview PNGs. Docker daemon permission is still unavailable, so image build/runtime validation remains a live-environment check.

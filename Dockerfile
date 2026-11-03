@@ -1,5 +1,5 @@
 FROM node:22-bookworm-slim AS build
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates fontconfig fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci
